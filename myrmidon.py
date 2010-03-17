@@ -33,7 +33,7 @@ This is the main file, it have the main MyrmidonGame and MyrmidonProcess objects
 
 import sys, os, math
 
-from myrmidon_consts import *
+from consts import *
 
 class MyrmidonGame(object):
 
@@ -111,19 +111,19 @@ class MyrmidonGame(object):
 		Is responsible for the main loop.
 		"""
 		while cls.started:
-
+			
 			if cls.engine['input']:
 				cls.engine['input'].process_input()
+
+			cls.engine['gfx'].update_screen_pre()
 				
 			for process in cls.process_list:
 				if hasattr(process, "execute"):
 					cls.current_process_executing = process
 					process._iterate_generator()
 
-			cls.engine['gfx'].update_screen_pre()
-
 			cls.engine['gfx'].draw_processes(cls.process_list)
-			
+				
 			cls.engine['gfx'].update_screen_post()
 
 			cls.fps = int(cls.clock.get_fps())
@@ -221,6 +221,7 @@ class MyrmidonGame(object):
 		if not process in MyrmidonGame.process_list:
 			return
 
+		cls.engine['gfx'].remove_process(process)
 		MyrmidonGame.process_list.remove(process)
 
 		
@@ -262,6 +263,15 @@ class MyrmidonGame(object):
 			MyrmidonGame.process_destroy(text)
 
 
+	##############################################
+	# HELPFUL MATH
+	##############################################
+	@classmethod	
+	def get_distance(cls, pointa, pointb):
+		return math.sqrt((math.pow((pointb[1] - pointa[1]), 2) + math.pow((pointb[0] - pointa[0]), 2)))
+			
+
+
 class MyrmidonError(Exception):
 	def __init__(self, value):
 		self.value = value
@@ -276,14 +286,18 @@ class MyrmidonProcess(object):
 	_y = 0.0
 	_z = 0.0
 	_image = None
-	alpha = 1.0
+	_image_seq = 0
+	_colour = (1.0, 1.0, 1.0)
+	_alpha = 1.0
+	
 	scale = 1.0
 	rotation = 0.0
 	blend = False
-	colour = (1.0, 1.0, 1.0)
 
 	_is_text = False
 	_generator = None
+	
+	_texture_list = None
 	
 	def __init__(self, *args, **kargs):
 		if not MyrmidonGame.started:
@@ -296,9 +310,10 @@ class MyrmidonProcess(object):
 		self.y = 0.0
 		
 		self._generator = self.execute(*args, **kargs)
-			
+		self._iterate_generator()
+		
 		if not MyrmidonGame.started:
-			MyrmidonGame.started = True
+			MyrmidonGame.started = True			
 			MyrmidonGame.run_game()
 
 
@@ -379,8 +394,9 @@ class MyrmidonProcess(object):
 
 	@z.setter
 	def z(self, value):
-		self._z = value
-		MyrmidonGame.engine['gfx'].alter_z(self, self._z)
+		if not self._z == value:
+			self._z = value
+			MyrmidonGame.engine['gfx'].alter_z(self, self._z)
 
 	@z.deleter
 	def z(self):
@@ -393,6 +409,7 @@ class MyrmidonProcess(object):
 
 	@image.setter
 	def image(self, value):
+		#if not self._image == value:
 		self._image = value
 		MyrmidonGame.engine['gfx'].alter_image(self, self._image)
 
@@ -400,4 +417,48 @@ class MyrmidonProcess(object):
 	def image(self):
 		self._image = None
 
+	# image sequence number
+	@property
+	def image_seq(self):
+		return self._image_seq
+
+	@image_seq.setter
+	def image_seq(self, value):
+		self._image_seq = value
+		MyrmidonGame.engine['gfx'].alter_image(self, self._image)
+
+	@image_seq.deleter
+	def image_seq(self):
+		self._image_seq = None
+
+	# Colour
+	@property
+	def colour(self):
+		return self._colour
+
+	@colour.setter
+	def colour(self, value):
+		if not self._colour == value:
+			self._colour = value
+			MyrmidonGame.engine['gfx'].alter_colour(self, self._colour)
+
+	@colour.deleter
+	def colour(self):
+		self._colour = None
+
+
+	# Alpha
+	@property
+	def alpha(self):
+		return self._alpha
+
+	@alpha.setter
+	def alpha(self, value):
+		if not self._alpha == value:
+			self._alpha = value
+			MyrmidonGame.engine['gfx'].alter_alpha(self, self._alpha)
+
+	@alpha.deleter
+	def alpha(self):
+		self._alpha = None
 

@@ -34,18 +34,20 @@ Pygame is required for text rendering. This may change in the future.
 """
 
 
-import os, pygame
+import os, pygame, math
 from OpenGL.GL import *
+from OpenGL.GLU import *
 from pygame.locals import *
 
-from myrmidon import MyrmidonGame, MyrmidonProcess
+from myrmidon import MyrmidonGame, MyrmidonProcess, MyrmidonError
 
 class MyrmidonGfxOpengl(object):
 
 	clear_colour = (0.0, 0.0, 0.0, 1.0)
 	prev_blend = False
-	
-	draw_layers = {	}
+
+	z_order_dirty = True
+	processes_z_order_list = []
 	
 	def __init__(self):
 
@@ -77,48 +79,82 @@ class MyrmidonGfxOpengl(object):
 
 
 	def draw_processes(self, process_list):
-		
-		for process in process_list:
 
-			if hasattr(process, "draw"):
-				process.draw()
-				continue
+		if self.z_order_dirty == True:
+			self.processes_z_order_list.sort(
+				reverse=True,
+				key=lambda object:
+				object.z if hasattr(object, "z") else 0
+				)
+			self.z_order_dirty = False
+		
+		for process in self.processes_z_order_list:
+
+			dont_draw = False
+				
+			if hasattr(process, "normal_draw") and process.normal_draw == False:
+				dont_draw = True
 			
 			if not process.image:
-				continue
+				dont_draw = True
 
-			glLoadIdentity()
+			if not dont_draw:
+				glLoadIdentity()
 
-			glTranslatef(process.x, process.y, 0)
+				# glrotate works by you translating to the point around which you wish to rotate
+				# and applying the rotation you can translate back to apply the real translation
+				# position
+				if process.rotation <> 0.0:
+					x = process.x + (process.image.width/2) * process.scale
+					y = process.y + (process.image.height/2) * process.scale
+					glTranslatef(x, y, 0)
+					glRotatef(process.rotation, 0, 0, 1)
+					glTranslatef(-x, -y, 0)
 
-			if process.rotation is not 0.0:
-				glRotatef(process.rotation, 0, 0, 1)
+				glTranslatef(process.x, process.y, 0)
 
-			if not process.blend == self.prev_blend:
-				if process.blend:
-					glBlendFunc(GL_SRC_ALPHA, GL_ONE)
-				else:
-					glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+				if process.scale is not 1.0:
+					glScalef(process.scale, process.scale, 1.0)		
+
+				if not process.blend == self.prev_blend:
+					if process.blend:
+						glBlendFunc(GL_SRC_ALPHA, GL_ONE)
+					else:
+						glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
 				self.prev_blend = process.blend
 			
-			glCallList(process._texture_list)
+				glCallList(process._texture_list)
 
-
-	current_bound_tex = 0
+			if hasattr(process, "draw"):
+				process.draw()
+				
 	
 	def create_texture_list(self, process, image):
+		if not image:
+			return
+		
 		new_list = glGenLists(1)
-		glNewList(new_list, GL_COMPILE);
+		glNewList(new_list, GL_COMPILE)
 
-		glColor4f(1.0, 1.0, 1.0, process.alpha)
+		glColor4f(process.colour[0], process.colour[1], process.colour[2], process.alpha)
 
 		glEnable(GL_TEXTURE_2D)
-		
-		if not image.surface == self.current_bound_tex:
-			glBindTexture(GL_TEXTURE_2D, image.surface)
-			self.current_bound_tex = image.surface
+		glBindTexture(GL_TEXTURE_2D, image.surface)
 			
+		self.draw_textured_quad(image.width, image.height)
+		
+		glEndList()
+
+		return new_list
+
+	def draw_textured_quad(self, width, height, repeat = None):
+
+		if repeat == None:
+			tex_coords = (1.0, 1.0)
+		else:
+			tex_coords = (width / repeat.width, height / repeat.height)
+		
 		glBegin(GL_QUADS)
 
 		# bottom left
@@ -126,30 +162,35 @@ class MyrmidonGfxOpengl(object):
 		glVertex3f(0.0, 0.0, 0.0)
 
 		# top left
-		glTexCoord2f(0.0, 1.0)
-		glVertex3f(0.0, image.height, 0.0)
+		glTexCoord2f(0.0, tex_coords[1])
+		glVertex3f(0.0, height, 0.0)
 
 		# top right
-		glTexCoord2f(1.0, 1.0)
-		glVertex3f(image.width, image.height, 0.0)
+		glTexCoord2f(tex_coords[0], tex_coords[1])
+		glVertex3f(width, height, 0.0)
 
 		# bottom right
-		glTexCoord2f(1.0, 0.0)
-		glVertex3f(image.width, 0.0, 0.0)		
+		glTexCoord2f(tex_coords[0], 0.0)
+		glVertex3f(width, 0.0, 0.0)		
 		
 		glEnd()
-		
-		glEndList()
-
-		return new_list
 
 
 	def register_process(self, process):
+		self.processes_z_order_list.append(process)
+		self.z_order_dirty = True
 		if not process.image:
 			return
 		
 		process._texture_list = self.create_texture_list(process, process.image)
-			
+
+
+	def remove_process(self, process):
+		self.processes_z_order_list.remove(process)
+		if not process._texture_list == None:
+			glDeleteLists(process._texture_list, 1)
+		
+		
 
 	def alter_x(self, process, x):
 		pass
@@ -158,17 +199,50 @@ class MyrmidonGfxOpengl(object):
 		pass
 
 	def alter_z(self, process, z):
-		pass
+		self.z_order_dirty = True
 
 	def alter_image(self, process, image):
 		if not process.image:
 			return
 
+		if not process._texture_list == None:
+			glDeleteLists(process._texture_list, 1)
+
+		process.image.surface = process.image.surfaces[process.image_seq]
+		process._texture_list = self.create_texture_list(process, process.image)
+
+	def alter_colour(self, process, colour):
+		if not process._texture_list == None:
+			glDeleteLists(process._texture_list, 1)		
+		process._texture_list = self.create_texture_list(process, process.image)
+
+	def alter_alpha(self, process, alpha):
+		if not process._texture_list == None:
+			glDeleteLists(process._texture_list, 1)		
 		process._texture_list = self.create_texture_list(process, process.image)
 
 
-	def draw_line(self, start, finish, colour = (1.0,1.0,1.0,1.0), width = 5.0):
-		glLoadIdentity()
+	def new_image(self, width, height, colour = None):
+			# We need to work out the nearest power of 2
+			h = 16
+			while(h < height):
+				h = h * 2
+			w = 16
+			while(w < width):
+				w = w * 2
+
+			new_surface = pygame.Surface((w, h), SRCALPHA, 32)
+			if not colour == None:
+				new_surface.fill((colour[0]*255, colour[1]*255, colour[2]*255), rect = Rect((0,0), (width, height)))
+				
+			# Create an image from it
+			return MyrmidonGfxOpengl.Image(new_surface)
+
+			
+	def draw_line(self, start, finish, colour = (1.0,1.0,1.0,1.0), width = 5.0, noloadidentity = False):
+		if not noloadidentity:
+			glLoadIdentity()
+			
 		glColor4f(*colour)
 		glLineWidth(width)
 		
@@ -178,38 +252,107 @@ class MyrmidonGfxOpengl(object):
 		glVertex2f(start[0], start[1])
 		glVertex2f(finish[0], finish[1])
 		glEnd()
+
+
+	def draw_circle(self, position, radius, colour = (1.0,1.0,1.0,1.0), width = 5.0, filled = False, noloadidentity = False):
+		if not noloadidentity:
+			glLoadIdentity()
+			
+		glDisable(GL_TEXTURE_2D)
+
+		glColor4f(*colour)
+
+		if filled:
+			glBegin(GL_TRIANGLE_FAN)
+		else:
+			glLineWidth(width)
+			glBegin(GL_LINE_LOOP)
+
+		for angle in frange(0, math.pi*2, (math.pi*2)/36):
+			glVertex2f(position[0] + radius * math.sin(angle), position[1] + radius * math.cos(angle))
+		glEnd()
+					  
+		glEnable(GL_TEXTURE_2D)
+
+
+	def draw_rectangle(self, top_left, bottom_right, colour = (1.0,1.0,1.0,1.0), noloadidentity = False):
+		if not noloadidentity:
+			glLoadIdentity()
+			
+		glColor4f(*colour)
 		
+		glDisable(GL_TEXTURE_2D)
+
+		glBegin(GL_QUADS)
+		glVertex2f(top_left[0], top_left[1])
+		glVertex2f(bottom_right[0], top_left[1])
+		glVertex2f(bottom_right[0], bottom_right[1])
+		glVertex2f(top_left[0], bottom_right[1])
+		glEnd()
+					  
+		glEnable(GL_TEXTURE_2D)
+
+
 
 	class Image(object):
 		
+		surfaces = []
 		surface = None
 		width = 0
 		height = 0
 		
-		def __init__(self, image = None):
+		def __init__(self, image = None, sequence = False, width = None, height = None):
 
+			self.surfaces = []
+			
 			if image == None:
 				return
 			
 			if isinstance(image, str):
 				try:
-					raw_surface = pygame.image.load(image)
+					raw_surface = pygame.image.load(image).convert_alpha()
 				except:
 					raise MyrmidonError("Couldn't load image from " + image)
 			else:
 				raw_surface = image
 
-			self.width = raw_surface.get_width()
-			self.height = raw_surface.get_height()
+			self.width = (width if not width == None else raw_surface.get_width())
 
-			data = pygame.image.tostring(raw_surface, "RGBA", 0)
- 
-			self.surface = glGenTextures(1)
-			glBindTexture(GL_TEXTURE_2D, self.surface)
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, self.width, self.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
+			if sequence:
+				self.height = (width if height == None else height)
+				rw = raw_surface.get_width()
+				rh = raw_surface.get_width()
+
+				for a in range(0, rh/self.height):
+					for b in range(rw/self.width):
+						surf = pygame.Surface((self.width, self.height), SRCALPHA, 32)
+						surf.blit(raw_surface, (0,0), pygame.Rect((b*self.width, a*self.height), (self.width, self.height)))
+						self.surfaces.append(self.gl_image_from_surface(surf, self.width, self.height))
+
+				self.surface = self.surfaces[:1][0]
 				
+			else:
+				self.height = (height if not height == None else raw_surface.get_height())
+				self.surface = self.gl_image_from_surface(raw_surface, self.width, self.height)
+				self.surfaces.append(self.surface)
+
+
+		def gl_image_from_surface(self, raw_surface, width, height):
+			data = pygame.image.tostring(raw_surface, "RGBA", 0)
+
+			tex = glGenTextures(1)
+			glBindTexture(GL_TEXTURE_2D, tex)
+			glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE )
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)			
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST)
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
+			
+			gluBuild2DMipmaps(GL_TEXTURE_2D, 4, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data)		
+				
+			return tex
+		
 
 	class Text(MyrmidonProcess):
 		""" this is the class for all text handling """
@@ -254,7 +397,7 @@ class MyrmidonGfxOpengl(object):
 			while(w < width):
 				w = w * 2
 
-			new_surface = pygame.Surface((w, h))
+			new_surface = pygame.Surface((w, h), SRCALPHA, 32)
 			new_surface.blit(font_image, (0, 0))
 
 			# Create an image from it
@@ -309,3 +452,25 @@ class MyrmidonGfxOpengl(object):
 		def font(self):
 			self._font = None
 			self.generate_text_image()
+
+
+def frange(start, end=None, inc=None):
+    "A range function, that does accept float increments..."
+
+    if end == None:
+        end = start + 0.0
+        start = 0.0
+
+    if inc == None:
+        inc = 1.0
+
+    L = []
+    while 1:
+        next = start + len(L) * inc
+        if inc > 0 and next >= end:
+            break
+        elif inc < 0 and next <= end:
+            break
+        L.append(next)
+        
+    return L
