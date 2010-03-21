@@ -220,7 +220,7 @@ class MyrmidonGame(object):
 		""" Removes a process """
 		if not process in MyrmidonGame.process_list:
 			return
-
+		process.on_exit()
 		cls.engine['gfx'].remove_process(process)
 		MyrmidonGame.process_list.remove(process)
 
@@ -324,6 +324,13 @@ class MyrmidonProcess(object):
 		while True:
 			yield
 
+	def on_exit(self):
+		"""
+		Called automatically when a process has finished executing for whatever reason.
+		Is also called when a process is killed using signal S_KILL.
+		"""
+		pass
+		
 	def _iterate_generator(self):
 		if not MyrmidonGame.started:
 			return
