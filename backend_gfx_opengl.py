@@ -52,7 +52,7 @@ class MyrmidonGfxOpengl(object):
 	def __init__(self):
 
 		glClearColor(*self.clear_colour)
-		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
+		glClear(GL_COLOR_BUFFER_BIT)
 
 		glMatrixMode(GL_PROJECTION)
 		glLoadIdentity()
@@ -63,7 +63,6 @@ class MyrmidonGfxOpengl(object):
 		glEnable(GL_TEXTURE_2D)
 		glEnable(GL_BLEND)
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
- 
 		glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
 		glEnable(GL_LINE_SMOOTH)
 
@@ -114,7 +113,9 @@ class MyrmidonGfxOpengl(object):
 				glTranslatef(process.x, process.y, 0)
 
 				if process.scale is not 1.0:
+					glTranslatef(process.scale_point[0], process.scale_point[1], 0)					
 					glScalef(process.scale, process.scale, 1.0)		
+					glTranslatef(-process.scale_point[0], -process.scale_point[1], 0)
 
 				if not process.blend == self.prev_blend:
 					if process.blend:
@@ -254,7 +255,7 @@ class MyrmidonGfxOpengl(object):
 		glEnd()
 
 
-	def draw_circle(self, position, radius, colour = (1.0,1.0,1.0,1.0), width = 5.0, filled = False, noloadidentity = False):
+	def draw_circle(self, position, radius, colour = (1.0,1.0,1.0,1.0), width = 5.0, filled = False, accuracy = 24, noloadidentity = False):
 		if not noloadidentity:
 			glLoadIdentity()
 			
@@ -268,14 +269,14 @@ class MyrmidonGfxOpengl(object):
 			glLineWidth(width)
 			glBegin(GL_LINE_LOOP)
 
-		for angle in frange(0, math.pi*2, (math.pi*2)/36):
+		for angle in frange(0, math.pi*2, (math.pi*2)/accuracy):
 			glVertex2f(position[0] + radius * math.sin(angle), position[1] + radius * math.cos(angle))
 		glEnd()
 					  
 		glEnable(GL_TEXTURE_2D)
 
 
-	def draw_rectangle(self, top_left, bottom_right, colour = (1.0,1.0,1.0,1.0), noloadidentity = False):
+	def draw_rectangle(self, top_left, bottom_right, colour = (1.0,1.0,1.0,1.0), filled = True, noloadidentity = False):
 		if not noloadidentity:
 			glLoadIdentity()
 			
@@ -283,7 +284,12 @@ class MyrmidonGfxOpengl(object):
 		
 		glDisable(GL_TEXTURE_2D)
 
-		glBegin(GL_QUADS)
+		if filled:
+			glBegin(GL_QUADS)
+		else:
+			glLineWidth(2.0)
+			glBegin(GL_LINE_LOOP)
+			
 		glVertex2f(top_left[0], top_left[1])
 		glVertex2f(bottom_right[0], top_left[1])
 		glVertex2f(bottom_right[0], bottom_right[1])
@@ -344,11 +350,10 @@ class MyrmidonGfxOpengl(object):
 			glBindTexture(GL_TEXTURE_2D, tex)
 			glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE )
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)			
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST)
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
-			
 			gluBuild2DMipmaps(GL_TEXTURE_2D, 4, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data)		
 				
 			return tex
@@ -360,8 +365,10 @@ class MyrmidonGfxOpengl(object):
 		_text = ""
 		_font = None
 		_antialias = True
+
+		text_image_size = (0,0)
 		
-		def __init__(self, font, x, y, alignment, text):
+		def __init__(self, font, x, y, alignment, text, antialias = True):
 			MyrmidonProcess.__init__(self)
 			self.font = font
 			self.x = x
@@ -369,7 +376,7 @@ class MyrmidonGfxOpengl(object):
 			self.z = -512.0
 			self.alignment = alignment
 			self.text = text
-			self.antialias = True
+			self.antialias = antialias
 			self._is_text = True
 			self.rotation = 0.0
 
@@ -389,6 +396,8 @@ class MyrmidonGfxOpengl(object):
 			# there must be a better way of doing this
 			width = font_image.get_width()
 			height = font_image.get_height()
+
+			self.text_image_size = (width, height)
 
 			h = 16
 			while(h < height):
