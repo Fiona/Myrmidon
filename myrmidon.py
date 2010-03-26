@@ -254,8 +254,8 @@ class MyrmidonGame(object):
 	# TEXT HANDLING
 	##############################################
 	@classmethod	
-	def write_text(cls, x, y, font, alignment = 0, text = ""):
-		return cls.engine['gfx'].Text(font, x, y, alignment, text)
+	def write_text(cls, x, y, font, alignment = 0, text = "", antialias = True):
+		return cls.engine['gfx'].Text(font, x, y, alignment, text, antialias = True)
 
 	@classmethod	
 	def delete_text(cls, text):
@@ -269,8 +269,16 @@ class MyrmidonGame(object):
 	@classmethod	
 	def get_distance(cls, pointa, pointb):
 		return math.sqrt((math.pow((pointb[1] - pointa[1]), 2) + math.pow((pointb[0] - pointa[0]), 2)))
-			
 
+	@classmethod	
+	def move_forward(cls, pos, distance, angle):
+		pos2 = [0.0,0.0]
+		
+		pos2[0] = pos[0] + distance * math.cos(math.radians(angle))
+		pos2[1] = pos[1] - distance * math.sin(math.radians(angle))			
+
+		return pos2
+		
 
 class MyrmidonError(Exception):
 	def __init__(self, value):
@@ -293,6 +301,7 @@ class MyrmidonProcess(object):
 	scale = 1.0
 	rotation = 0.0
 	blend = False
+	scale_point = [0.0, 0.0]
 
 	_is_text = False
 	_generator = None
@@ -342,11 +351,7 @@ class MyrmidonProcess(object):
 
 
 	def move_forward(self, distance, angle = None):
-		if angle == None:
-			angle = self.rotation
-
-		self.x += distance * math.cos(math.radians(angle))
-		self.y -= distance * math.sin(math.radians(angle))
+		self.x, self.y = MyrmidonGame.move_forward((self.x, self.y), distance, self.rotation if angle == None else angle)
 
 
 	def signal(self, signal_code, tree=False):
