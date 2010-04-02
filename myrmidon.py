@@ -302,6 +302,7 @@ class MyrmidonProcess(object):
 	rotation = 0.0
 	blend = False
 	scale_point = [0.0, 0.0]
+	disable_draw = False
 
 	_is_text = False
 	_generator = None

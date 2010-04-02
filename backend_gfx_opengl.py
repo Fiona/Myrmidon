@@ -89,6 +89,9 @@ class MyrmidonGfxOpengl(object):
 		
 		for process in self.processes_z_order_list:
 
+			if process.disable_draw:
+				continue
+			
 			dont_draw = False
 				
 			if hasattr(process, "normal_draw") and process.normal_draw == False:
@@ -277,10 +280,10 @@ class MyrmidonGfxOpengl(object):
 
 
 	def draw_rectangle(self, top_left, bottom_right, colour = (1.0,1.0,1.0,1.0), filled = True, noloadidentity = False):
+		four_colours = True if hasattr(colour[0], "__iter__") else False
+		
 		if not noloadidentity:
 			glLoadIdentity()
-			
-		glColor4f(*colour)
 		
 		glDisable(GL_TEXTURE_2D)
 
@@ -290,15 +293,33 @@ class MyrmidonGfxOpengl(object):
 			glLineWidth(2.0)
 			glBegin(GL_LINE_LOOP)
 			
+		glColor4f(*(colour[0] if four_colours else colour))
 		glVertex2f(top_left[0], top_left[1])
+
+		if four_colours:		
+			glColor4f(*colour[1])
+			
 		glVertex2f(bottom_right[0], top_left[1])
+
+		if four_colours:		
+			glColor4f(*colour[2])
 		glVertex2f(bottom_right[0], bottom_right[1])
+
+		if four_colours:		
+			glColor4f(*colour[3])
+			
 		glVertex2f(top_left[0], bottom_right[1])
 		glEnd()
 					  
 		glEnable(GL_TEXTURE_2D)
 
 
+	def rgb_to_colour(self, colour):
+		col = []
+		for a in colour:
+			col.append(a/255.0)
+		return tuple(col)
+	
 
 	class Image(object):
 		
