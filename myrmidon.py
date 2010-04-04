@@ -275,7 +275,7 @@ class MyrmidonGame(object):
 		pos2 = [0.0,0.0]
 		
 		pos2[0] = pos[0] + distance * math.cos(math.radians(angle))
-		pos2[1] = pos[1] - distance * math.sin(math.radians(angle))			
+		pos2[1] = pos[1] + distance * math.sin(math.radians(angle))			
 
 		return pos2
 		
