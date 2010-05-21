@@ -45,10 +45,14 @@ class MyrmidonInputPygame(object):
 	last_mouse_buttons_pressed = [False, False, False]
 
 	mouse = None
-	
+
+	clear_events = True
+	disable_input = False
 	
 	def __init__(self):
 		pygame.key.set_repeat(10, 0)
+		self.keys_pressed  = pygame.key.get_pressed()
+		self.last_keys_pressed  = self.keys_pressed
 
 		
 	def process_input(self):
@@ -66,6 +70,9 @@ class MyrmidonInputPygame(object):
 			self.mouse.right_up = False
 			self.mouse.wheel_up = False
 			self.mouse.wheel_down = False	   
+
+		if self.disable_input:
+			return
 		
 		self.last_keys_pressed  = self.keys_pressed
 		pygame.event.pump()
@@ -80,7 +87,7 @@ class MyrmidonInputPygame(object):
 
 		self.event_store = []
 		
-		for event in pygame.event.get():
+		for event in pygame.event.get(MOUSEBUTTONDOWN):
 			self.event_store.append(event)
 			if event.type == MOUSEBUTTONDOWN:
 				if event.button == 4:
@@ -100,6 +107,9 @@ class MyrmidonInputPygame(object):
 		self.mouse.right = True if self.mouse_buttons_pressed[2] else False
 		self.mouse.right_up = True if self.last_mouse_buttons_pressed[2] and not self.mouse_buttons_pressed[2] else False
 
+		if self.clear_events:
+			pygame.event.clear()
+
 
 	def keyboard_key_down(self, key_code):
 		if self.keys_pressed[key_code]:
@@ -108,7 +118,7 @@ class MyrmidonInputPygame(object):
 	
 
 	def keyboard_key_released(self, key_code):
-		if self.last_keys_pressed[key_code] and not cls.keys_pressed[key_code]:
+		if self.last_keys_pressed[key_code] and not self.keys_pressed[key_code]:
 			return True
 		return False
 
