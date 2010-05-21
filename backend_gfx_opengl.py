@@ -68,14 +68,12 @@ class MyrmidonGfxOpengl(object):
 
 		pygame.display.flip()
 
-
 	def update_screen_pre(self):
 		glClear(GL_COLOR_BUFFER_BIT)
-
 	
 	def update_screen_post(self):
 		pygame.display.flip()
-
+		
 
 	def draw_processes(self, process_list):
 
@@ -102,6 +100,7 @@ class MyrmidonGfxOpengl(object):
 
 			if not dont_draw:
 				glLoadIdentity()
+				#glPushMatrix()
 
 				# glrotate works by you translating to the point around which you wish to rotate
 				# and applying the rotation you can translate back to apply the real translation
@@ -118,7 +117,7 @@ class MyrmidonGfxOpengl(object):
 				if process.scale is not 1.0:
 					glTranslatef(process.scale_point[0], process.scale_point[1], 0)					
 					glScalef(process.scale, process.scale, 1.0)		
-					glTranslatef(-process.scale_point[0], -process.scale_point[1], 0)
+					glTranslatef(-process.scale_point[0], -process.scale_point[1], 0)	
 
 				if not process.blend == self.prev_blend:
 					if process.blend:
@@ -129,6 +128,8 @@ class MyrmidonGfxOpengl(object):
 				self.prev_blend = process.blend
 			
 				glCallList(process._texture_list)
+
+				#glPopMatrix()
 
 			if hasattr(process, "draw"):
 				process.draw()
@@ -279,7 +280,7 @@ class MyrmidonGfxOpengl(object):
 		glEnable(GL_TEXTURE_2D)
 
 
-	def draw_rectangle(self, top_left, bottom_right, colour = (1.0,1.0,1.0,1.0), filled = True, noloadidentity = False):
+	def draw_rectangle(self, top_left, bottom_right, colour = (1.0,1.0,1.0,1.0), filled = True, width = 2.0, noloadidentity = False):
 		four_colours = True if hasattr(colour[0], "__iter__") else False
 		
 		if not noloadidentity:
@@ -290,7 +291,7 @@ class MyrmidonGfxOpengl(object):
 		if filled:
 			glBegin(GL_QUADS)
 		else:
-			glLineWidth(2.0)
+			glLineWidth(width)
 			glBegin(GL_LINE_LOOP)
 			
 		glColor4f(*(colour[0] if four_colours else colour))
@@ -328,7 +329,7 @@ class MyrmidonGfxOpengl(object):
 		width = 0
 		height = 0
 		
-		def __init__(self, image = None, sequence = False, width = None, height = None):
+		def __init__(self, image = None, sequence = False, width = None, height = None, for_repeat = False):
 
 			self.surfaces = []
 			
@@ -354,24 +355,28 @@ class MyrmidonGfxOpengl(object):
 					for b in range(rw/self.width):
 						surf = pygame.Surface((self.width, self.height), SRCALPHA, 32)
 						surf.blit(raw_surface, (0,0), pygame.Rect((b*self.width, a*self.height), (self.width, self.height)))
-						self.surfaces.append(self.gl_image_from_surface(surf, self.width, self.height))
+						self.surfaces.append(self.gl_image_from_surface(surf, self.width, self.height, for_repeat))
 
 				self.surface = self.surfaces[:1][0]
 				
 			else:
 				self.height = (height if not height == None else raw_surface.get_height())
-				self.surface = self.gl_image_from_surface(raw_surface, self.width, self.height)
+				self.surface = self.gl_image_from_surface(raw_surface, self.width, self.height, for_repeat)
 				self.surfaces.append(self.surface)
 
 
-		def gl_image_from_surface(self, raw_surface, width, height):
+		def gl_image_from_surface(self, raw_surface, width, height, for_repeat):
 			data = pygame.image.tostring(raw_surface, "RGBA", 0)
 
 			tex = glGenTextures(1)
 			glBindTexture(GL_TEXTURE_2D, tex)
 			glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE )
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
+			if for_repeat:
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
+			else:
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP)
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP)
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST)
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
@@ -394,7 +399,7 @@ class MyrmidonGfxOpengl(object):
 			self.font = font
 			self.x = x
 			self.y = y
-			self.z = -512.0
+			self.z = -500.0
 			self.alignment = alignment
 			self.text = text
 			self.antialias = antialias
