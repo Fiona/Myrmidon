@@ -40,8 +40,10 @@ class MyrmidonWindowPygame(object):
 		os.environ['SDL_VIDEO_CENTERED'] = '1'
 		pygame.init()
 
+		pygame.display.gl_set_attribute(pygame.locals.GL_MULTISAMPLEBUFFERS,1)
+
 		if MyrmidonGame.full_screen:
-			pygame.display.set_mode(MyrmidonGame.screen_resolution, pygame.OPENGL | pygame.DOUBLEBUF | pygame.FULLSCREEN)
+			pygame.display.set_mode(MyrmidonGame.screen_resolution, pygame.OPENGL | pygame.DOUBLEBUF | pygame.FULLSCREEN | pygame.HWSURFACE)
 		else:
 			pygame.display.set_mode(MyrmidonGame.screen_resolution, pygame.OPENGL | pygame.DOUBLEBUF)
 
