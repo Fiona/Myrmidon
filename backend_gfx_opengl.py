@@ -54,6 +54,8 @@ class MyrmidonGfxOpengl(object):
 		glClearColor(*self.clear_colour)
 		glClear(GL_COLOR_BUFFER_BIT)
 
+		glViewport(0, 0, MyrmidonGame.screen_resolution[0], MyrmidonGame.screen_resolution[1])
+
 		glMatrixMode(GL_PROJECTION)
 		glLoadIdentity()
 
@@ -67,6 +69,9 @@ class MyrmidonGfxOpengl(object):
 		glEnable(GL_LINE_SMOOTH)
 
 		pygame.display.flip()
+
+	def change_resolution(self, resolution):
+		self.__init__()
 
 	def update_screen_pre(self):
 		glClear(GL_COLOR_BUFFER_BIT)

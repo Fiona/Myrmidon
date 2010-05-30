@@ -130,6 +130,14 @@ class MyrmidonGame(object):
 			timerunning = cls.clock.tick(cls.current_fps)
 
 
+	@classmethod
+	def change_resolution(cls, resolution):
+		cls.screen_resolution = resolution
+		cls.engine['window'].change_resolution(resolution)
+		cls.engine['gfx'].change_resolution(resolution)
+
+		
+
 	##############################################
 	# PROCESSES
 	##############################################

@@ -50,6 +50,18 @@ class MyrmidonWindowPygame(object):
 	def Clock(self):
 		return pygame.time.Clock()
 
+	def change_resolution(self, resolution):
+		pygame.display.quit()
+		"""
+		pygame.display.init()
+		if MyrmidonGame.full_screen:
+			pygame.display.set_mode(resolution, pygame.OPENGL | pygame.DOUBLEBUF | pygame.FULLSCREEN | pygame.HWSURFACE)
+		else:
+			pygame.display.set_mode(resolution, pygame.OPENGL | pygame.DOUBLEBUF)
+		"""
+		self.__init__()
+
+
 	# TEXT HANDLING
 	@classmethod	
 	def load_font(cls, filename = None, size = 20):

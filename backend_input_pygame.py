@@ -81,7 +81,7 @@ class MyrmidonInputPygame(object):
 		self.mouse.pos = pygame.mouse.get_pos()
 		self.mouse.x = self.mouse.pos[0]
 		self.mouse.y = self.mouse.pos[1]
-
+		
 		self.mouse.wheel_up = False
 		self.mouse.wheel_down = False
 
