@@ -42,12 +42,14 @@ class MyrmidonGame(object):
 	engine_def = {
 		"window" : "pygame",
 		"gfx" : "opengl",
-		"input" : "pygame"
+		"input" : "pygame",
+		"audio" : "pygame"
 		}
 	engine = {
 		"window" : None,
 		"gfx" : None,
-		"input" : None
+		"input" : None,
+		"audio" : None
 		}
 
 	current_fps = 30
@@ -91,6 +93,11 @@ class MyrmidonGame(object):
 		if cls.engine_def['input'] == "pygame":
 			from backend_input_pygame import MyrmidonInputPygame
 			cls.engine['input'] = MyrmidonInputPygame()
+
+		# audio
+		if cls.engine_def['audio'] == "pygame":
+			from backend_audio_pygame import MyrmidonAudioPygame
+			cls.engine['audio'] = MyrmidonAudioPygame()
 
 
 	@classmethod

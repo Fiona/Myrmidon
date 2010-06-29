@@ -38,6 +38,9 @@ from myrmidon import MyrmidonGame
 class MyrmidonWindowPygame(object):
 	def __init__(self):
 		os.environ['SDL_VIDEO_CENTERED'] = '1'
+
+		pygame.mixer.pre_init(44100,-16,2, 1024 * 3)
+
 		pygame.init()
 
 		pygame.display.gl_set_attribute(pygame.locals.GL_MULTISAMPLEBUFFERS,1)
