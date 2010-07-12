@@ -382,6 +382,14 @@ class MyrmidonProcess(object):
 				and will still be able to be checked for collisions.
 			S_WAKEUP - Wakes up or unfreezes the process """
 		MyrmidonGame.signal(self, signal_code, tree)
+
+
+	def get_screen_draw_position(self):
+		""" At draw time this function is called to determine exactly where
+		the process will be drawn. Override this if you need to programatically
+		constantly change the position of process.
+		Returns a tuple (x,y)"""
+		return self.x, self.y
 		
 
 	##############################################

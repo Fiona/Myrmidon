@@ -40,6 +40,7 @@ from OpenGL.GLU import *
 from pygame.locals import *
 
 from myrmidon import MyrmidonGame, MyrmidonProcess, MyrmidonError
+from consts import *
 
 class MyrmidonGfxOpengl(object):
 
@@ -50,7 +51,6 @@ class MyrmidonGfxOpengl(object):
 	processes_z_order_list = []
 	
 	def __init__(self):
-
 		glClearColor(*self.clear_colour)
 		glClear(GL_COLOR_BUFFER_BIT)
 
@@ -107,17 +107,20 @@ class MyrmidonGfxOpengl(object):
 				glLoadIdentity()
 				#glPushMatrix()
 
+				draw_x, draw_y = process.get_screen_draw_position()
+				
 				# glrotate works by you translating to the point around which you wish to rotate
 				# and applying the rotation you can translate back to apply the real translation
 				# position
 				if process.rotation <> 0.0:
-					x = process.x + (process.image.width/2) * process.scale
-					y = process.y + (process.image.height/2) * process.scale
+					x = draw_x + (process.image.width/2) * process.scale
+					y = draw_y + (process.image.height/2) * process.scale
 					glTranslatef(x, y, 0)
 					glRotatef(process.rotation, 0, 0, 1)
 					glTranslatef(-x, -y, 0)
 
-				glTranslatef(process.x, process.y, 0)
+
+				glTranslatef(draw_x, draw_y, 0)
 
 				if process.scale is not 1.0:
 					glTranslatef(process.scale_point[0], process.scale_point[1], 0)					
@@ -444,6 +447,34 @@ class MyrmidonGfxOpengl(object):
 			self.image = MyrmidonGfxOpengl.Image(new_surface)
 			
 
+		def get_screen_draw_position(self):
+			""" Overriding process method to account for text alignment. """
+			draw_x, draw_y = self.x, self.y
+			
+			if self.alignment == ALIGN_TOP:
+				draw_x -= (self.text_image_size[0]/2)
+			elif self.alignment == ALIGN_TOP_RIGHT:
+				draw_x -= self.text_image_size[0]
+			elif self.alignment == ALIGN_CENTER_LEFT:
+				draw_y -= (self.text_image_size[1]/2)
+			elif self.alignment == ALIGN_CENTER:
+				draw_x -= (self.text_image_size[0]/2)
+				draw_y -= (self.text_image_size[1]/2)
+			elif self.alignment == ALIGN_CENTER_RIGHT:
+				draw_x -= self.text_image_size[0]
+				draw_y -= (self.text_image_size[1]/2)
+			elif self.alignment == ALIGN_BOTTOM_LEFT:
+				draw_y -= self.text_image_size[1]
+			elif self.alignment == ALIGN_BOTTOM:
+				draw_x -= (self.text_image_size[0]/2)
+				draw_y -= self.text_image_size[1]
+			elif self.alignment == ALIGN_BOTTOM_RIGHT:
+				draw_x -= self.text_image_size[0]
+				draw_y -= self.text_image_size[1]
+
+			return draw_x, draw_y
+
+		
 		# text
 		@property
 		def text(self):
@@ -493,6 +524,7 @@ class MyrmidonGfxOpengl(object):
 			self._font = None
 			self.generate_text_image()
 
+			
 
 def frange(start, end=None, inc=None):
     "A range function, that does accept float increments..."
