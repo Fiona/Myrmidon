@@ -236,20 +236,20 @@ class MyrmidonGfxOpengl(object):
 
 
 	def new_image(self, width, height, colour = None):
-			# We need to work out the nearest power of 2
-			h = 16
-			while(h < height):
-				h = h * 2
-			w = 16
-			while(w < width):
-				w = w * 2
+		# We need to work out the nearest power of 2
+		h = 16
+		while(h < height):
+			h = h * 2
+		w = 16
+		while(w < width):
+			w = w * 2
 
-			new_surface = pygame.Surface((w, h), SRCALPHA, 32)
-			if not colour == None:
-				new_surface.fill((colour[0]*255, colour[1]*255, colour[2]*255), rect = Rect((0,0), (width, height)))
+		new_surface = pygame.Surface((w, h), SRCALPHA, 32)
+		if not colour == None:
+			new_surface.fill((colour[0]*255, colour[1]*255, colour[2]*255), rect = Rect((0,0), (width, height)))
 				
-			# Create an image from it
-			return MyrmidonGfxOpengl.Image(new_surface)
+		# Create an image from it
+		return MyrmidonGfxOpengl.Image(new_surface)
 
 			
 	def draw_line(self, start, finish, colour = (1.0,1.0,1.0,1.0), width = 5.0, noloadidentity = False):
