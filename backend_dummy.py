@@ -154,7 +154,10 @@ class MyrmidonInputDummy(object):
 	mouse = None
 	clear_events = True
 	disable_input = False
-			
+
+	def __init__(self):
+		self.process_input()
+		
 	def process_input(self):
 		if not self.mouse:
 			self.mouse = self.Mouse()
@@ -166,6 +169,8 @@ class MyrmidonInputDummy(object):
 		return False
 
 	class Mouse(object):
+		x = 0.0
+		y = 0.0
 		z = -512
 		visible = True		
 		pos = (0, 0)

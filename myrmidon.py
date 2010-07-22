@@ -43,7 +43,7 @@ class MyrmidonGame(object):
 	# Set to true at run-time and Myrmidon will not create a screen,
 	# nor will it accept input or execute any processes in a loop.
 	# No backend engines are initialised.
-	# Any process objects you create will iterate once and never again
+	# Any process objects you create will not interate their generator
 	# unless you run MyrmidonProcess._iterate_generator manually.
 	test_mode = False
 	
@@ -93,7 +93,7 @@ class MyrmidonGame(object):
 			cls.engine['window'] = MyrmidonWindowDummy()
 			cls.engine['gfx'] = MyrmidonGfxDummy()
 			cls.engine['input'] = MyrmidonInputDummy()
-			cls.engine['audo'] = MyrmidonAudioDummy()
+			cls.engine['audio'] = MyrmidonAudioDummy()
 			return
 		
 		# Window
@@ -361,9 +361,6 @@ class MyrmidonProcess(object):
 		if not MyrmidonGame.started:
 			MyrmidonGame.started = True			
 			MyrmidonGame.run_game()
-
-		if MyrmidonGame.test_mode:
-			self._iterate_generator()
 			
 
 	def execute(self):
