@@ -36,6 +36,8 @@ Pygame is required for text rendering. This may change in the future.
 
 import os, pygame, math
 from OpenGL.GL import *
+OpenGL.ERROR_CHECKING=False
+
 from OpenGL.GLU import *
 from pygame.locals import *
 
@@ -59,7 +61,7 @@ class MyrmidonGfxOpengl(object):
 		glMatrixMode(GL_PROJECTION)
 		glLoadIdentity()
 
-		glOrtho(0, MyrmidonGame.screen_resolution[0], MyrmidonGame.screen_resolution[1], 0, -100, 100)
+		glOrtho(0, MyrmidonGame.screen_resolution[0], MyrmidonGame.screen_resolution[1], 0, -1, 1)
 		glMatrixMode(GL_MODELVIEW)
 
 		glEnable(GL_TEXTURE_2D)
@@ -81,7 +83,6 @@ class MyrmidonGfxOpengl(object):
 		
 
 	def draw_processes(self, process_list):
-
 		if self.z_order_dirty == True:
 			self.processes_z_order_list.sort(
 				reverse=True,
@@ -89,7 +90,7 @@ class MyrmidonGfxOpengl(object):
 				object.z if hasattr(object, "z") else 0
 				)
 			self.z_order_dirty = False
-		
+			
 		for process in self.processes_z_order_list:
 
 			if process.disable_draw:
@@ -119,10 +120,9 @@ class MyrmidonGfxOpengl(object):
 					glRotatef(process.rotation, 0, 0, 1)
 					glTranslatef(-x, -y, 0)
 
+				glTranslatef(draw_x, draw_y, 0.0)
 
-				glTranslatef(draw_x, draw_y, 0)
-
-				if process.scale is not 1.0:
+				if not process.scale == 1.0:
 					glTranslatef(process.scale_point[0], process.scale_point[1], 0)					
 					glScalef(process.scale, process.scale, 1.0)		
 					glTranslatef(-process.scale_point[0], -process.scale_point[1], 0)	
@@ -150,9 +150,10 @@ class MyrmidonGfxOpengl(object):
 		new_list = glGenLists(1)
 		glNewList(new_list, GL_COMPILE)
 
+		glEnable(GL_TEXTURE_2D)
+		
 		glColor4f(process.colour[0], process.colour[1], process.colour[2], process.alpha)
 
-		glEnable(GL_TEXTURE_2D)
 		glBindTexture(GL_TEXTURE_2D, image.surface)
 			
 		self.draw_textured_quad(image.width, image.height)
