@@ -51,6 +51,7 @@ class MyrmidonGfxOpengl(object):
 
 	z_order_dirty = True
 	processes_z_order_list = []
+	last_image = None
 	
 	def __init__(self):
 		glClearColor(*self.clear_colour)
@@ -106,7 +107,6 @@ class MyrmidonGfxOpengl(object):
 
 			if not dont_draw:
 				glLoadIdentity()
-				#glPushMatrix()
 
 				draw_x, draw_y = process.get_screen_draw_position()
 				
@@ -134,10 +134,14 @@ class MyrmidonGfxOpengl(object):
 						glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
 				self.prev_blend = process.blend
+
+				glEnable(GL_TEXTURE_2D)
+
+				if not self.last_image == process.image.surface:
+					glBindTexture(GL_TEXTURE_2D, process.image.surface)
+					self.last_image = process.image.surface
 			
 				glCallList(process._texture_list)
-
-				#glPopMatrix()
 
 			if hasattr(process, "draw"):
 				process.draw()
@@ -149,12 +153,8 @@ class MyrmidonGfxOpengl(object):
 		
 		new_list = glGenLists(1)
 		glNewList(new_list, GL_COMPILE)
-
-		glEnable(GL_TEXTURE_2D)
 		
 		glColor4f(process.colour[0], process.colour[1], process.colour[2], process.alpha)
-
-		glBindTexture(GL_TEXTURE_2D, image.surface)
 			
 		self.draw_textured_quad(image.width, image.height)
 		
@@ -163,29 +163,28 @@ class MyrmidonGfxOpengl(object):
 		return new_list
 
 	def draw_textured_quad(self, width, height, repeat = None):
-
 		if repeat == None:
 			tex_coords = (1.0, 1.0)
 		else:
 			tex_coords = (width / repeat.width, height / repeat.height)
-		
-		glBegin(GL_QUADS)
 
-		# bottom left
-		glTexCoord2f(0.0, 0.0)
-		glVertex3f(0.0, 0.0, 0.0)
-
-		# top left
-		glTexCoord2f(0.0, tex_coords[1])
-		glVertex3f(0.0, height, 0.0)
+		glBegin(GL_TRIANGLE_STRIP)
 
 		# top right
 		glTexCoord2f(tex_coords[0], tex_coords[1])
 		glVertex3f(width, height, 0.0)
 
+		# top left
+		glTexCoord2f(0.0, tex_coords[1])
+		glVertex3f(0.0, height, 0.0)
+
 		# bottom right
 		glTexCoord2f(tex_coords[0], 0.0)
 		glVertex3f(width, 0.0, 0.0)		
+
+		# bottom left
+		glTexCoord2f(0.0, 0.0)
+		glVertex3f(0.0, 0.0, 0.0)
 		
 		glEnd()
 
