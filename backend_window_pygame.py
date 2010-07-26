@@ -36,34 +36,79 @@ import os, pygame
 from myrmidon import MyrmidonGame
 
 class MyrmidonWindowPygame(object):
+	opengl = False
+	screen = None
+	flags = 0
+	
 	def __init__(self):
+		if MyrmidonGame.engine_def['gfx'] == "opengl":
+			self.opengl = True
+		
 		os.environ['SDL_VIDEO_CENTERED'] = '1'
 
 		pygame.mixer.pre_init(44100,-16,2, 1024 * 3)
-
+		
 		pygame.init()
 
-		pygame.display.gl_set_attribute(pygame.locals.GL_MULTISAMPLEBUFFERS,1)
+		if self.opengl:
+			pygame.display.gl_set_attribute(pygame.locals.GL_MULTISAMPLEBUFFERS, 1)
+			pygame.display.gl_set_attribute(pygame.locals.GL_MULTISAMPLESAMPLES, 4)
+			self.flags = pygame.OPENGL | pygame.DOUBLEBUF | pygame.HWSURFACE
 
 		if MyrmidonGame.full_screen:
-			pygame.display.set_mode(MyrmidonGame.screen_resolution, pygame.OPENGL | pygame.DOUBLEBUF | pygame.FULLSCREEN | pygame.HWSURFACE)
-		else:
-			pygame.display.set_mode(MyrmidonGame.screen_resolution, pygame.OPENGL | pygame.DOUBLEBUF)
+			self.flags |= pygame.FULLSCREEN
+
+		# Check we can set the resolution at this mode
+		try:
+			self.screen = pygame.display.set_mode(MyrmidonGame.screen_resolution, flags)
+		except Exception, e:
+			# Video mode can't be set, fall back
+			if "video mode" in str(e):
+				self.resolution_fallback()
+			elif self.opengl:
+				# Try to fix "Couldn't find matching GLX visual" error with unsupported samplebuffers
+				self.disable_multisamples()
+				
+
+	def resolution_fallback(self):
+		""" Reset resolution down to the lowest supported and windowed. """
+		if MyrmidonGame.full_screen:
+			self.flags ^= pygame.FULLSCREEN
+			MyrmidonGame.full_screen = False
+		try:
+			MyrmidonGame.screen_resolution = MyrmidonGame.lowest_resolution
+			self.screen = pygame.display.set_mode(MyrmidonGame.lowest_resolution, self.flags)
+		except Exception, e:
+			if self.opengl:
+				self.disable_multisamples()
+			else:
+				raise MyrmidonError("Couldn't find a supported video mode.")
+			
+			
+	def disable_multisamples(self):
+		""" If this system doesn't support samplebuffers and also as a last ditch to get
+		    a working video mode we'll try disabling them. """
+		pygame.display.gl_set_attribute(pygame.locals.GL_MULTISAMPLEBUFFERS, 0)
+		pygame.display.gl_set_attribute(pygame.locals.GL_MULTISAMPLESAMPLES, 0)
+
+		try:
+			MyrmidonGame.screen_resolution = MyrmidonGame.lowest_resolution
+			self.screen = pygame.display.set_mode(MyrmidonGame.lowest_resolution, self.flags)
+		except Exception, e:
+			if "video mode" in str(e):
+				self.resolution_fallback()
+			else:
+				raise MyrmidonError("Couldn't find a supported video mode.")
+			
 
 	def Clock(self):
 		return pygame.time.Clock()
+	
 
 	def change_resolution(self, resolution):
 		pygame.display.quit()
-		"""
-		pygame.display.init()
-		if MyrmidonGame.full_screen:
-			pygame.display.set_mode(resolution, pygame.OPENGL | pygame.DOUBLEBUF | pygame.FULLSCREEN | pygame.HWSURFACE)
-		else:
-			pygame.display.set_mode(resolution, pygame.OPENGL | pygame.DOUBLEBUF)
-		"""
 		self.__init__()
-
+		
 
 	# TEXT HANDLING
 	@classmethod	

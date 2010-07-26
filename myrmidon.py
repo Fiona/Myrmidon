@@ -65,6 +65,7 @@ class MyrmidonGame(object):
 
 	# Display related
 	screen_resolution = 1024,768
+	lowest_resolution = 800,600
 	full_screen = False
 
 	# Process related
