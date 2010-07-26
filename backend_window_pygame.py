@@ -33,7 +33,7 @@ A pygame-based window creation and handling backend.
 """
 
 import os, pygame
-from myrmidon import MyrmidonGame
+from myrmidon import MyrmidonGame, MyrmidonError
 
 class MyrmidonWindowPygame(object):
 	opengl = False
