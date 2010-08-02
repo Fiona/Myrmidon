@@ -137,9 +137,9 @@ class MyrmidonGfxOpengl(object):
 
 				glEnable(GL_TEXTURE_2D)
 
-				if not self.last_image == process.image.surface:
-					glBindTexture(GL_TEXTURE_2D, process.image.surface)
-					self.last_image = process.image.surface
+				#if not self.last_image == process.image.surface:
+				glBindTexture(GL_TEXTURE_2D, process.image.surfaces[process.image_seq])
+				#	self.last_image = process.image.surface
 			
 				glCallList(process._texture_list)
 
