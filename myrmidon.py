@@ -140,23 +140,21 @@ class MyrmidonGame(object):
 			return
 		
 		while cls.started:
-			
+
 			if cls.engine['input']:
 				cls.engine['input'].process_input()
-
-			cls.engine['gfx'].update_screen_pre()
 				
 			for process in cls.process_list:
 				if hasattr(process, "execute"):
 					cls.current_process_executing = process
 					process._iterate_generator()
-
-			cls.engine['gfx'].draw_processes(cls.process_list)
 				
+			cls.engine['gfx'].update_screen_pre()
+			cls.engine['gfx'].draw_processes(cls.process_list)			
 			cls.engine['gfx'].update_screen_post()
 
 			cls.fps = int(cls.clock.get_fps())
-			timerunning = cls.clock.tick(cls.current_fps)
+			cls.clock.tick(cls.current_fps)
 
 
 	@classmethod
@@ -412,8 +410,6 @@ class MyrmidonProcess(object):
 
 	_is_text = False
 	_generator = None
-	
-	_texture_list = None
 	
 	def __init__(self, *args, **kargs):
 		if not MyrmidonGame.started:

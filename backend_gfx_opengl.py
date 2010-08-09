@@ -35,9 +35,8 @@ Pygame is required for text rendering. This may change in the future.
 
 
 import os, pygame, math
-from OpenGL.GL import *
-OpenGL.ERROR_CHECKING=False
 
+from OpenGL.GL import *
 from OpenGL.GLU import *
 from pygame.locals import *
 
@@ -102,12 +101,13 @@ class MyrmidonGfxOpengl(object):
 			if hasattr(process, "normal_draw") and process.normal_draw == False:
 				dont_draw = True
 			
-			if not process.image:
+			if not process.image or process.alpha <= 0.0:
 				dont_draw = True
 
 			if not dont_draw:
-				glLoadIdentity()
+				glPushMatrix()
 
+				# get actual place to draw
 				draw_x, draw_y = process.get_screen_draw_position()
 				
 				# glrotate works by you translating to the point around which you wish to rotate
@@ -120,48 +120,38 @@ class MyrmidonGfxOpengl(object):
 					glRotatef(process.rotation, 0, 0, 1)
 					glTranslatef(-x, -y, 0)
 
+				# move to correct draw pos
 				glTranslatef(draw_x, draw_y, 0.0)
 
+				# scale if necessary
 				if not process.scale == 1.0:
 					glTranslatef(process.scale_point[0], process.scale_point[1], 0)					
 					glScalef(process.scale, process.scale, 1.0)		
 					glTranslatef(-process.scale_point[0], -process.scale_point[1], 0)	
 
+				# bending function
 				if not process.blend == self.prev_blend:
 					if process.blend:
 						glBlendFunc(GL_SRC_ALPHA, GL_ONE)
 					else:
 						glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-
 				self.prev_blend = process.blend
 
+				# draw the triangle strip
 				glEnable(GL_TEXTURE_2D)
-
 				if not self.last_image == process.image.surfaces[process.image_seq]:
 					glBindTexture(GL_TEXTURE_2D, process.image.surfaces[process.image_seq])
 					self.last_image = process.image.surfaces[process.image_seq]
-			
-				glCallList(process._texture_list)
+				glColor4f(process.colour[0], process.colour[1], process.colour[2], process.alpha)
+				glCallList(process.image.surfaces_draw_lists[process.image_seq])
+				
+				glPopMatrix()
 
 			if hasattr(process, "draw"):
 				process.draw()
-				
+
+
 	
-	def create_texture_list(self, process, image):
-		if not image:
-			return
-		
-		new_list = glGenLists(1)
-		glNewList(new_list, GL_COMPILE)
-		
-		glColor4f(process.colour[0], process.colour[1], process.colour[2], process.alpha)
-			
-		self.draw_textured_quad(image.width, image.height)
-		
-		glEndList()
-
-		return new_list
-
 	def draw_textured_quad(self, width, height, repeat = None):
 		if repeat == None:
 			tex_coords = (1.0, 1.0)
@@ -194,15 +184,10 @@ class MyrmidonGfxOpengl(object):
 		self.z_order_dirty = True
 		if not process.image:
 			return
-		
-		process._texture_list = self.create_texture_list(process, process.image)
 
 
 	def remove_process(self, process):
-		self.processes_z_order_list.remove(process)
-		if not process._texture_list == None:
-			glDeleteLists(process._texture_list, 1)
-		
+		self.processes_z_order_list.remove(process)		
 		
 
 	def alter_x(self, process, x):
@@ -217,23 +202,13 @@ class MyrmidonGfxOpengl(object):
 	def alter_image(self, process, image):
 		if not process.image:
 			return
-
-		if not process._texture_list == None:
-			glDeleteLists(process._texture_list, 1)
-
 		process.image.surface = process.image.surfaces[process.image_seq]
-		process._texture_list = self.create_texture_list(process, process.image)
 
 	def alter_colour(self, process, colour):
-		if not process._texture_list == None:
-			glDeleteLists(process._texture_list, 1)		
-		process._texture_list = self.create_texture_list(process, process.image)
-
+		pass
+	
 	def alter_alpha(self, process, alpha):
-		if not process._texture_list == None:
-			glDeleteLists(process._texture_list, 1)		
-		process._texture_list = self.create_texture_list(process, process.image)
-
+		pass
 
 	def new_image(self, width, height, colour = None):
 		# We need to work out the nearest power of 2
@@ -254,7 +229,7 @@ class MyrmidonGfxOpengl(object):
 			
 	def draw_line(self, start, finish, colour = (1.0,1.0,1.0,1.0), width = 5.0, noloadidentity = False):
 		if not noloadidentity:
-			glLoadIdentity()
+			glPushMatrix()
 			
 		glColor4f(*colour)
 		glLineWidth(width)
@@ -266,10 +241,12 @@ class MyrmidonGfxOpengl(object):
 		glVertex2f(finish[0], finish[1])
 		glEnd()
 
+		if not noloadidentity:
+			glPopMatrix()
 
 	def draw_circle(self, position, radius, colour = (1.0,1.0,1.0,1.0), width = 5.0, filled = False, accuracy = 24, noloadidentity = False):
 		if not noloadidentity:
-			glLoadIdentity()
+			glPushMatrix()
 			
 		glDisable(GL_TEXTURE_2D)
 
@@ -287,12 +264,15 @@ class MyrmidonGfxOpengl(object):
 					  
 		glEnable(GL_TEXTURE_2D)
 
+		if not noloadidentity:
+			glPopMatrix()
+
 
 	def draw_rectangle(self, top_left, bottom_right, colour = (1.0,1.0,1.0,1.0), filled = True, width = 2.0, noloadidentity = False):
 		four_colours = True if hasattr(colour[0], "__iter__") else False
 		
 		if not noloadidentity:
-			glLoadIdentity()
+			glPushMatrix()
 		
 		glDisable(GL_TEXTURE_2D)
 
@@ -322,6 +302,9 @@ class MyrmidonGfxOpengl(object):
 					  
 		glEnable(GL_TEXTURE_2D)
 
+		if not noloadidentity:
+			glPopMatrix()
+
 
 	def rgb_to_colour(self, colour):
 		col = []
@@ -333,6 +316,7 @@ class MyrmidonGfxOpengl(object):
 	class Image(object):
 		
 		surfaces = []
+		surfaces_draw_lists = []
 		surface = None
 		width = 0
 		height = 0
@@ -340,6 +324,7 @@ class MyrmidonGfxOpengl(object):
 		def __init__(self, image = None, sequence = False, width = None, height = None, for_repeat = False):
 
 			self.surfaces = []
+			self.surfaces_draw_lists = []
 			
 			if image == None:
 				return
@@ -372,6 +357,9 @@ class MyrmidonGfxOpengl(object):
 				self.surface = self.gl_image_from_surface(raw_surface, self.width, self.height, for_repeat)
 				self.surfaces.append(self.surface)
 
+			for surf in self.surfaces:
+				self.surfaces_draw_lists.append(self.create_draw_list(surf))
+
 
 		def gl_image_from_surface(self, raw_surface, width, height, for_repeat):
 			data = pygame.image.tostring(raw_surface, "RGBA", 0)
@@ -391,6 +379,21 @@ class MyrmidonGfxOpengl(object):
 			gluBuild2DMipmaps(GL_TEXTURE_2D, 4, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data)		
 				
 			return tex
+
+
+		def create_draw_list(self, surface):
+			new_list = glGenLists(1)
+			glNewList(new_list, GL_COMPILE)
+			MyrmidonGame.engine['gfx'].draw_textured_quad(self.width, self.height)
+			glEndList()
+			return new_list
+
+
+		def __del__(self):
+			for list in self.surfaces_draw_lists:
+				glDeleteLists(list, 1)
+			for surf in self.surfaces:
+				glDeleteTextures(surf)
 		
 
 	class Text(MyrmidonProcess):

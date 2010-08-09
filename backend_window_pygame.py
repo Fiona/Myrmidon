@@ -53,6 +53,7 @@ class MyrmidonWindowPygame(object):
 		if self.opengl:
 			pygame.display.gl_set_attribute(pygame.locals.GL_MULTISAMPLEBUFFERS, 1)
 			pygame.display.gl_set_attribute(pygame.locals.GL_MULTISAMPLESAMPLES, 4)
+			pygame.display.gl_set_attribute(pygame.locals.GL_SWAP_CONTROL, 0)
 			self.flags = pygame.OPENGL | pygame.DOUBLEBUF | pygame.HWSURFACE
 
 		if MyrmidonGame.full_screen:
@@ -60,7 +61,7 @@ class MyrmidonWindowPygame(object):
 
 		# Check we can set the resolution at this mode
 		try:
-			self.screen = pygame.display.set_mode(MyrmidonGame.screen_resolution, flags)
+			self.screen = pygame.display.set_mode(MyrmidonGame.screen_resolution, self.flags)
 		except Exception, e:
 			# Video mode can't be set, fall back
 			if "video mode" in str(e):
