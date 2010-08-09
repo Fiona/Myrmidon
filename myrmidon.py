@@ -315,7 +315,76 @@ class MyrmidonGame(object):
 		pos2[1] = pos[1] + distance * math.sin(math.radians(angle))			
 
 		return pos2
+
+	@classmethod	
+	def angle_between_points(cls, pointa, pointb):
+		"""
+		Take two tuples each containing coordinates between two points and
+		returns the angle between those in degrees
+		"""
+		return math.degrees(math.atan2(pointb[1] - pointa[1], pointb[0] - pointa[0]))
+
+	@classmethod 
+	def normalise_angle(cls, angle):
+		"""
+		Returns an equivalent angle value between 0 and 360
+		"""
+		"""
+		while angle < 0.0:
+			angle += 360.0
+		while angle >= 360.0:
+			angle -= 360.0
+		return angle
+		"""
+		return angle % 360.0
+	
+	@classmethod
+	def angle_difference(cls, start_angle, end_angle, skip_normalise = False):
+		"""
+		Returns the angle to turn by to get from start_angle to end_angle.
+		The sign of the result indicates the direction in which to turn.
+		"""
+		if not skip_normalise:
+			start_angle = cls.normalise_angle(start_angle)
+			end_angle = cls.normalise_angle(end_angle)
 		
+		difference = end_angle - start_angle
+		if difference > 180.0:
+			difference -= 360.0
+		if difference < -180.0:
+			difference += 360.0
+			
+		return difference
+	
+	@classmethod
+	def near_angle(cls, curr_angle, targ_angle, increment, leeway = 0):
+		""" 
+		Returns an angle which has been moved from 'curr_angle' closer to 
+		'targ_angle' by 'increment'. increment should always be positive, as 
+		angle will be rotated in the direction resulting in the shortest 
+		distance to the target angle.
+		leeway specifies an acceptable distance from the target to accept,
+		allowing you to specify a cone rather than a specific point.
+		"""
+		# Normalise curr_angle
+		curr_angle = cls.normalise_angle(curr_angle)
+			
+		# Normalise targ_angle
+		targ_angle = cls.normalise_angle(targ_angle)
+			
+		# calculate difference
+		difference = cls.angle_difference(curr_angle, targ_angle, skip_normalise = True)
+			
+		# do increment
+		if math.fabs(difference) <= leeway:
+			return curr_angle
+		elif math.fabs(difference) < increment:
+			return targ_angle
+		else:
+			dir = difference / math.fabs(difference)
+			return curr_angle + (increment * dir)
+
+
 
 class MyrmidonError(Exception):
 	def __init__(self, value):
