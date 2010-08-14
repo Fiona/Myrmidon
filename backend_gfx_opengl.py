@@ -101,7 +101,7 @@ class MyrmidonGfxOpengl(object):
 			if process.normal_draw == False:
 				dont_draw = True
 			
-			if not process.image or process.alpha <= 0.0:
+			if not process.image or process.alpha <= 0.0 or process.status == S_SLEEP:
 				dont_draw = True
 
 			if not dont_draw:
