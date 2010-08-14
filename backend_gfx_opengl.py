@@ -98,7 +98,7 @@ class MyrmidonGfxOpengl(object):
 			
 			dont_draw = False
 				
-			if hasattr(process, "normal_draw") and process.normal_draw == False:
+			if process.normal_draw == False:
 				dont_draw = True
 			
 			if not process.image or process.alpha <= 0.0:
@@ -119,16 +119,16 @@ class MyrmidonGfxOpengl(object):
 					glTranslatef(x, y, 0)
 					glRotatef(process.rotation, 0, 0, 1)
 					glTranslatef(-x, -y, 0)
-
+				
 				# move to correct draw pos
 				glTranslatef(draw_x, draw_y, 0.0)
 
 				# scale if necessary
 				if not process.scale == 1.0:
-					glTranslatef(process.scale_point[0], process.scale_point[1], 0)					
+					glTranslatef(process.scale_point[0], process.scale_point[1], 0)	
 					glScalef(process.scale, process.scale, 1.0)		
-					glTranslatef(-process.scale_point[0], -process.scale_point[1], 0)	
-
+					glTranslatef(-process.scale_point[0], -process.scale_point[1], 0)
+					
 				# bending function
 				if not process.blend == self.prev_blend:
 					if process.blend:
@@ -136,7 +136,7 @@ class MyrmidonGfxOpengl(object):
 					else:
 						glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 				self.prev_blend = process.blend
-
+				
 				# draw the triangle strip
 				glEnable(GL_TEXTURE_2D)
 				if not self.last_image == process.image.surfaces[process.image_seq]:
@@ -147,8 +147,7 @@ class MyrmidonGfxOpengl(object):
 				
 				glPopMatrix()
 
-			if hasattr(process, "draw"):
-				process.draw()
+			process.draw()
 
 
 	

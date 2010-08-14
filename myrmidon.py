@@ -407,7 +407,8 @@ class MyrmidonProcess(object):
 	blend = False
 	scale_point = [0.0, 0.0]
 	disable_draw = False
-
+	normal_draw = True
+	
 	_is_text = False
 	_generator = None
 	
@@ -451,6 +452,13 @@ class MyrmidonProcess(object):
 		except StopIteration:
 			return
 			#self.signal(S_KILL)
+
+
+	def draw(self):
+		"""
+		Override this to add custom drawing routines to your process.
+		"""
+		pass
 
 
 	def move_forward(self, distance, angle = None):
