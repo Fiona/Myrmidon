@@ -145,7 +145,7 @@ class MyrmidonGame(object):
 				cls.engine['input'].process_input()
 				
 			for process in cls.process_list:
-				if hasattr(process, "execute"):
+				if process.status == 0:
 					cls.current_process_executing = process
 					process._iterate_generator()
 				
@@ -408,6 +408,7 @@ class MyrmidonProcess(object):
 	scale_point = [0.0, 0.0]
 	disable_draw = False
 	normal_draw = True
+	status = 0
 	
 	_is_text = False
 	_generator = None
