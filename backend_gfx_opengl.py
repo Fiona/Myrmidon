@@ -343,7 +343,7 @@ class MyrmidonGfxOpengl(object):
 			if sequence:
 				self.height = (width if height == None else height)
 				rw = raw_surface.get_width()
-				rh = raw_surface.get_width()
+				rh = raw_surface.get_height()
 
 				for a in range(0, rh/self.height):
 					for b in range(rw/self.width):
