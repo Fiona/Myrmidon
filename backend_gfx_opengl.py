@@ -90,7 +90,9 @@ class MyrmidonGfxOpengl(object):
 				object.z if hasattr(object, "z") else 0
 				)
 			self.z_order_dirty = False
-			
+
+		self.last_image = None
+		
 		for process in self.processes_z_order_list:
 
 			if process.disable_draw:
