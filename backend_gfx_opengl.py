@@ -351,7 +351,7 @@ class MyrmidonGfxOpengl(object):
 						surf.blit(raw_surface, (0,0), pygame.Rect((b*self.width, a*self.height), (self.width, self.height)))
 						self.surfaces.append(self.gl_image_from_surface(surf, self.width, self.height, for_repeat))
 
-				self.surface = self.surfaces[:1][0]
+				self.surface = self.surfaces[0]
 				
 			else:
 				self.height = (height if not height == None else raw_surface.get_height())
