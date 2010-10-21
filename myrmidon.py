@@ -228,8 +228,8 @@ class MyrmidonGame(object):
 			process_iter = copy.copy(cls.process_list)
 			
 			for obj in process_iter:
-				if cls.process_list[obj].__class__.__name__ == process:
-					cls.single_object_signal(cls.process_list[obj], signal_code, tree)
+				if obj.__class__.__name__ == process:
+					cls.single_object_signal(obj, signal_code, tree)
 		
 		# Passed in an object directly	  
 		else:
