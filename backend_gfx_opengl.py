@@ -46,7 +46,6 @@ from consts import *
 class MyrmidonGfxOpengl(object):
 
 	clear_colour = (0.0, 0.0, 0.0, 1.0)
-	prev_blend = False
 
 	z_order_dirty = True
 	processes_z_order_list = []
@@ -132,12 +131,8 @@ class MyrmidonGfxOpengl(object):
 					glTranslatef(-process.scale_point[0], -process.scale_point[1], 0)
 					
 				# bending function
-				if not process.blend == self.prev_blend:
-					if process.blend:
-						glBlendFunc(GL_SRC_ALPHA, GL_ONE)
-					else:
-						glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-				self.prev_blend = process.blend
+				if process.blend:
+					glBlendFunc(GL_SRC_ALPHA, GL_ONE)
 				
 				# draw the triangle strip
 				glEnable(GL_TEXTURE_2D)
@@ -146,6 +141,10 @@ class MyrmidonGfxOpengl(object):
 					self.last_image = process.image.surfaces[process.image_seq]
 				glColor4f(process.colour[0], process.colour[1], process.colour[2], process.alpha)
 				glCallList(process.image.surfaces_draw_lists[process.image_seq])
+
+				# Set blending back to default
+				if process.blend:
+					glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 				
 				glPopMatrix()
 
@@ -351,7 +350,7 @@ class MyrmidonGfxOpengl(object):
 						surf.blit(raw_surface, (0,0), pygame.Rect((b*self.width, a*self.height), (self.width, self.height)))
 						self.surfaces.append(self.gl_image_from_surface(surf, self.width, self.height, for_repeat))
 
-				self.surface = self.surfaces[:1][0]
+				self.surface = self.surfaces[:1]
 				
 			else:
 				self.height = (height if not height == None else raw_surface.get_height())
