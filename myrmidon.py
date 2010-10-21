@@ -71,6 +71,7 @@ class MyrmidonGame(object):
 	# Process related
 	process_list = []
 	current_process_executing = None
+	process_priority_dirty = True
 
 
 	@classmethod
@@ -141,6 +142,14 @@ class MyrmidonGame(object):
 		
 		while cls.started:
 
+			if cls.process_priority_dirty == True:
+				cls.process_list.sort(
+					reverse=True,
+					key=lambda object:
+					object.priority if hasattr(object, "priority") else 0
+					)
+				cls.process_priority_dirty = False
+
 			if cls.engine['input']:
 				cls.engine['input'].process_input()
 				
@@ -174,8 +183,8 @@ class MyrmidonGame(object):
 		Registers a process with Myrmidon so it will be executed.
 		"""
 		cls.process_list.append(process)
-
 		cls.engine['gfx'].register_process(process)
+		cls.process_priority_dirty = True
 		
 		"""
 		cls.z_order_dirty = True
@@ -397,6 +406,7 @@ class MyrmidonProcess(object):
 	_x = 0.0
 	_y = 0.0
 	_z = 0.0
+	_priority = 0
 	_image = None
 	_image_seq = 0
 	_colour = (1.0, 1.0, 1.0)
@@ -422,6 +432,7 @@ class MyrmidonProcess(object):
 		self.z = 0.0
 		self.x = 0.0
 		self.y = 0.0
+		self.priority = 0
 		
 		self._generator = self.execute(*args, **kargs)
 		self._iterate_generator()
@@ -533,6 +544,20 @@ class MyrmidonProcess(object):
 	@z.deleter
 	def z(self):
 		self._z = 0.0
+
+	# rity
+	@property
+	def priority(self):
+		return self._priority
+
+	@priority.setter
+	def priority(self, value):
+		if not self._priority == value:
+			self._priority = value
+
+	@priority.deleter
+	def priority(self):
+		self._priority = 0
 
 	# texture image
 	@property
