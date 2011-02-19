@@ -110,7 +110,12 @@ class MyrmidonGfxOpengl(object):
 
 				# get actual place to draw
 				draw_x, draw_y = process.get_screen_draw_position()
-				
+
+				# Clip the process if necessary
+				if not process.clip == None:
+					glEnable(GL_SCISSOR_TEST)
+					glScissor(int(process.clip[0][0]), int(process.clip[0][1]), int(process.clip[1][0]), int(process.clip[1][1]))
+
 				# glrotate works by you translating to the point around which you wish to rotate
 				# and applying the rotation you can translate back to apply the real translation
 				# position
@@ -145,6 +150,10 @@ class MyrmidonGfxOpengl(object):
 				# Set blending back to default
 				if process.blend:
 					glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
+				# Stop clipping
+				if not process.clip == None:
+					glDisable(GL_SCISSOR_TEST)
 				
 				glPopMatrix()
 
