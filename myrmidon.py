@@ -415,6 +415,7 @@ class MyrmidonProcess(object):
 	scale = 1.0
 	rotation = 0.0
 	blend = False
+	clip = None
 	scale_point = [0.0, 0.0]
 	disable_draw = False
 	normal_draw = True
