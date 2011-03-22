@@ -112,9 +112,10 @@ class MyrmidonGfxOpengl(object):
 				draw_x, draw_y = process.get_screen_draw_position()
 
 				# Clip the process if necessary
-				if not process.clip == None:
+                # glScissor assumes origin as bottom-left rather than top-left which explains the fudging with the second param
+				if not process.clip is None:
 					glEnable(GL_SCISSOR_TEST)
-					glScissor(int(process.clip[0][0]), int(process.clip[0][1]), int(process.clip[1][0]), int(process.clip[1][1]))
+					glScissor(int(process.clip[0][0]), MyrmidonGame.screen_resolution[1] - int(process.clip[0][1]) - int(process.clip[1][1]), int(process.clip[1][0]), int(process.clip[1][1]))
 
 				# glrotate works by you translating to the point around which you wish to rotate
 				# and applying the rotation you can translate back to apply the real translation
