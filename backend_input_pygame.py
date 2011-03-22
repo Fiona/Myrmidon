@@ -62,6 +62,7 @@ class MyrmidonInputPygame(object):
 			self.mouse.z = -512
 			self.mouse.visible = True		
 			self.mouse.pos = (0, 0)
+			self.mouse.rel = (0, 0)
 			self.mouse.left = False
 			self.mouse.middle = False
 			self.mouse.right = False
@@ -79,6 +80,7 @@ class MyrmidonInputPygame(object):
 		self.keys_pressed  = pygame.key.get_pressed()
 
 		self.mouse.pos = pygame.mouse.get_pos()
+		self.mouse.rel = pygame.mouse.get_rel()
 		self.mouse.x = self.mouse.pos[0]
 		self.mouse.y = self.mouse.pos[1]
 		
@@ -141,4 +143,10 @@ class MyrmidonInputPygame(object):
 		@visible.deleter
 		def visible(self):
 			self._visible = False
-		
+
+		def set_pos(self, new_pos):
+			"""
+			Pass in a tuple corrisponding to the screen position we want
+			the mouse to sit at.
+			"""
+			pygame.mouse.set_pos(new_pos)
