@@ -243,21 +243,26 @@ class MyrmidonGfxOpengl(object):
 
 			
 	def draw_line(self, start, finish, colour = (1.0,1.0,1.0,1.0), width = 5.0, noloadidentity = False):
+		gradient = True if hasattr(colour[0], "__iter__") else False
+
 		if not noloadidentity:
 			glPushMatrix()
 			
-		glColor4f(*colour)
 		glLineWidth(width)
 		
 		glDisable(GL_TEXTURE_2D)
 		
 		glBegin(GL_LINES)
+		glColor4f(*(colour if not gradient else colour[0]))
 		glVertex2f(start[0], start[1])
+		if gradient:
+			glColor4f(*colour[1])
 		glVertex2f(finish[0], finish[1])
 		glEnd()
 
 		if not noloadidentity:
 			glPopMatrix()
+
 
 	def draw_circle(self, position, radius, colour = (1.0,1.0,1.0,1.0), width = 5.0, filled = False, accuracy = 24, noloadidentity = False):
 		if not noloadidentity:
