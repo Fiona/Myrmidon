@@ -165,13 +165,13 @@ class MyrmidonGfxOpengl(object):
 	def draw_textured_quad(self, width, height, repeat = None, tex_offset = None):
 		if repeat == None:
 			tex_coords = (1.0, 1.0)
-                        tex_offset = (0.0, 0.0)
+			tex_offset = (0.0, 0.0)
 		else:
 			tex_coords = (width / repeat.width, height / repeat.height)
-                        if not tex_offset == None:
-                                tex_offset = ((tex_offset[0] / repeat.width) * .1, (tex_offset[1] / repeat.height) * .1)
-                        else:
-                                tex_offset = (0.0, 0.0)
+			if not tex_offset == None:
+				tex_offset = ((tex_offset[0] / repeat.width) * .1, (tex_offset[1] / repeat.height) * .1)
+			else:
+				tex_offset = (0.0, 0.0)
                                 
 		glBegin(GL_TRIANGLE_STRIP)
 
