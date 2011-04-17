@@ -149,4 +149,6 @@ class MyrmidonInputPygame(object):
 			Pass in a tuple corrisponding to the screen position we want
 			the mouse to sit at.
 			"""
+			self.pos = new_pos
+			self.x, self.y = self.pos
 			pygame.mouse.set_pos(new_pos)
