@@ -1,6 +1,6 @@
 import sys
-from myrmidon import MyrmidonProcess, MyrmidonGame
-from consts import *
+from myrmidon.myrmidon import MyrmidonProcess, MyrmidonGame
+from myrmidon.consts import *
 from pygame.locals import *
 
 # ----------------------------------------

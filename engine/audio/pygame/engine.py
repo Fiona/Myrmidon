@@ -34,8 +34,8 @@ A Pygame (and conversely, SDL) driven backend for handling and playing audio.
 
 import pygame
 
-class MyrmidonAudioPygame(object):
+class Myrmidon_Backend(object):
 
-	def load_audio_from_file(self, filename):
-		sound = pygame.mixer.Sound(filename)
-		return sound
+        def load_audio_from_file(self, filename):
+                sound = pygame.mixer.Sound(filename)
+                return sound
