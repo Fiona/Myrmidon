@@ -109,8 +109,12 @@ class Myrmidon_Backend(object):
         def change_resolution(self, resolution):
                 pygame.display.quit()
                 self.__init__()
-                
 
+                
+        def set_title(self, title):
+                pygame.display.set_caption(title)
+
+                
         # TEXT HANDLING
         @classmethod    
         def load_font(cls, filename = None, size = 20):
