@@ -41,7 +41,7 @@ class Myrmidon_Backend(object):
         flags = 0
         
         def __init__(self):
-                if MyrmidonGame.engine_def['gfx'] == "opengl":
+                if MyrmidonGame.engine_def['gfx'] in ["opengl", "modern_opengl"]:
                         self.opengl = True
                 
                 os.environ['SDL_VIDEO_CENTERED'] = '1'
@@ -54,6 +54,7 @@ class Myrmidon_Backend(object):
                         pygame.display.gl_set_attribute(pygame.locals.GL_MULTISAMPLEBUFFERS, 1)
                         pygame.display.gl_set_attribute(pygame.locals.GL_MULTISAMPLESAMPLES, 4)
                         pygame.display.gl_set_attribute(pygame.locals.GL_SWAP_CONTROL, 0)
+                        pygame.display.gl_set_attribute(pygame.locals.GL_DEPTH_SIZE, 16)
                         self.flags = pygame.OPENGL | pygame.DOUBLEBUF | pygame.HWSURFACE
 
                 if MyrmidonGame.full_screen:
