@@ -53,6 +53,12 @@ class MyrmidonGame(object):
         "input" : "pygame",
         "audio" : "pygame"
         }
+    engine_plugin_def = {
+        "window" : [],
+        "gfx" : [],
+        "input" : [],
+        "audio" : []
+        }
     engine = {
         "window" : None,
         "gfx" : None,
@@ -88,23 +94,25 @@ class MyrmidonGame(object):
         if audio:
             cls.engine_def['audio'] = audio
 
+            
+    @classmethod
+    def define_engine_plugins(cls, window = [], gfx = [], input = [], audio = []):
+        """
+        Use this before creating any processes to specify which engine plugins you require,
+        if any.
+        Pass in lists of strings of plugin names.
+        """
+        cls.engine_plugin_def['window'] = window
+        cls.engine_plugin_def['gfx'] = gfx
+        cls.engine_plugin_def['input'] = input
+        cls.engine_plugin_def['audio'] = audio
+            
 
     @classmethod
     def init_engines(cls):
         # Attempt to dynamically import the required engines 
         try:
-            """
-            from engine.window.pygame.engine import Myrmidon_Backend
-            cls.engine['window'] = Myrmidon_Backend()
-            from engine.gfx.modern_opengl.engine import Myrmidon_Backend
-            cls.engine['gfx'] = Myrmidon_Backend()
-            from engine.audio.pygame.engine import Myrmidon_Backend
-            cls.engine['audio'] = Myrmidon_Backend()
-            from engine.input.pygame.engine import Myrmidon_Backend
-            cls.engine['input'] = Myrmidon_Backend()
-            """
             for backend_name in ['window', 'gfx', 'input', 'audio']:
-                #exec "import engine.%s.%s.engine as backend" % (backend_name, cls.engine_def[backend_name])
                 backend_module = __import__(
                     "engine.%s.%s.engine" % (backend_name, cls.engine_def[backend_name]),
                     globals(),
@@ -126,8 +134,29 @@ class MyrmidonGame(object):
             cls.engine['input'] = MyrmidonInputDummy()
             cls.engine['audio'] = MyrmidonAudioDummy()
             return
-
         
+
+    @classmethod
+    def load_engine_plugins(cls, engine_object, backend_name):
+        # Import plugin modules and create them
+        try:
+            engine_object.plugins = {}
+            if len(cls.engine_plugin_def[backend_name]):
+                for plugin_name in  cls.engine_plugin_def[backend_name]:
+                    plugin_module = __import__(
+                        "engine.%s.%s.plugins.%s" % (backend_name, cls.engine_def[backend_name], plugin_name),
+                        globals(),
+                        locals(),
+                        ['Myrmidon_Backend'],
+                        -1
+                        )
+                    engine_object.plugins[plugin_name] = plugin_module.Myrmidon_Engine_Plugin(engine_object)
+                
+        except ImportError as detail:
+            print "Error importing a backend engine plugin.", detail
+            sys.exit()
+
+            
     @classmethod
     def start_game(cls):
         """

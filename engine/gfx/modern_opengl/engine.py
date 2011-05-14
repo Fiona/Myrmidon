@@ -51,14 +51,14 @@ from myrmidon.consts import *
 
 
 class Myrmidon_Backend(object):
-
+    plugins = {}
+    
     clear_colour = (0.0, 0.0, 0.0, 1.0)
     processes_z_order_list = []
 
     max_textures = 2
 
-    vertex_shader = None
-    fragment_shader = None
+    shaders = []
     shader_program = None
 
     uniforms = {}
@@ -68,6 +68,8 @@ class Myrmidon_Backend(object):
     textures = []
 
     def __init__(self):
+        MyrmidonGame.load_engine_plugins(self, "gfx")
+        
         self.max_textures = glGetInteger(GL_MAX_TEXTURE_IMAGE_UNITS)
 
         #
@@ -79,11 +81,6 @@ class Myrmidon_Backend(object):
         glViewport(0, 0, MyrmidonGame.screen_resolution[0], MyrmidonGame.screen_resolution[1])
 
         glMatrixMode(GL_MODELVIEW)	
-
-        # set up depth buffer
-        glClearDepth(1.0)
-        glEnable(GL_DEPTH_TEST)
-        glDepthFunc(GL_LEQUAL)
 
         # Blending setup
         glEnable(GL_BLEND)
@@ -100,73 +97,110 @@ class Myrmidon_Backend(object):
         self.attributes = {}
         for att in ("position","color","texcoord"):
             self.attributes[att] = glGetAttribLocation(self.shader_program, att)	
-
+            
         # Create global VBO
         self.vertex_buffer = VBO(array([]), target=GL_ARRAY_BUFFER, usage=GL_STREAM_DRAW)
 
 
     def init_shaders(self):
-        self.vertex_shader = compileShader(self.generate_vertex_shader_glsl(), GL_VERTEX_SHADER)
-        self.fragment_shader = compileShader(self.generate_fragment_shader_glsl(), GL_FRAGMENT_SHADER)
-        self.shader_program = compileProgram(self.vertex_shader, self.fragment_shader)
+        self.shaders.append([self.generate_vertex_shader_glsl(), GL_VERTEX_SHADER])
+        self.shaders.append([self.generate_fragment_shader_glsl(), GL_FRAGMENT_SHADER])
 
+        for x in self.plugins:
+            self.plugins[x].backend_init()
+        
+        shader_objects = []
+
+        for source,type in self.shaders:
+            obj = glCreateShader(type)
+            glShaderSource(obj, source)
+            shader_objects.append(obj)
+        try:            
+            
+            for obj in shader_objects:
+                glCompileShader(obj)
+
+            self.shader_program = glCreateProgram()
+
+            for obj in shader_objects:
+                glAttachShader(self.shader_program, obj)
+
+            glLinkProgram(self.shader_program)
+        except GLError as err:
+            print "GLSL linking error", err
+            print err.description[:2500]
+            sys.exit()
+        
+        
     def change_resolution(self, resolution):
         self.__init__()
 
 
     def update_screen_pre(self):
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        glClear(GL_COLOR_BUFFER_BIT)
+        for x in self.plugins:
+            self.plugins[x].pre_render()
 
 
     def update_screen_post(self):
+        for x in self.plugins:
+            self.plugins[x].post_render()
         pygame.display.flip()
 
 
     def draw_processes(self, process_list):
-        """
         if self.z_order_dirty == True:
-        self.processes_z_order_list.sort(
-            reverse=True,
-            key=lambda object:
-            object.z if hasattr(object, "z") else 0
-            )
-        self.z_order_dirty = False
-        """
-        #glMatrixMode(GL_MODELVIEW)
+            self.processes_z_order_list.sort(
+                reverse=True,
+                key=lambda object:
+                    object.z if hasattr(object, "z") else 0
+                )
+            self.z_order_dirty = False
+
         glLoadIdentity()
 
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         
         # organise processes by graphic
-        process_by_image = defaultdict(list)
-        for g in process_list:
+        process_by_z = {}
+        for g in self.processes_z_order_list:
             if g.image:
-                process_by_image[g.image.surfaces[g.image_seq]].append(g)		
+                if not g.z in process_by_z:
+                    process_by_z[g.z] = {}
+                
+                if not g.image.surfaces[g.image_seq] in process_by_z[g.z]:
+                    process_by_z[g.z][g.image.surfaces[g.image_seq]] = []
+                    
+                process_by_z[g.z][g.image.surfaces[g.image_seq]].append(g)		
 
         # set active shader program
         glUseProgram(self.shader_program)
-
+        
         try:
+            for x in self.plugins:
+                self.plugins[x].pre_during_render()
+            
             glUniform2f(self.uniforms["screen_resolution"], MyrmidonGame.screen_resolution[0], MyrmidonGame.screen_resolution[1])
-
+            
             # render in batches grouped by texture
-            pass_processes = {}	
-            for img in process_by_image:
+            for z_value in process_by_z:
+                pass_processes = {}	
 
-                pass_processes[img] = process_by_image[img]			
+                for img in process_by_z[z_value]:
+                    pass_processes[img] = process_by_z[z_value][img]			
 
-                if len(pass_processes) >= self.max_textures:
+                    if len(pass_processes) >= self.max_textures:
+                        self.render_batch(pass_processes)
+                        pass_processes = {}				
+
+                if len(pass_processes) > 0:
                     self.render_batch(pass_processes)
-                    pass_processes = {}				
-
-            if len(pass_processes) > 0:
-                self.render_batch(pass_processes)
                 
         finally:
             glUseProgram(0)
 
-
+        
     def render_batch(self, processes):
         # Give each image a number for OpenGL to reference them by
         # and bind them
@@ -243,28 +277,28 @@ class Myrmidon_Backend(object):
 
             vertex_array.append(
                 self.coordinate_transform(-1.0, 1.0, process_width * g.scale, process_height * g.scale, cosr, sinr, g.x, g.y)
-                + (g.z, 1.0)
+                + (0.0, 1.0)
                 + g.colour
                 + (g.alpha,)
                 + (0.0, 1.0, texture_lookup[g.image.surfaces[g.image_seq]], 1.0)
                 )			
             vertex_array.append(
                 self.coordinate_transform(1.0, 1.0, process_width * g.scale, process_height * g.scale, cosr, sinr, g.x, g.y)
-                + (g.z, 1.0)
+                + (0.0, 1.0)
                 + g.colour
                 + (g.alpha,)
                 + (1.0, 1.0, texture_lookup[g.image.surfaces[g.image_seq]], 1.0)
                 )			
             vertex_array.append(				
                 self.coordinate_transform(1.0, -1.0, process_width * g.scale, process_height * g.scale, cosr, sinr, g.x, g.y)
-                + (g.z, 1.0)
+                + (0.0, 1.0)
                 + g.colour
                 + (g.alpha,)
                 + (1.0, 0.0, texture_lookup[g.image.surfaces[g.image_seq]], 1.0)
             )		
             vertex_array.append(
                 self.coordinate_transform(-1.0, -1.0, process_width * g.scale, process_height * g.scale, cosr, sinr, g.x, g.y)
-                + (g.z, 1.0)
+                + (0.0, 1.0)
                 + g.colour
                 + (g.alpha,)
                 + (0.0, 0.0, texture_lookup[g.image.surfaces[g.image_seq]], 1.0)
@@ -500,7 +534,7 @@ class Myrmidon_Backend(object):
     def generate_vertex_shader_glsl(self):
         shader_code = """	
 uniform vec2 screen_resolution;
-	
+
 in vec4 position;
 in vec4 color;
 in vec4 texcoord;
@@ -532,6 +566,8 @@ void main()
     
     def generate_fragment_shader_glsl(self):
         shader_code = """
+vec4 apply_lighting(vec4, vec2);
+
 uniform sampler2D textures[%d];
 """ % self.max_textures
         
@@ -543,7 +579,7 @@ void main()
         texture_check_if = """
   if(int(gl_TexCoord[0].z) == %d)
   {
-    gl_FragColor = texture(textures[%d],gl_TexCoord[0].xy) * gl_Color;
+    gl_FragColor = apply_lighting((texture2D(textures[%d],gl_TexCoord[0].xy) * gl_Color), gl_FragCoord);
   }"""
         shader_code += " else ".join([texture_check_if % (x,x) for x in range(self.max_textures)])
         
@@ -556,4 +592,9 @@ void main()
 }
 """
 
+        if not "lighting" in self.plugins:
+            shader_code += """
+vec4 apply_lighting(vec4 pixel, vec2, texcoord){ return pixel; }
+"""
+            
         return shader_code

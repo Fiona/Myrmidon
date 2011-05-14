@@ -28,6 +28,9 @@ class Game(MyrmidonProcess):
 			"shot" : MyrmidonGame.engine['gfx'].Image("shot.png")
 			}
 
+                MyrmidonGame.engine['gfx'].plugins['lighting'].add_light(x = 500.0, y = 500.0, colour = (1.0, 0.0, 0.0, .7), radius = 200.0, intensity = 10.0)
+                MyrmidonGame.engine['gfx'].plugins['lighting'].add_light(x = 500.0, y = 300.0, colour = (0.0, 1.0, 0.0, .7), radius = 200.0, intensity = 10.0)
+
 		self.font = MyrmidonGame.engine['window'].load_font(size = 50)
 		Ship(self)
 
@@ -81,8 +84,8 @@ class Ship(MyrmidonProcess):
 		self.image = game.graphics['ship']
 		self.x, self.y = 500.0, 300.0
 		self.rotation = 0.0
-                self.z = -1
-                self.alpha = .1
+                self.z = -512
+                self.alpha = 1.0
 		while True:
 			if MyrmidonGame.keyboard_key_down(K_LEFT):
 				self.x -= 10.0
@@ -104,8 +107,8 @@ class Shot(MyrmidonProcess):
 		self.image = game.graphics['shot']
 		self.x = x
 		self.y = y
-                self.z = 1
-                self.scale = 2.0
+                self.z = 512
+                self.scale = 1.0
 		self.alpha = 1.0
 		#self.blend = True
 
@@ -124,4 +127,7 @@ class Shot(MyrmidonProcess):
 MyrmidonGame.screen_resolution = (1024, 768)
 MyrmidonGame.full_screen = False
 MyrmidonGame.define_engine(gfx = "modern_opengl")
+MyrmidonGame.define_engine_plugins(gfx = ["lighting"])
+#import cProfile
+#cProfile.run('Game()', 'profile')
 Game()
