@@ -76,6 +76,7 @@ class MyrmidonGame(object):
 
     # Process related
     process_list = []
+    processes_to_remove = []
     current_process_executing = None
     process_priority_dirty = True
 
@@ -190,11 +191,16 @@ class MyrmidonGame(object):
 
             if cls.engine['input']:
                 cls.engine['input'].process_input()
-                
+
+            cls.processes_to_remove = []
+            
             for process in cls.process_list:
                 if process.status == 0:
                     cls.current_process_executing = process
                     process._iterate_generator()
+
+            for x in cls.processes_to_remove:
+                cls.process_list.remove(x)
                 
             cls.engine['gfx'].update_screen_pre()
             cls.engine['gfx'].draw_processes(cls.process_list)              
@@ -304,7 +310,7 @@ class MyrmidonGame(object):
             return
         process.on_exit()
         cls.engine['gfx'].remove_process(process)
-        MyrmidonGame.process_list.remove(process)
+        MyrmidonGame.processes_to_remove.append(process)
 
         
     ##############################################
