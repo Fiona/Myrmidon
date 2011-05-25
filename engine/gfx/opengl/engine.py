@@ -424,6 +424,9 @@ class Myrmidon_Backend(object):
                 _antialias = True
 
                 text_image_size = (0,0)
+
+                _shadow = None
+                shadow_image = None
                 
                 def __init__(self, font, x, y, alignment, text, antialias = True):
                         MyrmidonProcess.__init__(self)
@@ -436,17 +439,87 @@ class Myrmidon_Backend(object):
                         self.antialias = antialias
                         self._is_text = True
                         self.rotation = 0.0
+                        self.normal_draw = False
 
                         self.generate_text_image()
 
+                def draw(self):
+                        """ Welp """
+                        glPushMatrix()
 
+                        #get actual place to draw
+                        draw_x, draw_y = self.get_screen_draw_position()
+
+                        # Clip the process if necessary
+                        if not self.clip is None:
+                                glEnable(GL_SCISSOR_TEST)
+                                glScissor(int(self.clip[0][0]), MyrmidonGame.screen_resolution[1] - int(self.clip[0][1]) - int(self.clip[1][1]), int(self.clip[1][0]), int(self.clip[1][1]))
+
+                        # Rotate
+                        if self.rotation <> 0.0:
+                                x = draw_x + (self.image.width/2) * self.scale
+                                y = draw_y + (process.image.height/2) * self.scale
+                                glTranslatef(x, y, 0)
+                                glRotatef(self.rotation, 0, 0, 1)
+                                glTranslatef(-x, -y, 0)
+                                
+                        # move to correct draw pos
+                        glTranslatef(draw_x, draw_y, 0.0)
+
+                        # scale if necessary
+                        if not self.scale == 1.0:
+                                glTranslatef(self.scale_point[0], self.scale_point[1], 0) 
+                                glScalef(self.scale, self.scale, 1.0)             
+                                glTranslatef(-self.scale_point[0], -self.scale_point[1], 0)
+                                        
+                        # bending function
+                        if self.blend:
+                                glBlendFunc(GL_SRC_ALPHA, GL_ONE)
+                                
+                        # Shadow draw
+                        if not self.shadow is None:
+                                glTranslatef(2, 2, 0.0)
+                                glBindTexture(GL_TEXTURE_2D, self.shadow_image.surfaces[self.image_seq])
+                                MyrmidonGame.engine['gfx'].last_image = self.shadow_image.surfaces[self.image_seq]
+                                glColor4f(self.shadow[0], self.shadow[1], self.shadow[2], self.alpha)
+                                glCallList(self.shadow_image.surfaces_draw_lists[self.image_seq])
+                                glTranslatef(-2, -2, 0.0)
+
+                        # draw the triangle strip
+                        glEnable(GL_TEXTURE_2D)
+                        glBindTexture(GL_TEXTURE_2D, self.image.surfaces[self.image_seq])
+                        MyrmidonGame.engine['gfx'].last_image = self.image.surfaces[self.image_seq]
+                        glColor4f(self.colour[0], self.colour[1], self.colour[2], self.alpha)
+                        glCallList(self.image.surfaces_draw_lists[self.image_seq])                                
+
+                        # Set blending back to default
+                        if self.blend:
+                                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
+                        # Stop clipping
+                        if not self.clip == None:
+                                glDisable(GL_SCISSOR_TEST)
+                                
+                        glPopMatrix()
+
+                                
                 def generate_text_image(self):
+                        self.image = self.make_texture()
+                        if not self._shadow is None:
+                                self.shadow_image = self.make_texture(self.shadow)
+
+                        
+                def make_texture(self, colour = None):
                         if self.text == "" or self.font == None:
                                 self.image = None
                                 return
                                 
                         # Generate a Pygame image based on the current font and settings
-                        colour = (255 * self.colour[0], 255 * self.colour[1], 255 * self.colour[2])
+                        if colour is None:
+                                colour = (255 * self.colour[0], 255 * self.colour[1], 255 * self.colour[2])
+                        else:
+                                colour = (255 * colour[0], 255 * colour[1], 255 * colour[2])
+                                
                         font_image = self.font.render(self.text, self.antialias, colour)
 
                         # We need to work out the nearest power of 2 to appease opengl
@@ -467,7 +540,7 @@ class Myrmidon_Backend(object):
                         new_surface.blit(font_image, (0, 0))
 
                         # Create an image from it
-                        self.image = Myrmidon_Backend.Image(new_surface)
+                        return Myrmidon_Backend.Image(new_surface)
                         
 
                 def get_screen_draw_position(self):
@@ -547,6 +620,22 @@ class Myrmidon_Backend(object):
                         self._font = None
                         self.generate_text_image()
 
+                # shadow
+                @property
+                def shadow(self):
+                        return self._shadow
+
+                @shadow.setter
+                def shadow(self, value):
+                        if not self._shadow == value:
+                                self._shadow = value
+                                if not self._shadow is None:
+                                        self.shadow_image = self.make_texture(self.shadow)
+
+                @shadow.deleter
+                def shadow(self):
+                        self._shadow = None
+                        
                         
 
 def frange(start, end=None, inc=None):
