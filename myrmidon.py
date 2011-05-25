@@ -521,7 +521,11 @@ class MyrmidonProcess(object):
     def move_forward(self, distance, angle = None):
         self.x, self.y = MyrmidonGame.move_forward((self.x, self.y), distance, self.rotation if angle == None else angle)
 
-
+        
+    def get_distance(self, pos):
+        return MyrmidonGame.get_distance((self.x, self.y), pos)
+    
+        
     def signal(self, signal_code, tree=False):
         """ Signal will let you kill the process or put it to sleep.
             The 'tree' parameter can be used to signal to a process and all its
