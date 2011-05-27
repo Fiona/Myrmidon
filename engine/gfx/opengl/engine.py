@@ -296,6 +296,7 @@ class Myrmidon_Backend(object):
                 
                 glDisable(GL_TEXTURE_2D)
 
+                
                 if filled:
                         glBegin(GL_QUADS)
                 else:
@@ -426,7 +427,6 @@ class Myrmidon_Backend(object):
                 text_image_size = (0,0)
 
                 _shadow = None
-                shadow_image = None
                 
                 def __init__(self, font, x, y, alignment, text, antialias = True):
                         MyrmidonProcess.__init__(self)
@@ -477,18 +477,17 @@ class Myrmidon_Backend(object):
                                 glBlendFunc(GL_SRC_ALPHA, GL_ONE)
                                 
                         # Shadow draw
-                        if not self.shadow is None:
-                                glTranslatef(2, 2, 0.0)
-                                glBindTexture(GL_TEXTURE_2D, self.shadow_image.surfaces[self.image_seq])
-                                MyrmidonGame.engine['gfx'].last_image = self.shadow_image.surfaces[self.image_seq]
-                                glColor4f(self.shadow[0], self.shadow[1], self.shadow[2], self.alpha)
-                                glCallList(self.shadow_image.surfaces_draw_lists[self.image_seq])
-                                glTranslatef(-2, -2, 0.0)
-
-                        # draw the triangle strip
                         glEnable(GL_TEXTURE_2D)
                         glBindTexture(GL_TEXTURE_2D, self.image.surfaces[self.image_seq])
                         MyrmidonGame.engine['gfx'].last_image = self.image.surfaces[self.image_seq]
+
+                        if not self.shadow is None:
+                                glTranslatef(2, 2, 0.0)
+                                glColor4f(self.shadow[0], self.shadow[1], self.shadow[2], self.alpha)
+                                glCallList(self.image.surfaces_draw_lists[self.image_seq])
+                                glTranslatef(-2, -2, 0.0)
+                               
+                        # draw the triangle strip
                         glColor4f(self.colour[0], self.colour[1], self.colour[2], self.alpha)
                         glCallList(self.image.surfaces_draw_lists[self.image_seq])                                
 
@@ -505,42 +504,46 @@ class Myrmidon_Backend(object):
                                 
                 def generate_text_image(self):
                         self.image = self.make_texture()
-                        if not self._shadow is None:
-                                self.shadow_image = self.make_texture(self.shadow)
-
                         
-                def make_texture(self, colour = None):
+                        
+                def make_texture(self):
                         if self.text == "" or self.font == None:
                                 self.image = None
-                                return
+                                return                        
                                 
                         # Generate a Pygame image based on the current font and settings
-                        if colour is None:
-                                colour = (255 * self.colour[0], 255 * self.colour[1], 255 * self.colour[2])
-                        else:
-                                colour = (255 * colour[0], 255 * colour[1], 255 * colour[2])
-                                
+                        colour = (255 * self.colour[0], 255 * self.colour[1], 255 * self.colour[2])
                         font_image = self.font.render(self.text, self.antialias, colour)
 
                         # We need to work out the nearest power of 2 to appease opengl
                         # there must be a better way of doing this
                         width = font_image.get_width()
                         height = font_image.get_height()
-
+                        
                         self.text_image_size = (width, height)
-
+                        
                         h = 16
                         while(h < height):
                                 h = h * 2
                         w = 16
                         while(w < width):
                                 w = w * 2
-
+                                
                         new_surface = pygame.Surface((w, h), SRCALPHA, 32)
                         new_surface.blit(font_image, (0, 0))
 
-                        # Create an image from it
-                        return Myrmidon_Backend.Image(new_surface)
+                        if not self.image is None:
+                                glBindTexture(GL_TEXTURE_2D, self.image.surface)
+                                data = pygame.image.tostring(new_surface, "RGBA", 0)
+                                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
+                                gluBuild2DMipmaps(GL_TEXTURE_2D, 4, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data)
+                                self.image.width = w
+                                self.image.height = h
+                                self.image.surfaces_draw_lists[0] = self.image.create_draw_list(self.image.surface)
+                                return self.image
+                        else:
+                                # Create an image from it
+                                return Myrmidon_Backend.Image(new_surface)
                         
 
                 def get_screen_draw_position(self):
@@ -629,8 +632,6 @@ class Myrmidon_Backend(object):
                 def shadow(self, value):
                         if not self._shadow == value:
                                 self._shadow = value
-                                if not self._shadow is None:
-                                        self.shadow_image = self.make_texture(self.shadow)
 
                 @shadow.deleter
                 def shadow(self):
