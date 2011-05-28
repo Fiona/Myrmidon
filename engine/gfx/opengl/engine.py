@@ -445,6 +445,9 @@ class Myrmidon_Backend(object):
 
                 def draw(self):
                         """ Welp """
+                        if self.image is None:
+                                return
+                        
                         glPushMatrix()
 
                         #get actual place to draw
