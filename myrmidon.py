@@ -229,24 +229,17 @@ class MyrmidonGame(object):
         cls.process_list.append(process)
         cls.engine['gfx'].register_process(process)
         cls.process_priority_dirty = True
-        
-        """
-        cls.z_order_dirty = True
-        
-        if is_process == True:
-            
-            cls.priority_order_dirty = True
-            
-            # Handle relationships
-            if cls.current_process_running != None:
-                object.father = cls.current_process_running
+
+        # Handle relationships
+        if cls.current_process_executing != None:
+            process.parent = cls.current_process_executing
                 
-                if not object.father.son == None:
-                    object.father.son.smallbro = object
+            if not process.parent.child == None:
+                process.parent.child.prev_sibling = process
                     
-                object.bigbro = object.father.son
-                object.father.son = object
-                """
+            process.next_sibling = process.parent.child
+            process.parent.child = process
+
 
     @classmethod        
     def signal(cls, process, signal_code, tree=False):
@@ -287,10 +280,10 @@ class MyrmidonGame(object):
         
         # do children
         if tree:
-            next_child = process.son
+            next_child = process.child
             while next_child != None:
                 cls.single_object_signal(next_child, signal_code, True)
-                next_child = next_child.bigbro
+                next_child = next_child.next_sibling
         
         # do this one
         if signal_code == S_KILL:
@@ -464,7 +457,12 @@ class MyrmidonProcess(object):
     disable_draw = False
     normal_draw = True
     status = 0
-    
+
+    parent = None
+    child = None
+    prev_sibling = None
+    next_sibling = None
+
     _is_text = False
     _generator = None
     
