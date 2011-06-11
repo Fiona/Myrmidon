@@ -77,6 +77,7 @@ class MyrmidonGame(object):
     # Process related
     process_list = []
     processes_to_remove = []
+    remember_current_process_executing = []
     current_process_executing = None
     process_priority_dirty = True
 
@@ -275,7 +276,7 @@ class MyrmidonGame(object):
 
 
     @classmethod
-    def single_object_signal(cls, process, signal_code, tree=False):
+    def single_object_signal(cls, process, signal_code, tree = False):
         """ Used by signal as a shortcut """
         
         # do children
@@ -476,9 +477,12 @@ class MyrmidonProcess(object):
         self.x = 0.0
         self.y = 0.0
         self.priority = 0
-        
+
+        MyrmidonGame.remember_current_process_executing.append(MyrmidonGame.current_process_executing)
+        MyrmidonGame.current_process_executing = self
         self._generator = self.execute(*args, **kargs)
         self._iterate_generator()
+        MyrmidonGame.current_process_executing = MyrmidonGame.remember_current_process_executing.pop()
         
         if not MyrmidonGame.started:
             MyrmidonGame.started = True             
