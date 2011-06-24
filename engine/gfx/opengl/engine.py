@@ -94,17 +94,14 @@ class Myrmidon_Backend(object):
                 
                 for process in self.processes_z_order_list:
 
-                        if process.disable_draw:
+                        if process.disable_draw or  process.status == S_SLEEP:
                                 continue
                         
                         dont_draw = False
-                                
-                        if process.normal_draw == False:
+                        
+                        if process.normal_draw == False or not process.image or process.alpha <= 0.0:
                                 dont_draw = True
                         
-                        if not process.image or process.alpha <= 0.0 or process.status == S_SLEEP:
-                                dont_draw = True
-
                         if not dont_draw:
                                 glPushMatrix()
 
@@ -112,7 +109,7 @@ class Myrmidon_Backend(object):
                                 draw_x, draw_y = process.get_screen_draw_position()
 
                                 # Clip the process if necessary
-                # glScissor assumes origin as bottom-left rather than top-left which explains the fudging with the second param
+                                # glScissor assumes origin as bottom-left rather than top-left which explains the fudging with the second param
                                 if not process.clip is None:
                                         glEnable(GL_SCISSOR_TEST)
                                         glScissor(int(process.clip[0][0]), MyrmidonGame.screen_resolution[1] - int(process.clip[0][1]) - int(process.clip[1][1]), int(process.clip[1][0]), int(process.clip[1][1]))
