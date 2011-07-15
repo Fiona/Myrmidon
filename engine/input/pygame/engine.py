@@ -63,19 +63,11 @@ class Myrmidon_Backend(object):
                 if not self.mouse:
                         self.mouse = self.Mouse()
                         self.mouse.z = -512
-                        self.mouse.visible = True               
-                        self.mouse.pos = (0, 0)
-                        self.mouse.rel = (0, 0)
-                        self.mouse.left = False
-                        self.mouse.middle = False
-                        self.mouse.right = False
-                        self.mouse.left_up = False
-                        self.mouse.middle_up = False
-                        self.mouse.right_up = False
-                        self.mouse.wheel_up = False
-                        self.mouse.wheel_down = False      
+                        self.mouse.visible = True
+                        self.initialise_mouse_state()
 
                 if self.disable_input:
+                        self.initialise_mouse_state()
                         return
                 
                 self.last_keys_pressed  = self.keys_pressed
@@ -128,7 +120,20 @@ class Myrmidon_Backend(object):
                 return False
 
 
-        
+        def initialise_mouse_state(self):
+                self.mouse.pos = (0, 0)
+                self.mouse.rel = (0, 0)
+                self.mouse.left = False
+                self.mouse.middle = False
+                self.mouse.right = False
+                self.mouse.left_up = False
+                self.mouse.middle_up = False
+                self.mouse.right_up = False
+                self.mouse.wheel_up = False
+                self.mouse.wheel_down = False      
+
+
+                
         class Mouse(MyrmidonProcess):
                 """ Record for holding mouse info """
 
