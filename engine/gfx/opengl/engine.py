@@ -91,72 +91,72 @@ class Myrmidon_Backend(object):
                         self.z_order_dirty = False
 
                 self.last_image = None
+                map(self.draw_single_process, self.processes_z_order_list)
                 
-                for process in self.processes_z_order_list:
 
-                        if process.disable_draw or  process.status == S_SLEEP:
-                                continue
+        def draw_single_process(self, process):
+                if process.disable_draw or  process.status == S_SLEEP:
+                        return
                         
-                        dont_draw = False
+                dont_draw = False
                         
-                        if process.normal_draw == False or not process.image or process.alpha <= 0.0:
-                                dont_draw = True
+                if process.normal_draw == False or not process.image or process.alpha <= 0.0:
+                        dont_draw = True
                         
-                        if not dont_draw:
-                                glPushMatrix()
+                if not dont_draw:
+                        glPushMatrix()
 
-                                # get actual place to draw
-                                draw_x, draw_y = process.get_screen_draw_position()
+                        # get actual place to draw
+                        draw_x, draw_y = process.get_screen_draw_position()
 
-                                # Clip the process if necessary
-                                # glScissor assumes origin as bottom-left rather than top-left which explains the fudging with the second param
-                                if not process.clip is None:
-                                        glEnable(GL_SCISSOR_TEST)
-                                        glScissor(int(process.clip[0][0]), MyrmidonGame.screen_resolution[1] - int(process.clip[0][1]) - int(process.clip[1][1]), int(process.clip[1][0]), int(process.clip[1][1]))
+                        # Clip the process if necessary
+                        # glScissor assumes origin as bottom-left rather than top-left which explains the fudging with the second param
+                        if not process.clip is None:
+                                glEnable(GL_SCISSOR_TEST)
+                                glScissor(int(process.clip[0][0]), MyrmidonGame.screen_resolution[1] - int(process.clip[0][1]) - int(process.clip[1][1]), int(process.clip[1][0]), int(process.clip[1][1]))
 
-                                # glrotate works by you translating to the point around which you wish to rotate
-                                # and applying the rotation you can translate back to apply the real translation
-                                # position
-                                if process.rotation <> 0.0:
-                                        x = draw_x + (process.image.width/2) * process.scale
-                                        y = draw_y + (process.image.height/2) * process.scale
-                                        glTranslatef(x, y, 0)
-                                        glRotatef(process.rotation, 0, 0, 1)
-                                        glTranslatef(-x, -y, 0)
+                        # glrotate works by you translating to the point around which you wish to rotate
+                        # and applying the rotation you can translate back to apply the real translation
+                        # position
+                        if process.rotation <> 0.0:
+                                x = draw_x + (process.image.width/2) * process.scale
+                                y = draw_y + (process.image.height/2) * process.scale
+                                glTranslatef(x, y, 0)
+                                glRotatef(process.rotation, 0, 0, 1)
+                                glTranslatef(-x, -y, 0)
                                 
-                                # move to correct draw pos
-                                glTranslatef(draw_x, draw_y, 0.0)
+                        # move to correct draw pos
+                        glTranslatef(draw_x, draw_y, 0.0)
 
-                                # scale if necessary
-                                if not process.scale == 1.0:
-                                        glTranslatef(process.scale_point[0], process.scale_point[1], 0) 
-                                        glScalef(process.scale, process.scale, 1.0)             
-                                        glTranslatef(-process.scale_point[0], -process.scale_point[1], 0)
+                        # scale if necessary
+                        if not process.scale == 1.0:
+                                glTranslatef(process.scale_point[0], process.scale_point[1], 0) 
+                                glScalef(process.scale, process.scale, 1.0)             
+                                glTranslatef(-process.scale_point[0], -process.scale_point[1], 0)
                                         
-                                # bending function
-                                if process.blend:
-                                        glBlendFunc(GL_SRC_ALPHA, GL_ONE)
+                        # bending function
+                        if process.blend:
+                                glBlendFunc(GL_SRC_ALPHA, GL_ONE)
                                 
-                                # draw the triangle strip
-                                glEnable(GL_TEXTURE_2D)
-                                if not self.last_image == process.image.surfaces[process.image_seq]:
-                                        glBindTexture(GL_TEXTURE_2D, process.image.surfaces[process.image_seq])
-                                        self.last_image = process.image.surfaces[process.image_seq]
-                                glColor4f(process.colour[0], process.colour[1], process.colour[2], process.alpha)
-                                glCallList(process.image.surfaces_draw_lists[process.image_seq])
+                        # draw the triangle strip
+                        glEnable(GL_TEXTURE_2D)
+                        if not self.last_image == process.image.surfaces[process.image_seq]:
+                                glBindTexture(GL_TEXTURE_2D, process.image.surfaces[process.image_seq])
+                                self.last_image = process.image.surfaces[process.image_seq]
+                        glColor4f(process.colour[0], process.colour[1], process.colour[2], process.alpha)
+                        glCallList(process.image.surfaces_draw_lists[process.image_seq])
 
-                                # Set blending back to default
-                                if process.blend:
-                                        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+                        # Set blending back to default
+                        if process.blend:
+                                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
-                                # Stop clipping
-                                if not process.clip == None:
-                                        glDisable(GL_SCISSOR_TEST)
+                        # Stop clipping
+                        if not process.clip == None:
+                                glDisable(GL_SCISSOR_TEST)
                                 
-                                glPopMatrix()
+                        glPopMatrix()
 
-                        process.draw()
-
+                process.draw()
 
         
         def draw_textured_quad(self, width, height, repeat = None, tex_offset = None):
