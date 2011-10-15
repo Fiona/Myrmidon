@@ -604,10 +604,12 @@ class MyrmidonProcess(object):
     @priority.setter
     def priority(self, value):
         if not self._priority == value:
+            MyrmidonGame.process_priority_dirty = True
             self._priority = value
 
     @priority.deleter
     def priority(self):
+        MyrmidonGame.process_priority_dirty = True
         self._priority = 0
 
     # texture image

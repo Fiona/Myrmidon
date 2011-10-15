@@ -51,10 +51,10 @@ class Myrmidon_Backend(object):
                 pygame.init()
 
                 if self.opengl:
-                        pygame.display.gl_set_attribute(pygame.locals.GL_MULTISAMPLEBUFFERS, 1)
-                        pygame.display.gl_set_attribute(pygame.locals.GL_MULTISAMPLESAMPLES, 4)
+                        #pygame.display.gl_set_attribute(pygame.locals.GL_MULTISAMPLEBUFFERS, 1)
+                        #pygame.display.gl_set_attribute(pygame.locals.GL_MULTISAMPLESAMPLES, 4)
                         pygame.display.gl_set_attribute(pygame.locals.GL_SWAP_CONTROL, 0)
-                        pygame.display.gl_set_attribute(pygame.locals.GL_DEPTH_SIZE, 16)
+                        #pygame.display.gl_set_attribute(pygame.locals.GL_DEPTH_SIZE, 16)
                         self.flags = pygame.OPENGL | pygame.DOUBLEBUF | pygame.HWSURFACE
 
                 if MyrmidonGame.full_screen:

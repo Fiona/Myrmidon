@@ -34,7 +34,7 @@ Pygame is required for text rendering. This may change in the future.
 """
 
 
-import os, pygame, math
+import os, pygame, math, numpy
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -50,6 +50,7 @@ class Myrmidon_Backend(object):
         z_order_dirty = True
         processes_z_order_list = []
         last_image = None
+        text_coords = numpy.array([1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0])
         
         def __init__(self):
                 glClearColor(*self.clear_colour)
@@ -91,7 +92,15 @@ class Myrmidon_Backend(object):
                         self.z_order_dirty = False
 
                 self.last_image = None
+
+                glEnableClientState(GL_VERTEX_ARRAY)
+                glEnableClientState(GL_TEXTURE_COORD_ARRAY)
+                glTexCoordPointer(2, GL_FLOAT, 0, self.text_coords)
+                
                 map(self.draw_single_process, self.processes_z_order_list)
+
+                glDisableClientState(GL_TEXTURE_COORD_ARRAY)
+                glDisableClientState(GL_VERTEX_ARRAY)
                 
 
         def draw_single_process(self, process):
@@ -142,9 +151,11 @@ class Myrmidon_Backend(object):
                         glEnable(GL_TEXTURE_2D)
                         if not self.last_image == process.image.surfaces[process.image_seq]:
                                 glBindTexture(GL_TEXTURE_2D, process.image.surfaces[process.image_seq])
+                                glVertexPointer(3, GL_FLOAT, 0, process.image.vertex_data)
                                 self.last_image = process.image.surfaces[process.image_seq]
+                                
                         glColor4f(process.colour[0], process.colour[1], process.colour[2], process.alpha)
-                        glCallList(process.image.surfaces_draw_lists[process.image_seq])
+                        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4)
 
                         # Set blending back to default
                         if process.blend:
@@ -338,6 +349,8 @@ class Myrmidon_Backend(object):
                 surface = None
                 width = 0
                 height = 0
+
+                vertex_data = []
                 
                 def __init__(self, image = None, sequence = False, width = None, height = None, for_repeat = False):
 
@@ -375,10 +388,18 @@ class Myrmidon_Backend(object):
                                 self.surface = self.gl_image_from_surface(raw_surface, self.width, self.height, for_repeat)
                                 self.surfaces.append(self.surface)
 
+                        self.generate_vertex_data()
+                        
                         for surf in self.surfaces:
-                                self.surfaces_draw_lists.append(self.create_draw_list(surf))
+                            self.surfaces_draw_lists.append(self.create_draw_list(surf))
 
 
+                def generate_vertex_data(self):
+                        self.vertex_data = numpy.array([float(self.width), float(self.height), 0.0,
+                                            0.0, float(self.height), 0.0,
+                                            float(self.width), 0.0, 0.0,
+                                            0.0, 0.0, 0.0])
+                        
                 def gl_image_from_surface(self, raw_surface, width, height, for_repeat):
                         data = pygame.image.tostring(raw_surface, "RGBA", 0)
 
@@ -480,16 +501,17 @@ class Myrmidon_Backend(object):
                         glEnable(GL_TEXTURE_2D)
                         glBindTexture(GL_TEXTURE_2D, self.image.surfaces[self.image_seq])
                         MyrmidonGame.engine['gfx'].last_image = self.image.surfaces[self.image_seq]
-
+                        glVertexPointer(3, GL_FLOAT, 0, self.image.vertex_data)
+                       
                         if not self.shadow is None:
                                 glTranslatef(2, 2, 0.0)
                                 glColor4f(self.shadow[0], self.shadow[1], self.shadow[2], self.alpha)
-                                glCallList(self.image.surfaces_draw_lists[self.image_seq])
+                                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4)
                                 glTranslatef(-2, -2, 0.0)
                                
                         # draw the triangle strip
                         glColor4f(self.colour[0], self.colour[1], self.colour[2], self.alpha)
-                        glCallList(self.image.surfaces_draw_lists[self.image_seq])                                
+                        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4)
 
                         # Set blending back to default
                         if self.blend:
@@ -540,6 +562,7 @@ class Myrmidon_Backend(object):
                                 self.image.width = w
                                 self.image.height = h
                                 self.image.surfaces_draw_lists[0] = self.image.create_draw_list(self.image.surface)
+                                self.image.generate_vertex_data()
                                 return self.image
                         else:
                                 # Create an image from it
