@@ -201,7 +201,8 @@ class MyrmidonGame(object):
                     process._iterate_generator()
 
             for x in cls.processes_to_remove:
-                cls.process_list.remove(x)
+                if x in cls.process_list:
+                    cls.process_list.remove(x)
                 
             cls.engine['gfx'].update_screen_pre()
             cls.engine['gfx'].draw_processes(cls.process_list)              
