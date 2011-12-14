@@ -353,7 +353,6 @@ class Myrmidon_Backend(object):
                 vertex_data = []
                 
                 def __init__(self, image = None, sequence = False, width = None, height = None, for_repeat = False):
-
                         self.surfaces = []
                         self.surfaces_draw_lists = []
                         
@@ -432,8 +431,11 @@ class Myrmidon_Backend(object):
                         for list in self.surfaces_draw_lists:
                                 glDeleteLists(list, 1)
                         for surf in self.surfaces:
-                                glDeleteTextures(surf)
-                
+                                glDeleteTextures(surf)                                
+
+
+        text_texture_cache = {}
+        
 
         class Text(MyrmidonProcess):
                 """ this is the class for all text handling """
@@ -459,7 +461,6 @@ class Myrmidon_Backend(object):
                         self.rotation = 0.0
                         self.normal_draw = False
                         self.status = S_FREEZE
-                        self.generate_text_image()
 
                 def draw(self):
                         """ Welp """
@@ -499,9 +500,10 @@ class Myrmidon_Backend(object):
                                 
                         # Shadow draw
                         glEnable(GL_TEXTURE_2D)
-                        glBindTexture(GL_TEXTURE_2D, self.image.surfaces[self.image_seq])
-                        MyrmidonGame.engine['gfx'].last_image = self.image.surfaces[self.image_seq]
-                        glVertexPointer(3, GL_FLOAT, 0, self.image.vertex_data)
+                        if not MyrmidonGame.engine['gfx'].last_image == self.image.surfaces[self.image_seq]:
+                                glBindTexture(GL_TEXTURE_2D, self.image.surfaces[self.image_seq])
+                                MyrmidonGame.engine['gfx'].last_image = self.image.surfaces[self.image_seq]
+                                glVertexPointer(3, GL_FLOAT, 0, self.image.vertex_data)
                        
                         if not self.shadow is None:
                                 glTranslatef(2, 2, 0.0)
@@ -532,6 +534,17 @@ class Myrmidon_Backend(object):
                         if self.text == "" or self.font == None:
                                 self.image = None
                                 return                        
+
+                        if not self.font in MyrmidonGame.engine['gfx'].text_texture_cache:
+                                MyrmidonGame.engine['gfx'].text_texture_cache[self.font] = {}
+
+                        if self.text in MyrmidonGame.engine['gfx'].text_texture_cache[self.font]:
+                                MyrmidonGame.engine['gfx'].text_texture_cache[self.font][self.text][0] += 1
+                                self.image = MyrmidonGame.engine['gfx'].text_texture_cache[self.font][self.text][1]
+                                self.text_image_size = self.image.text_image_size
+                                return MyrmidonGame.engine['gfx'].text_texture_cache[self.font][self.text][1]
+                        else:
+                                MyrmidonGame.engine['gfx'].text_texture_cache[self.font][self.text] = [1, None]
                                 
                         # Generate a Pygame image based on the current font and settings
                         colour = (255 * self.colour[0], 255 * self.colour[1], 255 * self.colour[2])
@@ -554,19 +567,10 @@ class Myrmidon_Backend(object):
                         new_surface = pygame.Surface((w, h), SRCALPHA, 32)
                         new_surface.blit(font_image, (0, 0))
 
-                        if not self.image is None:
-                                glBindTexture(GL_TEXTURE_2D, self.image.surface)
-                                data = pygame.image.tostring(new_surface, "RGBA", 0)
-                                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
-                                gluBuild2DMipmaps(GL_TEXTURE_2D, 4, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data)
-                                self.image.width = w
-                                self.image.height = h
-                                self.image.surfaces_draw_lists[0] = self.image.create_draw_list(self.image.surface)
-                                self.image.generate_vertex_data()
-                                return self.image
-                        else:
-                                # Create an image from it
-                                return Myrmidon_Backend.Image(new_surface)
+                        MyrmidonGame.engine['gfx'].text_texture_cache[self.font][self.text][1] = Myrmidon_Backend.Image(new_surface)
+                        self.image = MyrmidonGame.engine['gfx'].text_texture_cache[self.font][self.text][1]
+                        self.image.text_image_size = self.text_image_size
+                        return MyrmidonGame.engine['gfx'].text_texture_cache[self.font][self.text][1]
                         
 
                 def get_screen_draw_position(self):
@@ -596,7 +600,15 @@ class Myrmidon_Backend(object):
 
                         return draw_x, draw_y
 
-                
+
+                def un_assign_text(self, text):
+                        if self.font in MyrmidonGame.engine['gfx'].text_texture_cache and text in MyrmidonGame.engine['gfx'].text_texture_cache[self.font]:
+                                MyrmidonGame.engine['gfx'].text_texture_cache[self.font][text][0] -= 1
+                                if MyrmidonGame.engine['gfx'].text_texture_cache[self.font][text][0] == 0:
+                                        del(MyrmidonGame.engine['gfx'].text_texture_cache[self.font][text][1])
+                                        del(MyrmidonGame.engine['gfx'].text_texture_cache[self.font][text])
+
+                        
                 # text
                 @property
                 def text(self):
@@ -605,12 +617,14 @@ class Myrmidon_Backend(object):
                 @text.setter
                 def text(self, value):
                         if not self._text == value:
+                                self.un_assign_text(self._text)
                                 self._text = str(value)
                                 self.generate_text_image()
                                 
                                 
                 @text.deleter
                 def text(self):
+                        self.un_assign_text(self._text)
                         self._text = ""
                         self.generate_text_image()
 
@@ -638,6 +652,7 @@ class Myrmidon_Backend(object):
                 @font.setter
                 def font(self, value):
                         if not self._font == value:
+                                self.un_assign_text(self._text)
                                 self._font = value
                                 self.generate_text_image()
 
@@ -659,6 +674,11 @@ class Myrmidon_Backend(object):
                 @shadow.deleter
                 def shadow(self):
                         self._shadow = None
+
+
+                # Deleting
+                def on_exit(self):
+                        self.un_assign_text(self._text)
                         
                         
 
