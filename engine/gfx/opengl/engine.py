@@ -458,7 +458,7 @@ class Myrmidon_Backend(object):
                         self._is_text = True
                         self.rotation = 0.0
                         self.normal_draw = False
-
+                        self.status = S_FREEZE
                         self.generate_text_image()
 
                 def draw(self):
