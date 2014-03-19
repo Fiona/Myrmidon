@@ -8,6 +8,18 @@ Using a simple and easy to use API, Myrmidon allows developers to create interac
 Myrmidon's bottom-line is that the developer should only be concerned about behaviour of game objects and how the user interacts with them. Any low-level graphics, window or input handling should be the sole responsibility of Myrmidon. Hiding that as much as possible and allowing you to get on writing your game.
 
 
+Installation
+============
+
+Requirements: **PyGame 1.9.x, PyOpenGL 3.x**
+
+Currently the best way to install Myrmidon is to clone from this git repository and run the setup command. (As root if on Linux)
+
+    git clone https://github.com/Fiona/Myrmidon.git myrmidon
+    cd myrmidon
+    python setup.py install
+
+
 Examples
 ========
 
@@ -27,3 +39,4 @@ class Screen(Entity):
 
 Screen()
 ```
+
