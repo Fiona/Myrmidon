@@ -27,24 +27,24 @@ OTHER DEALINGS IN THE SOFTWARE.
  
 An open source, actor based framework for fast game development for Python.
 
-This is the main file, it have the main MyrmidonGame and MyrmidonProcess objects.
+This contains the primary Game object from where you manipulate
+and interact with the application.
 """
 
 
 import sys, os, math
-
 from consts import *
 
-class MyrmidonGame(object):
+class Game(object):
 
     # Engine related
     started = False
 
     # Set to true at run-time and Myrmidon will not create a screen,
-    # nor will it accept input or execute any processes in a loop.
+    # nor will it accept input or execute any entities in a loop.
     # No backend engines are initialised.
-    # Any process objects you create will not interate their generator
-    # unless you run MyrmidonProcess._iterate_generator manually.
+    # Any entity objects you create will not interate their generator
+    # unless you run Entity._iterate_generator manually.
     test_mode = False
     
     engine_def = {
@@ -74,18 +74,18 @@ class MyrmidonGame(object):
     lowest_resolution = 800,600
     full_screen = False
 
-    # Process related
-    process_list = []
-    processes_to_remove = []
-    remember_current_process_executing = []
-    current_process_executing = None
-    process_priority_dirty = True
+    # Entity related
+    entity_list = []
+    entities_to_remove = []
+    remember_current_entity_executing = []
+    current_entity_executing = None
+    entity_priority_dirty = True
 
 
     @classmethod
     def define_engine(cls, window = None, gfx = None, input = None, audio = None):
         """
-        Use this before creating any processes to redefine which engine backends to use.
+        Use this before creating any entities to redefine which engine backends to use.
         """
         if window:
             cls.engine_def['window'] = window
@@ -100,7 +100,7 @@ class MyrmidonGame(object):
     @classmethod
     def define_engine_plugins(cls, window = [], gfx = [], input = [], audio = []):
         """
-        Use this before creating any processes to specify which engine plugins you require,
+        Use this before creating any entities to specify which engine plugins you require,
         if any.
         Pass in lists of strings of plugin names.
         """
@@ -162,7 +162,7 @@ class MyrmidonGame(object):
     @classmethod
     def start_game(cls):
         """
-        Called by processes if a game is not yet started.
+        Called by entities if a game is not yet started.
         It initialises engines.
         """
         # Start up the backends
@@ -173,7 +173,7 @@ class MyrmidonGame(object):
     @classmethod
     def run_game(cls):
         """
-        Called by processes if a game is not yet started.
+        Called by entities if a game is not yet started.
         Is responsible for the main loop.
         """
         # No execution of anything if in test mode.
@@ -182,30 +182,30 @@ class MyrmidonGame(object):
         
         while cls.started:
 
-            if cls.process_priority_dirty == True:
-                cls.process_list.sort(
+            if cls.entity_priority_dirty == True:
+                cls.entity_list.sort(
                     reverse=True,
                     key=lambda object:
                     object.priority if hasattr(object, "priority") else 0
                     )
-                cls.process_priority_dirty = False
+                cls.entity_priority_dirty = False
 
             if cls.engine['input']:
                 cls.engine['input'].process_input()
 
-            cls.processes_to_remove = []
+            cls.entities_to_remove = []
             
-            for process in cls.process_list:
-                if process.status == 0:
-                    cls.current_process_executing = process
-                    process._iterate_generator()
+            for entity in cls.entity_list:
+                if entity.status == 0:
+                    cls.current_entity_executing = entity
+                    entity._iterate_generator()
 
-            for x in cls.processes_to_remove:
-                if x in cls.process_list:
-                    cls.process_list.remove(x)
+            for x in cls.entities_to_remove:
+                if x in cls.entity_list:
+                    cls.entity_list.remove(x)
                 
             cls.engine['gfx'].update_screen_pre()
-            cls.engine['gfx'].draw_processes(cls.process_list)              
+            cls.engine['gfx'].draw_entities(cls.entity_list)              
             cls.engine['gfx'].update_screen_post()
 
             cls.fps = int(cls.clock.get_fps())
@@ -221,91 +221,91 @@ class MyrmidonGame(object):
         
 
     ##############################################
-    # PROCESSES
+    # ENTITIES
     ##############################################
     @classmethod
-    def process_register(cls, process):
+    def entity_register(cls, entity):
         """
-        Registers a process with Myrmidon so it will be executed.
+        Registers an entity with Myrmidon so it will be executed.
         """
-        cls.process_list.append(process)
-        cls.engine['gfx'].register_process(process)
-        cls.process_priority_dirty = True
+        cls.entity_list.append(entity)
+        cls.engine['gfx'].register_entity(entity)
+        cls.entity_priority_dirty = True
 
         # Handle relationships
-        if cls.current_process_executing != None:
-            process.parent = cls.current_process_executing
+        if cls.current_entity_executing != None:
+            entity.parent = cls.current_entity_executing
                 
-            if not process.parent.child == None:
-                process.parent.child.prev_sibling = process
+            if not entity.parent.child == None:
+                entity.parent.child.prev_sibling = entity
                     
-            process.next_sibling = process.parent.child
-            process.parent.child = process
+            entity.next_sibling = entity.parent.child
+            entity.parent.child = entity
 
 
     @classmethod        
-    def signal(cls, process, signal_code, tree=False):
-        """ Signal will let you kill a process or put it to sleep
+    def signal(cls, entity, signal_code, tree=False):
+        """ Signal will let you kill a entity or put it to sleep
         
-            Will accept a process instance or an ID number to check against one,
-            or a process type as a string to check for all of a specific type
+            Will accept a entity object or an ID number to check against one,
+            or a entity type as a string to check for all of a specific type
         
             The tree parameter can be used to recursively signal all the 
-            processes(es) descendants
+            entity's descendants
         
             Signal types-
-            S_KILL - Permanently removes the process
-            S_SLEEP - Process will disappear and will stop executing code
-            S_FREEZE - Process will stop executing code but will still appear
+            S_KILL - Permanently removes the entity
+            S_SLEEP - Entity will disappear and will stop executing code
+            S_FREEZE - Entity will stop executing code but will still appear
                 and will still be able to be checked for collisions.
-            S_WAKEUP - Wakes up or unfreezes the process """
+            S_WAKEUP - Wakes up or unfreezes the entity """
         
         # We've entered a specific type as a string
-        if type(process) == type(""):
+        if type(entity) == type(""):
             
             import copy
-            process_iter = copy.copy(cls.process_list)
+            entity_iter = copy.copy(cls.entity_list)
             
-            for obj in process_iter:
-                if obj.__class__.__name__ == process:
+            for obj in entity_iter:
+                if obj.__class__.__name__ == entity:
                     cls.single_object_signal(obj, signal_code, tree)
         
         # Passed in an object directly    
         else:
-            cls.single_object_signal(process, signal_code, tree)
+            cls.single_object_signal(entity, signal_code, tree)
             return
 
 
     @classmethod
-    def single_object_signal(cls, process, signal_code, tree = False):
+    def single_object_signal(cls, entity, signal_code, tree = False):
         """ Used by signal as a shortcut """
         
         # do children
         if tree:
-            next_child = process.child
+            next_child = entity.child
             while next_child != None:
                 cls.single_object_signal(next_child, signal_code, True)
                 next_child = next_child.next_sibling
         
         # do this one
         if signal_code == S_KILL:
-            cls.process_destroy(process)
+            cls.entity_destroy(entity)
         elif signal_code == S_WAKEUP:
-            process.status = 0
+            entity.status = 0
         elif signal_code == S_SLEEP:
-            process.status = S_SLEEP
+            entity.status = S_SLEEP
         elif signal_code == S_FREEZE:
-            process.status = S_FREEZE
+            entity.status = S_FREEZE
 
 
     @classmethod
-    def process_destroy(cls, process):
-        """ Removes a process """
-        if not process in MyrmidonGame.process_list:
+    def entity_destroy(cls, entity):
+        """ Removes a entity """
+        if not entity in Game.entity_list:
             return
-        process.on_exit()
-        cls.engine['gfx'].remove_process(process)
-        MyrmidonGame.processes_to_remove.append(process)
+        entity.on_exit()
+        cls.engine['gfx'].remove_entity(entity)
+        Game.entities_to_remove.append(entity)
 
         
     ##############################################
@@ -342,8 +342,8 @@ class MyrmidonGame(object):
 
     @classmethod    
     def delete_text(cls, text):
-        if text in MyrmidonGame.process_list:
-            MyrmidonGame.process_destroy(text)
+        if text in Game.entity_list:
+            Game.entity_destroy(text)
 
 
     ##############################################
@@ -438,238 +438,4 @@ class MyrmidonError(Exception):
     def __str__(self):
         return repr(self.value)
 
-
-
-class MyrmidonProcess(object):
-
-    _x = 0.0
-    _y = 0.0
-    _z = 0.0
-    _priority = 0
-    _image = None
-    _image_seq = 0
-    _colour = (1.0, 1.0, 1.0)
-    _alpha = 1.0
-    
-    scale = 1.0
-    rotation = 0.0
-    blend = False
-    clip = None
-    scale_point = [0.0, 0.0]
-    disable_draw = False
-    normal_draw = True
-    status = 0
-
-    parent = None
-    child = None
-    prev_sibling = None
-    next_sibling = None
-
-    _is_text = False
-    _generator = None
-    
-    def __init__(self, *args, **kargs):
-        if not MyrmidonGame.started:
-            MyrmidonGame.start_game()
-
-        MyrmidonGame.process_register(self)
-
-        self.z = 0.0
-        self.x = 0.0
-        self.y = 0.0
-        self.priority = 0
-
-        MyrmidonGame.remember_current_process_executing.append(MyrmidonGame.current_process_executing)
-        MyrmidonGame.current_process_executing = self
-        self._generator = self.execute(*args, **kargs)
-        self._iterate_generator()
-        MyrmidonGame.current_process_executing = MyrmidonGame.remember_current_process_executing.pop()
-        
-        if not MyrmidonGame.started:
-            MyrmidonGame.started = True             
-            MyrmidonGame.run_game()
-            
-
-    def execute(self):
-        """
-        This is where the main code for the process lives
-        """
-        while True:
-            yield
-
-    def on_exit(self):
-        """
-        Called automatically when a process has finished executing for whatever reason.
-        Is also called when a process is killed using signal S_KILL.
-        """
-        pass
-        
-    def _iterate_generator(self):
-        if not MyrmidonGame.started:
-            return
-        try:
-            self._generator.next()
-        except StopIteration:
-            return
-            #self.signal(S_KILL)
-
-
-    def draw(self):
-        """
-        Override this to add custom drawing routines to your process.
-        """
-        pass
-
-
-    def move_forward(self, distance, angle = None):
-        self.x, self.y = MyrmidonGame.move_forward((self.x, self.y), distance, self.rotation if angle == None else angle)
-
-        
-    def get_distance(self, pos):
-        return MyrmidonGame.get_distance((self.x, self.y), pos)
-    
-        
-    def signal(self, signal_code, tree=False):
-        """ Signal will let you kill the process or put it to sleep.
-            The 'tree' parameter can be used to signal to a process and all its
-            descendant processes (provided an unbroken tree exists)
-        
-            Signal types-
-            S_KILL - Permanently removes the process
-            S_SLEEP - Process will disappear and will stop executing code
-            S_FREEZE - Process will stop executing code but will still appear
-                and will still be able to be checked for collisions.
-            S_WAKEUP - Wakes up or unfreezes the process """
-        MyrmidonGame.signal(self, signal_code, tree)
-
-
-    def get_screen_draw_position(self):
-        """ At draw time this function is called to determine exactly where
-        the process will be drawn. Override this if you need to programatically
-        constantly change the position of process.
-        Returns a tuple (x,y)"""
-        return self.x, self.y
-        
-
-    ##############################################
-    # Special properties
-    ##############################################
-    # X
-    @property
-    def x(self):
-        return self._x
-
-    @x.setter
-    def x(self, value):
-        self._x = value
-        MyrmidonGame.engine['gfx'].alter_x(self, self._x)
-
-    @x.deleter
-    def x(self):
-        self._x = 0.0
-        
-    # Y
-    @property
-    def y(self):
-        return self._y
-
-    @y.setter
-    def y(self, value):
-        self._y = value
-        MyrmidonGame.engine['gfx'].alter_y(self, self._y)
-
-    @y.deleter
-    def y(self):
-        self._y = 0.0
-
-    # depth
-    @property
-    def z(self):
-        return self._z
-
-    @z.setter
-    def z(self, value):
-        if not self._z == value:
-            self._z = value
-            MyrmidonGame.engine['gfx'].alter_z(self, self._z)
-
-    @z.deleter
-    def z(self):
-        self._z = 0.0
-
-    # rity
-    @property
-    def priority(self):
-        return self._priority
-
-    @priority.setter
-    def priority(self, value):
-        if not self._priority == value:
-            MyrmidonGame.process_priority_dirty = True
-            self._priority = value
-
-    @priority.deleter
-    def priority(self):
-        MyrmidonGame.process_priority_dirty = True
-        self._priority = 0
-
-    # texture image
-    @property
-    def image(self):
-        return self._image
-
-    @image.setter
-    def image(self, value):
-        #if not self._image == value:
-        self._image = value
-        MyrmidonGame.engine['gfx'].alter_image(self, self._image)
-
-    @image.deleter
-    def image(self):
-        self._image = None
-
-    # image sequence number
-    @property
-    def image_seq(self):
-        return self._image_seq
-
-    @image_seq.setter
-    def image_seq(self, value):
-        self._image_seq = value
-        MyrmidonGame.engine['gfx'].alter_image(self, self._image)
-
-    @image_seq.deleter
-    def image_seq(self):
-        self._image_seq = None
-
-    # Colour
-    @property
-    def colour(self):
-        return self._colour
-
-    @colour.setter
-    def colour(self, value):
-        if not self._colour == value:
-            self._colour = value
-            MyrmidonGame.engine['gfx'].alter_colour(self, self._colour)
-
-    @colour.deleter
-    def colour(self):
-        self._colour = None
-
-
-    # Alpha
-    @property
-    def alpha(self):
-        return self._alpha
-
-    @alpha.setter
-    def alpha(self, value):
-        if not self._alpha == value:
-            self._alpha = value
-            MyrmidonGame.engine['gfx'].alter_alpha(self, self._alpha)
-
-    @alpha.deleter
-    def alpha(self):
-        self._alpha = None
 

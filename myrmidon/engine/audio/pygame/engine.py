@@ -25,20 +25,17 @@ OTHER DEALINGS IN THE SOFTWARE.
  
 ---------------------
 
-Constants
+- BACKEND FILE -
+- AUDIO        -
+
+A Pygame (and conversely, SDL) driven backend for handling and playing audio.
+
 """
 
-S_KILL = 0
-S_WAKEUP = 1
-S_SLEEP = 2
-S_FREEZE = 3			
+import pygame
 
-ALIGN_TOP_LEFT = 0
-ALIGN_TOP = 1
-ALIGN_TOP_RIGHT = 2
-ALIGN_CENTER_LEFT = 3
-ALIGN_CENTER = 4
-ALIGN_CENTER_RIGHT = 5
-ALIGN_BOTTOM_LEFT = 6
-ALIGN_BOTTOM = 7
-ALIGN_BOTTOM_RIGHT = 8 
+class Myrmidon_Backend(object):
+
+    def load_audio_from_file(self, filename):
+        sound = pygame.mixer.Sound(filename)
+        return sound

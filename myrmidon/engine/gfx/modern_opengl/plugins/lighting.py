@@ -54,7 +54,7 @@ class Myrmidon_Engine_Plugin(object):
         """
         Plugin is initialised after all backends have been.
         The object for the relevant backend is passed in. (Although it
-        can be accessed normally via MyrmidonGame.engine['x']
+        can be accessed normally via Game.engine['x']
         """
         self.backend = backend
 

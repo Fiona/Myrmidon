@@ -49,7 +49,7 @@ class MyrmidonGfxDummy(object):
 
 	clear_colour = (0.0, 0.0, 0.0, 1.0)
 	prev_blend = False
-	processes_z_order_list = []
+	entities_z_order_list = []
 	
 	def change_resolution(self, resolution):
 		pass
@@ -60,37 +60,37 @@ class MyrmidonGfxDummy(object):
 	def update_screen_post(self):
 		pass
 
-	def draw_processes(self, process_list):
+	def draw_entities(self, entity_list):
 		pass	
 	
-	def create_texture_list(self, process, image):
+	def create_texture_list(self, entity, image):
 		return None
 
 	def draw_textured_quad(self, width, height, repeat = None):
 		pass
 
-	def register_process(self, process):
-		self.processes_z_order_list.append(process)
+	def register_entity(self, entity):
+		self.entities_z_order_list.append(entity)
 
-	def remove_process(self, process):
-		self.processes_z_order_list.remove(process)
+	def remove_entity(self, entity):
+		self.entities_z_order_list.remove(entity)
 
-	def alter_x(self, process, x):
+	def alter_x(self, entity, x):
 		pass
 
-	def alter_y(self, process, y):
+	def alter_y(self, entity, y):
 		pass
 
-	def alter_z(self, process, z):
+	def alter_z(self, entity, z):
 		pass
 	
-	def alter_image(self, process, image):
+	def alter_image(self, entity, image):
 		pass
 
-	def alter_colour(self, process, colour):
+	def alter_colour(self, entity, colour):
 		pass
 
-	def alter_alpha(self, process, alpha):
+	def alter_alpha(self, entity, alpha):
 		pass
 
 	def new_image(self, width, height, colour = None):

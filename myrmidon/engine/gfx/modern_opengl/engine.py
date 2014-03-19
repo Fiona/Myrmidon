@@ -42,11 +42,10 @@ from OpenGL.GL.shaders import *
 from OpenGL.arrays import *
 from OpenGL.arrays.vbo import *
 from OpenGL.GLU import *
-from pygame.locals import *
 from numpy import array
 from collections import defaultdict
 
-from myrmidon.myrmidon import MyrmidonGame, MyrmidonProcess, MyrmidonError
+from myrmidon import Game, Entity, MyrmidonError
 from myrmidon.consts import *
 
 
@@ -54,7 +53,7 @@ class Myrmidon_Backend(object):
     plugins = {}
     
     clear_colour = (0.0, 0.0, 0.0, 1.0)
-    processes_z_order_list = []
+    entities_z_order_list = []
 
     max_textures = 2
 
@@ -68,7 +67,7 @@ class Myrmidon_Backend(object):
     textures = []
 
     def __init__(self):
-        MyrmidonGame.load_engine_plugins(self, "gfx")
+        Game.load_engine_plugins(self, "gfx")
         
         self.max_textures = glGetInteger(GL_MAX_TEXTURE_IMAGE_UNITS)
 
@@ -78,7 +77,7 @@ class Myrmidon_Backend(object):
         # Set up screen and reset viewport
         glClearColor(*self.clear_colour)
         glClear(GL_COLOR_BUFFER_BIT)
-        glViewport(0, 0, MyrmidonGame.screen_resolution[0], MyrmidonGame.screen_resolution[1])
+        glViewport(0, 0, Game.screen_resolution[0], Game.screen_resolution[1])
 
         glMatrixMode(GL_MODELVIEW)	
 
@@ -148,9 +147,9 @@ class Myrmidon_Backend(object):
         pygame.display.flip()
 
 
-    def draw_processes(self, process_list):
+    def draw_entities(self, entity_list):
         if self.z_order_dirty == True:
-            self.processes_z_order_list.sort(
+            self.entities_z_order_list.sort(
                 reverse=True,
                 key=lambda object:
                     object.z if hasattr(object, "z") else 0
@@ -162,17 +161,17 @@ class Myrmidon_Backend(object):
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         
-        # organise processes by graphic
-        process_by_z = {}
-        for g in self.processes_z_order_list:
+        # organise entities by graphic
+        entity_by_z = {}
+        for g in self.entities_z_order_list:
             if g.image:
-                if not g.z in process_by_z:
-                    process_by_z[g.z] = {}
+                if not g.z in entity_by_z:
+                    entity_by_z[g.z] = {}
                 
-                if not g.image.surfaces[g.image_seq] in process_by_z[g.z]:
-                    process_by_z[g.z][g.image.surfaces[g.image_seq]] = []
+                if not g.image.surfaces[g.image_seq] in entity_by_z[g.z]:
+                    entity_by_z[g.z][g.image.surfaces[g.image_seq]] = []
                     
-                process_by_z[g.z][g.image.surfaces[g.image_seq]].append(g)		
+                entity_by_z[g.z][g.image.surfaces[g.image_seq]].append(g)		
 
         # set active shader program
         glUseProgram(self.shader_program)
@@ -181,31 +180,31 @@ class Myrmidon_Backend(object):
             for x in self.plugins:
                 self.plugins[x].pre_during_render()
             
-            glUniform2f(self.uniforms["screen_resolution"], MyrmidonGame.screen_resolution[0], MyrmidonGame.screen_resolution[1])
+            glUniform2f(self.uniforms["screen_resolution"], Game.screen_resolution[0], Game.screen_resolution[1])
             
             # render in batches grouped by texture
-            for z_value in process_by_z:
-                pass_processes = {}	
+            for z_value in entity_by_z:
+                pass_entities = {}	
 
-                for img in process_by_z[z_value]:
-                    pass_processes[img] = process_by_z[z_value][img]			
+                for img in entity_by_z[z_value]:
+                    pass_entities[img] = entity_by_z[z_value][img]			
 
-                    if len(pass_processes) >= self.max_textures:
-                        self.render_batch(pass_processes)
-                        pass_processes = {}				
+                    if len(pass_entities) >= self.max_textures:
+                        self.render_batch(pass_entities)
+                        pass_entities = {}				
 
-                if len(pass_processes) > 0:
-                    self.render_batch(pass_processes)
+                if len(pass_entities) > 0:
+                    self.render_batch(pass_entities)
                 
         finally:
             glUseProgram(0)
 
         
-    def render_batch(self, processes):
+    def render_batch(self, entities):
         # Give each image a number for OpenGL to reference them by
         # and bind them
         texture_lookup = {}
-        for i,t in enumerate(processes):
+        for i,t in enumerate(entities):
             texture_lookup[t] = i
             # Programatically accessing the GL_TEXTURE* globals and activating them
             glActiveTexture(globals()["GL_TEXTURE%d" % i])
@@ -214,18 +213,18 @@ class Myrmidon_Backend(object):
 
         # OpenGL requires all image slots to be filled, so we throw
         # any old shit in to fill it all up.
-        for i in range(len(processes), self.max_textures):
+        for i in range(len(entities), self.max_textures):
             glActiveTexture(globals()["GL_TEXTURE%d" % i])
             glBindTexture(GL_TEXTURE_2D, self.textures[0])
             glUniform1i(self.uniforms["textures[%d]" % i], i)		
 
         # Sum all the objects into one giant list and prepare the vertex buffer
-        master_process_list = sum(processes.values(),[])
-        self.prepare_vertex_buffers(master_process_list, texture_lookup)		
+        master_entity_list = sum(entities.values(),[])
+        self.prepare_vertex_buffers(master_entity_list, texture_lookup)		
         self.vertex_buffer.bind()
 
         try:
-            # tell GL to process vertex data			
+            # tell GL the entity vertex data			
             glEnableVertexAttribArray(self.attributes["position"])
             glVertexAttribPointer(
                 self.attributes["position"],
@@ -256,7 +255,7 @@ class Myrmidon_Backend(object):
                 self.vertex_buffer + (8 * 4)
                 )
 
-            glDrawArrays(GL_QUADS, 0, 4*len(master_process_list))
+            glDrawArrays(GL_QUADS, 0, 4*len(master_entity_list))
 
         finally:
             self.vertex_buffer.unbind()        
@@ -265,39 +264,39 @@ class Myrmidon_Backend(object):
             glDisableVertexAttribArray(self.attributes["texcoord"])
 
 
-    def prepare_vertex_buffers(self, processes, texture_lookup):
+    def prepare_vertex_buffers(self, entities, texture_lookup):
         vertex_array = []
 
-        for i,g in enumerate(processes):	
+        for i,g in enumerate(entities):	
             cosr = math.cos(g.rotation)
             sinr = math.sin(g.rotation)
 
-            process_width = g.image.width
-            process_height = g.image.height
+            entity_width = g.image.width
+            entity_height = g.image.height
 
             vertex_array.append(
-                self.coordinate_transform(-1.0, 1.0, process_width * g.scale, process_height * g.scale, cosr, sinr, g.x, g.y)
+                self.coordinate_transform(-1.0, 1.0, entity_width * g.scale, entity_height * g.scale, cosr, sinr, g.x, g.y)
                 + (0.0, 1.0)
                 + g.colour
                 + (g.alpha,)
                 + (0.0, 1.0, texture_lookup[g.image.surfaces[g.image_seq]], 1.0)
                 )			
             vertex_array.append(
-                self.coordinate_transform(1.0, 1.0, process_width * g.scale, process_height * g.scale, cosr, sinr, g.x, g.y)
+                self.coordinate_transform(1.0, 1.0, entity_width * g.scale, entity_height * g.scale, cosr, sinr, g.x, g.y)
                 + (0.0, 1.0)
                 + g.colour
                 + (g.alpha,)
                 + (1.0, 1.0, texture_lookup[g.image.surfaces[g.image_seq]], 1.0)
                 )			
             vertex_array.append(				
-                self.coordinate_transform(1.0, -1.0, process_width * g.scale, process_height * g.scale, cosr, sinr, g.x, g.y)
+                self.coordinate_transform(1.0, -1.0, entity_width * g.scale, entity_height * g.scale, cosr, sinr, g.x, g.y)
                 + (0.0, 1.0)
                 + g.colour
                 + (g.alpha,)
                 + (1.0, 0.0, texture_lookup[g.image.surfaces[g.image_seq]], 1.0)
             )		
             vertex_array.append(
-                self.coordinate_transform(-1.0, -1.0, process_width * g.scale, process_height * g.scale, cosr, sinr, g.x, g.y)
+                self.coordinate_transform(-1.0, -1.0, entity_width * g.scale, entity_height * g.scale, cosr, sinr, g.x, g.y)
                 + (0.0, 1.0)
                 + g.colour
                 + (g.alpha,)
@@ -317,36 +316,36 @@ class Myrmidon_Backend(object):
         return (x2, y2)
 
 
-    def register_process(self, process):
-        self.processes_z_order_list.append(process)
+    def register_entity(self, entity):
+        self.entities_z_order_list.append(entity)
         self.z_order_dirty = True
 
 
-    def remove_process(self, process):
-        self.processes_z_order_list.remove(process)
+    def remove_entity(self, entity):
+        self.entities_z_order_list.remove(entity)
 
 
-    def alter_x(self, process, x):
+    def alter_x(self, entity, x):
         pass
 
 
-    def alter_y(self, process, y):
+    def alter_y(self, entity, y):
         pass
 
 
-    def alter_z(self, process, z):
+    def alter_z(self, entity, z):
         self.z_order_dirty = True
 
 
-    def alter_image(self, process, image):
+    def alter_image(self, entity, image):
         pass
 
 
-    def alter_colour(self, process, colour):
+    def alter_colour(self, entity, colour):
         pass
 
 
-    def alter_alpha(self, process, alpha):
+    def alter_alpha(self, entity, alpha):
         pass
 
 
@@ -397,7 +396,7 @@ class Myrmidon_Backend(object):
             self.height = (height if not height == None else raw_surface.get_height())
             self.surface = self.gl_image_from_surface(raw_surface, self.width, self.height)
             self.surfaces.append(self.surface)
-            MyrmidonGame.engine['gfx'].textures.append(self.surface)
+            Game.engine['gfx'].textures.append(self.surface)
             
 
         def gl_image_from_surface(self, raw_surface, width, height):
@@ -415,10 +414,10 @@ class Myrmidon_Backend(object):
         def __del__(self):
             for surf in self.surfaces:
                 glDeleteTextures(surf)
-                MyrmidonGame.engine['gfx'].textures.remove(surf)
+                Game.engine['gfx'].textures.remove(surf)
                 
         
-    class Text(MyrmidonProcess):
+    class Text(Entity):
         """ this is the class for all text handling """
 
         _text = ""
@@ -428,7 +427,7 @@ class Myrmidon_Backend(object):
         text_image_size = (0,0)
                 
         def __init__(self, font, x, y, alignment, text, antialias = True):
-            MyrmidonProcess.__init__(self)
+            Entity.__init__(self)
             self.font = font
             self.x = x
             self.y = y
