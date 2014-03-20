@@ -32,8 +32,8 @@ game objects.
 """
 
 import sys, os, math
-from consts import *
-from Game import Game
+from myrmidon.consts import *
+from myrmidon.Game import Game
 
 
 class Entity(object):
@@ -104,7 +104,7 @@ class Entity(object):
         if not Game.started:
             return
         try:
-            self._generator.next()
+            next(self._generator)
         except StopIteration:
             return
             #self.signal(S_KILL)

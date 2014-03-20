@@ -1,2 +1,2 @@
-from Entity import Entity
-from Game import Game, MyrmidonError
+from myrmidon.Entity import Entity
+from myrmidon.Game import Game, MyrmidonError

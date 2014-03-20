@@ -33,7 +33,7 @@ and interact with the application.
 
 
 import sys, os, math
-from consts import *
+from myrmidon.consts import *
 
 class Game(object):
 
@@ -116,16 +116,16 @@ class Game(object):
         try:
             for backend_name in ['window', 'gfx', 'input', 'audio']:
                 backend_module = __import__(
-                    "engine.%s.%s.engine" % (backend_name, cls.engine_def[backend_name]),
+                    "myrmidon.engine.%s.%s.engine" % (backend_name, cls.engine_def[backend_name]),
                     globals(),
                     locals(),
                     ['Myrmidon_Backend'],
-                    -1
+                    0
                     )
                 cls.engine[backend_name] = backend_module.Myrmidon_Backend()
                 
         except ImportError as detail:
-            print "Error importing a backend engine.", detail
+            print("Error importing a backend engine.", detail)
             sys.exit()
             
         # Test mode uses dummy engines
@@ -155,7 +155,7 @@ class Game(object):
                     engine_object.plugins[plugin_name] = plugin_module.Myrmidon_Engine_Plugin(engine_object)
                 
         except ImportError as detail:
-            print "Error importing a backend engine plugin.", detail
+            print("Error importing a backend engine plugin.", detail)
             sys.exit()
 
             

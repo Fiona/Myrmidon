@@ -63,7 +63,7 @@ class Myrmidon_Backend(object):
         # Check we can set the resolution at this mode
         try:
             self.screen = pygame.display.set_mode(Game.screen_resolution, self.flags)
-        except Exception, e:
+        except Exception as e:
             # Video mode can't be set, fall back
             if "video mode" in str(e):
                 self.resolution_fallback()
@@ -80,7 +80,7 @@ class Myrmidon_Backend(object):
         try:
             Game.screen_resolution = Game.lowest_resolution
             self.screen = pygame.display.set_mode(Game.lowest_resolution, self.flags)
-        except Exception, e:
+        except Exception as e:
             if self.opengl:
                 self.disable_multisamples()
             else:
@@ -96,7 +96,7 @@ class Myrmidon_Backend(object):
         try:
             Game.screen_resolution = Game.screen_resolution
             self.screen = pygame.display.set_mode(Game.screen_resolution, self.flags)
-        except Exception, e:
+        except Exception as e:
             if "video mode" in str(e):
                 self.resolution_fallback()
             else:

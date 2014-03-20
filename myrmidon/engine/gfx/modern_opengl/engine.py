@@ -126,8 +126,8 @@ class Myrmidon_Backend(object):
 
             glLinkProgram(self.shader_program)
         except GLError as err:
-            print "GLSL linking error", err
-            print err.description[:2500]
+            print("GLSL linking error", err)
+            print(err.description[:2500])
             sys.exit()
         
         

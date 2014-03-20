@@ -98,8 +98,8 @@ class Myrmidon_Backend(object):
         glEnableClientState(GL_VERTEX_ARRAY)
         glEnableClientState(GL_TEXTURE_COORD_ARRAY)
         glTexCoordPointer(2, GL_FLOAT, 0, self.text_coords)
-                
-        map(self.draw_single_entity, self.entities_z_order_list)
+
+        list(map(self.draw_single_entity, self.entities_z_order_list))
 
         glDisableClientState(GL_TEXTURE_COORD_ARRAY)
         glDisableClientState(GL_VERTEX_ARRAY)
@@ -129,7 +129,7 @@ class Myrmidon_Backend(object):
             # glrotate works by you translating to the point around which you wish to rotate
             # and applying the rotation you can translate back to apply the real translation
             # position
-            if entity.rotation <> 0.0:
+            if not entity.rotation == 0.0:
                 x = draw_x + (entity.image.width/2) * entity.scale
                 y = draw_y + (entity.image.height/2) * entity.scale
                 glTranslatef(x, y, 0)
@@ -485,7 +485,7 @@ class Myrmidon_Backend(object):
                 glScissor(int(self.clip[0][0]), Game.screen_resolution[1] - int(self.clip[0][1]) - int(self.clip[1][1]), int(self.clip[1][0]), int(self.clip[1][1]))
 
             # Rotate
-            if self.rotation <> 0.0:
+            if self.rotation != 0.0:
                 x = draw_x + (self.image.width/2) * self.scale
                 y = draw_y + (entity.image.height/2) * self.scale
                 glTranslatef(x, y, 0)

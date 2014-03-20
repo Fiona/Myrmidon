@@ -11,7 +11,8 @@ Myrmidon's bottom-line is that the developer should only be concerned about beha
 Installation
 ============
 
-Requirements: **PyGame 1.9.x, PyOpenGL 3.x**
+Requirements: **PyGame 1.9.x, PyOpenGL 3.x, Numpy** 
+Both Python 2.6> and 3.x are supported
 
 Currently the best way to install Myrmidon is to clone from this git repository and run the setup command. (As root if on Linux)
 
