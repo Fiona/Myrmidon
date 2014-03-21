@@ -19,10 +19,10 @@ class Window(Entity):
     
     def execute(self):
         self.graphics = {
-            "ship" : Game.engine['gfx'].Image(os.path.join("media", "ship.png")),
-            "shot" : Game.engine['gfx'].Image(os.path.join("media", "shot.png"))
+            "ship" : Game.load_image(os.path.join("media", "ship.png")),
+            "shot" : Game.load_image(os.path.join("media", "shot.png"))
             }
-        self.font = Game.engine['window'].load_font(size = 50)        
+        self.font = Game.load_font(size = 50)        
         Ship(self)
         self.fps_text = Game.write_text(0.0, 0.0, font = self.font, text = 0)
         self.entity_text = Game.write_text(0.0, 40.0, font = self.font, text = 0)

@@ -39,7 +39,7 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 from pygame.locals import *
 
-from myrmidon import Game, Entity, MyrmidonError
+from myrmidon import Game, Entity, BaseImage, MyrmidonError
 from myrmidon.consts import *
 
 class Myrmidon_Backend(object):
@@ -349,17 +349,16 @@ class Myrmidon_Backend(object):
         return tuple(col)
         
 
-    class Image(object):
+    class Image(BaseImage):
                 
         surfaces = []
         surfaces_draw_lists = []
         surface = None
-        width = 0
-        height = 0
 
         vertex_data = []
                 
         def __init__(self, image = None, sequence = False, width = None, height = None, for_repeat = False):
+            self.is_sequence_image = sequence
             self.surfaces = []
             self.surfaces_draw_lists = []
                         
@@ -367,6 +366,7 @@ class Myrmidon_Backend(object):
                 return
                         
             if isinstance(image, str):
+                self.filename = image
                 try:
                     raw_surface = pygame.image.load(image).convert_alpha()
                 except:
@@ -555,7 +555,7 @@ class Myrmidon_Backend(object):
                                 
             # Generate a Pygame image based on the current font and settings
             colour = (255 * self.colour[0], 255 * self.colour[1], 255 * self.colour[2])
-            font_image = self.font.render(self.text, self.antialias, colour)
+            font_image = self.font.loaded_font.render(self.text, self.antialias, colour)
 
             # We need to work out the nearest power of 2 to appease opengl
             # there must be a better way of doing this

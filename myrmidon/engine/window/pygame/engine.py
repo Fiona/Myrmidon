@@ -33,7 +33,8 @@ A pygame-based window creation and handling backend.
 """
 
 import os, pygame
-from myrmidon import Game, MyrmidonError
+from myrmidon import Game, MyrmidonError, BaseFont
+
 
 class Myrmidon_Backend(object):
     opengl = False
@@ -115,9 +116,16 @@ class Myrmidon_Backend(object):
     def set_title(self, title):
         pygame.display.set_caption(title)
 
-                
-    # TEXT HANDLING
-    @classmethod    
-    def load_font(cls, filename = None, size = 20):
-        return pygame.font.Font(filename, size)
-         
+
+    class Font(BaseFont):
+        loaded_font = None
+        
+        def __init__(self, font = None, size = 20):
+            self.size = size
+            if isinstance(font, str):
+                self.filename = font
+                self.loaded_font = pygame.font.Font(self.filename, self.size)
+            elif font is None:
+                self.loaded_font = pygame.font.Font(None, self.size)
+            else:
+                self.loaded_font = font

@@ -451,7 +451,7 @@ class Myrmidon_Backend(object):
                                 
             # Generate a Pygame image based on the current font and settings
             colour = (255 * self.colour[0], 255 * self.colour[1], 255 * self.colour[2])
-            font_image = self.font.render(self.text, self.antialias, colour)
+            font_image = self.font.loaded_font.render(self.text, self.antialias, colour)
 
             # We need to work out the nearest power of 2 to appease opengl
             # there must be a better way of doing this

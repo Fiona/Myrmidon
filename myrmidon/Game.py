@@ -334,6 +334,49 @@ class Game(object):
 
 
     ##############################################
+    # MEDIA 
+    ##############################################
+    @classmethod
+    def load_image(cls, image = None, sequence = False, width = None, height = None, **kwargs):
+        """Creates and returns an Image object that we can then attach to an Entity's image member
+        to display graphics.
+        A particular graphics engine may also have their own specific arguments not documented here.
+
+        Keyword arguments:
+        image -- The filesystem path to the filename that the image is contained in. Typically this can
+          also be a pointer to already loaded image data if the gfx in-use supports such behaviour. (for
+          instance, engines using PyGame to load images can be given a PyGame surface directly.) (Required)
+        sequence -- Denotes if the image being loaded contains a series of images as frames. (default False)
+        width -- If we have a sequence of images, this denotes the width of each frame. (default None)
+        height -- The height of a frame in a sequence image, if not supplied this will default to
+          the width. (default None)
+        """
+        return cls.engine['gfx'].Image(image, sequence, width, height, **kwargs)
+
+
+    @classmethod
+    def load_font(cls, font = None, size = 20, **kwargs):
+        """Creates and returns a Font object that we give to the write_text method to specify how to render
+        text. You can also dynamically change the font attribute of Text objects.
+        A particular window engine may also have their own specific arguments not documented here.
+
+        Keyword arguments:
+        font -- The filesystem path to the filename that the font is contained in. Typically this can
+          also be a pointer to an already loaded font if the engine in-use supports this behaviour. (For
+          instance, eungines using Pygame for font loading can be given a pygame.font.Font object directly.)
+          If None is supplied then the default internal font will be used if applicable. (default None)
+        size -- The size of the text that we want to display. What this value actually relates to is dependant
+          on the font loading engine used. (default 20)
+        """
+        return cls.engine['window'].Font(font, size, **kwargs)
+
+
+    @classmethod
+    def load_audio(cls, filename):
+        return cls.engine['audio'].load_audio_from_file(filename)
+    
+    
+    ##############################################
     # TEXT HANDLING
     ##############################################
     @classmethod    

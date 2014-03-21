@@ -113,11 +113,11 @@ class MyrmidonGfxDummy(object):
 	
 
 	class Image(object):
-		surfaces = []
-		surface = None
 		width = 0
 		height = 0
-		def __init__(self, image = None, sequence = False, width = None, height = None, for_repeat = False):
+        filename = None
+        is_sequence_image = False
+		def __init__(self, image = None, sequence = False, width = None, height = None):
 			pass
 		
 
