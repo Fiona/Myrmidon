@@ -301,7 +301,7 @@ class Game(object):
     @classmethod
     def entity_destroy(cls, entity):
         """ Removes a entity """
-        if not entity in Game.entity_list:
+        if (not entity in Game.entity_list) or (entity in Game.entities_to_remove):
             return
         entity.on_exit()
         cls.engine['gfx'].remove_entity(entity)
