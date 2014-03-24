@@ -372,8 +372,17 @@ class Game(object):
 
 
     @classmethod
-    def load_audio(cls, filename):
-        return cls.engine['audio'].load_audio_from_file(filename)
+    def load_audio(cls, audio):
+        """Creates and returns an Audio object that we can manipulate directly to play sounds.
+        A particular audio engine may also have their own specific arguments not documented here.
+
+        Keyword arguments:
+        audio -- The filesystem path to the file that the sound is contained at. Typically this can
+          also be a pointer to an already loaded audio object if the engine in-use supports this behaviour.
+          (For instance, eungines using Pygame for audio can be given a pygame.mixer.Sound object directly.)
+          (default None)
+        """
+        return cls.engine['audio'].Audio(audio)
     
     
     ##############################################

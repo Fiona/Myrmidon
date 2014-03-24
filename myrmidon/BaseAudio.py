@@ -1,6 +1,6 @@
 """
 Myrmidon
-Copyright (c) 2010 Fiona Burrows
+Copyright (c) 2014 Fiona Burrows
  
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
@@ -25,30 +25,19 @@ OTHER DEALINGS IN THE SOFTWARE.
  
 ---------------------
 
-- BACKEND FILE -
-- AUDIO        -
-
-A Pygame (and conversely, SDL) driven backend for handling and playing audio.
-
+All audio engine implementations should define their own version of
+the Audio class as a member of themselves, and should derive from
+this base object.
 """
 
-from myrmidon import BaseAudio
-import pygame
+class BaseAudio(object):
+    # If loaded by file this contains the path to the audio file.
+    filename = None
 
-
-class Myrmidon_Backend(object):
-    
-    class Audio(BaseAudio):
-
-        # Pointer to pygame Sound object
-        sound = None
-        
-        def __init__(self, audio = None):
-            if audio is None:
-                return
-            if isinstance(audio, str):
-                filename = audio
-                self.sound = pygame.mixer.Sound(audio)
-            else:
-                self.sound = audio
-                
+    def __init__(self, audio = None):
+        """
+        Audio objects need to implement this init method. It is perfectly acceptable to
+        add any additional keyword arguments that any engine specific image loaders may
+        require.
+        """
+        pass
