@@ -362,7 +362,7 @@ class Myrmidon_Backend(object):
             self.surfaces = []
             self.surfaces_draw_lists = []
                         
-            if image == None:
+            if image is None:
                 return
                         
             if isinstance(image, str):
