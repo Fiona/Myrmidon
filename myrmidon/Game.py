@@ -31,9 +31,9 @@ This contains the primary Game object from where you manipulate
 and interact with the application.
 """
 
-
 import sys, os, math
 from myrmidon.consts import *
+
 
 class Game(object):
 
@@ -80,6 +80,7 @@ class Game(object):
     remember_current_entity_executing = []
     current_entity_executing = None
     entity_priority_dirty = True
+    did_collision_check = False
 
 
     @classmethod
@@ -181,7 +182,7 @@ class Game(object):
             return
         
         while cls.started:
-
+            # Reorder Entities by execution priority if necessary
             if cls.entity_priority_dirty == True:
                 cls.entity_list.sort(
                     reverse=True,
@@ -190,24 +191,37 @@ class Game(object):
                     )
                 cls.entity_priority_dirty = False
 
+            # If we have an input engine enabled we pass off to it
+            # to manage and process input events.
             if cls.engine['input']:
                 cls.engine['input'].process_input()
 
-            cls.entities_to_remove = []
-            
+            # For each entity in priority order we iterate their
+            # generators executing their code
             for entity in cls.entity_list:
                 if entity.status == 0:
                     cls.current_entity_executing = entity
                     entity._iterate_generator()
 
+            # If we have marked any entities for removal we do that here
             for x in cls.entities_to_remove:
                 if x in cls.entity_list:
                     cls.entity_list.remove(x)
-                
+            cls.entities_to_remove = []
+
+            # If we did a collision along the way then we should reset any
+            # optimisations we may or may not have done on each entity.
+            if cls.did_collision_check:
+                cls.did_collision_check = False
+                for entity in cls.entity_list:
+                    entity.reset_collision_model()
+
+            # Pass off to the gfx engine to display entities
             cls.engine['gfx'].update_screen_pre()
             cls.engine['gfx'].draw_entities(cls.entity_list)              
             cls.engine['gfx'].update_screen_post()
 
+            # Wait for next frame, hitting a particular fps
             cls.fps = int(cls.clock.get_fps())
             cls.clock.tick(cls.current_fps)
 
@@ -332,6 +346,13 @@ class Game(object):
             raise MyrmidonError("Input backend not initialised.")
         return cls.engine['input'].keyboard_key_released(key_code)
 
+
+    @classmethod
+    def mouse(cls):
+        """Gives access to an Entity object that represents the mouse.
+        """
+        return cls.engine['input'].mouse
+    
 
     ##############################################
     # MEDIA 
@@ -481,6 +502,274 @@ class Game(object):
         else:
             dir = difference / math.fabs(difference)
             return curr_angle + (increment * dir)
+
+
+    @classmethod
+    def rotate_point(cls, x, y, rotation):
+        """Rotates a point in euclidian space using a rotation matrix.
+
+        Keyword arguments:
+        -- x:  First coordinate part of the point.
+        -- y:  Second coordinate part of the point.
+        -- rotation:  The amount to rotate by in degrees."""
+        rotation = math.radians(rotation)
+        return (math.cos(rotation) * x - math.sin(rotation) * y,
+                math.sin(rotation) * x + math.cos(rotation) * y)
+
+
+    @classmethod
+    def rotate_point_about_point(cls, x, y, rotation, rotate_about_x, rotate_about_y):
+        """Similar to rotate_point but allows specification of a separate point
+        in space to rotate around.
+
+        Keyword arguments:
+        -- x:  First coordinate part of the point.
+        -- y:  Second coordinate part of the point.
+        -- rotation:  The amount to rotate by in degrees.
+        -- rotate_about_x: First coordinate part of the point to rotate around.
+        -- rotate_about_y: Second coordinate part of the point to rotate around."""
+        p = cls.rotate_point(x - rotate_about_x, y - rotate_about_y, rotation)
+        return p[0] + rotate_about_x, p[1] + rotate_about_y
+
+
+    @classmethod
+    def point_in_rectangle(cls, point, rectangle_origin, rectangle_size):
+        """Returns True/False if a point is within a rectangle shape.
+
+        Keyword arguments:
+        -- point: Tuple containing the coordinates of the point.
+        -- rectangle_origin: Tuple containing the position of the rectangle.
+        -- rectangle_size: Tuple containing the width and height of the rectangle.
+        """
+        return (point[0] > rectangle_origin[0] and \
+               point[0] < (rectangle_origin[0] + rectangle_size[0]) and \
+               point[1] > rectangle_origin[1] and \
+               point[1] < (rectangle_origin[1] + rectangle_size[1]))
+
+
+    ##############################################
+    # COLLISION ROUTINES
+    ##############################################
+
+    
+    @classmethod
+    def collision_rectangle_to_rectangle(cls, rectangle_a, rectangle_b):
+        """
+        Uses the separating axis theorem to check collisions between two
+        Entities. Both must have COLLISION_TYPE_RECTANGLE set as their collision type.
+        Returns True/False on collision.
+
+        Keyword arguments:
+        -- rectangle_a: The first Entity we are checking.
+        -- rectangle_b: The Entity we are checking the first one against.
+        """
+        # retrieve loctaions of box corners
+        check_object_a = rectangle_a.collision_rectangle_calculate_corners()
+        check_object_b = rectangle_b.collision_rectangle_calculate_corners()
+
+        # Step 1 is calculating the 4 axis of our two objects
+        # we will use them check the collisions
+        axis = [(0,0), (0,0), (0,0), (0,0)]
+            
+        axis[0] = (check_object_a['ur'][0] - check_object_a['ul'][0],
+                   check_object_a['ur'][1] - check_object_a['ul'][1])
+
+        axis[1] = (check_object_a['ur'][0] - check_object_a['lr'][0],
+                   check_object_a['ur'][1] - check_object_a['lr'][1])
+            
+        axis[2] = (check_object_b['ul'][0] - check_object_b['ll'][0],
+                   check_object_b['ul'][1] - check_object_b['ll'][1])
+
+        axis[3] = (check_object_b['ul'][0] - check_object_b['ur'][0],
+                   check_object_b['ul'][1] - check_object_b['ur'][1])
+
+        # We will need to determine a collision for each of the 4 axis
+        # If any of the axis do ~not~ collide then we determine that no
+        # collision has occured.
+        for single_axis in axis:
+            # Step 2 is projecting the vectors of each corner of each rectangle
+            # on to the axis. This is to determine the min/max projected vectors
+            # of each rectangle.
+            corner_vector_projection = {rectangle_a: dict(check_object_a), rectangle_b: dict(check_object_b)}
+            rectangle_bounds = {rectangle_a: {'min' : None, 'max' : None}, rectangle_b: {'min' : None, 'max' : None}}
+
+            for object_ in corner_vector_projection:
+                for corner_name in corner_vector_projection[object_]:
+                    projection = (
+                        (
+                            (corner_vector_projection[object_][corner_name][0] * single_axis[0]) + (corner_vector_projection[object_][corner_name][1] * single_axis[1])
+                        ) / (
+                            (single_axis[0] * single_axis[0]) + (single_axis[1] * single_axis[1])
+                        )
+                    )
+                    corner_vector_projection[object_][corner_name] = ((projection * single_axis[0]) * single_axis[0]) + ((projection * single_axis[1]) * single_axis[1])
+
+                    # Step 3 is working out what the min and max location of each corner
+                    # projected on the axis is for each rectangle.
+                    if rectangle_bounds[object_]['min'] is None or corner_vector_projection[object_][corner_name] < rectangle_bounds[object_]['min']:
+                        rectangle_bounds[object_]['min'] = corner_vector_projection[object_][corner_name]
+
+                    if rectangle_bounds[object_]['max'] is None or corner_vector_projection[object_][corner_name] > rectangle_bounds[object_]['max']:
+                        rectangle_bounds[object_]['max'] = corner_vector_projection[object_][corner_name]
+
+            # Step 4 is determining if the min and max corner projections of each rectangle on the axis overlap
+            # If they don't then we can conclude that no collision has occured.
+            if not (rectangle_bounds[rectangle_b]['min'] <= rectangle_bounds[rectangle_a]['max'] and rectangle_bounds[rectangle_b]['max'] >= rectangle_bounds[rectangle_a]['min']):
+                return False
+                
+        # If we have got this far then we can assume that a collision has occured.
+        return True
+
+
+    @classmethod
+    def collision_point_to_rectangle(cls, point, rectangle):
+        """
+        Checks the collision between an Entity with it's type as COLLISION_TYPE_POINT
+        against one set as COLLISION_TYPE_RECTANGLE
+        Returns True/False on collision.
+
+        Keyword arguments:
+        -- point: The Entity that is a point.
+        -- rectangle: The Entity this is a rectangle.
+        """
+        # Get all usable values
+        check_object_a = point.collision_point_calculate_point()
+        check_object_b = rectangle.collision_rectangle_calculate_corners()
+        check_object_b_size = rectangle.collision_rectangle_size()
+
+        # rotate the point by -rectangle_angle around the centre of the rectangle
+        rotated_point = Game.rotate_point_about_point(
+            check_object_a[0],
+            check_object_a[1],
+            -rectangle.rotation,
+            rectangle.x,
+            rectangle.y
+            )
+        
+        # Check that point is within the rectangle
+        return Game.point_in_rectangle(rotated_point, (rectangle.x, rectangle.y), check_object_b_size)
+    
+
+    @classmethod
+    def collision_circle_to_rectangle(cls, circle, rectangle):
+        """
+        Checks the collision between an Entity with it's type as COLLISION_TYPE_CIRCLE
+        against one set as COLLISION_TYPE_RECTANGLE
+        Returns True/False on collision.
+
+        Keyword arguments:
+        -- circle: The Entity that is a circle.
+        -- rectangle: The Entity this is a rectangle.
+        """
+        check_object_a = circle
+        check_object_b = rectangle
+        check_object_a_radius = check_object_a.collision_circle_calculate_radius()
+        check_object_b_corners = check_object_b.collision_rectangle_calculate_corners()
+        check_object_b_size = check_object_b.collision_rectangle_size()
+        
+        # rotate the cicle by -rectangle_angle around the centre of the rectangle
+        rotated_ciricle = Game.rotate_point_about_point(
+            check_object_a.x,
+            check_object_a.y,
+            -check_object_b.rotation,
+            check_object_b.x,
+            check_object_b.y
+            )
+
+        half_width = check_object_b_size[0] / 2
+        half_height = check_object_b_size[1] / 2
+        
+        circle_distance = (abs(rotated_ciricle[0] - check_object_b.x), abs(rotated_ciricle[1] - check_object_b.y))
+
+        if circle_distance[0] > (half_width + check_object_a_radius) or \
+           circle_distance[1] > (half_height + check_object_a_radius):
+            return False
+
+        if circle_distance[0] <= half_width or \
+           circle_distance[1] <= half_height:
+            return True
+
+        corner_distance_sq = ((circle_distance[0] - half_width) ** 2) + ((circle_distance[1] - half_height) ** 2)
+
+        return (corner_distance_sq <= (check_object_a_radius**2))                            
+
+
+    @classmethod
+    def collision_circle_to_circle(cls, circle_a, circle_b):
+        """
+        Checks the collision between two Entities of type as COLLISION_TYPE_CIRCLE.
+        Returns True/False on collision.
+
+        Keyword arguments:
+        -- circle_a: The first Entity.
+        -- circle_b: The Entity we are checking against.
+        """
+        check_object_a = circle_a
+        check_object_b = circle_b
+        check_object_a_radius = check_object_a.collision_circle_calculate_radius()
+        check_object_b_radius = check_object_b.collision_circle_calculate_radius()
+
+        # Outside of each others radius
+        if check_object_a.get_distance((check_object_b.x, check_object_b.y)) > check_object_a_radius + check_object_b_radius:
+            return False
+
+        return True
+
+
+    @classmethod
+    def collision_point_to_circle(cls, point, circle):
+        """
+        Checks the collision between an Entity with it's type as COLLISION_TYPE_POINT
+        against one set as COLLISION_TYPE_CIRCLE
+        Returns True/False on collision.
+
+        Keyword arguments:
+        -- point: The Entity that is a point.
+        -- circle: The Entity this is a circle.
+        """
+        check_object_a = point
+        check_object_b = circle
+        check_object_a_point = check_object_a.collision_point_calculate_point()
+        check_object_b_radius = check_object_b.collision_circle_calculate_radius()
+                    
+        # Outside of each others radius
+        if cls.get_distance(check_object_a_point, (check_object_b.x + check_object_b_radius, check_object_b.y + check_object_b_radius)) > check_object_b_radius:
+            return False
+
+        return True
+
+
+    @classmethod
+    def collision_point_to_point(cls, point_a, point_b):
+        """
+        Checks collision between two Entities with their type as COLLISION_TYPE_POINT.
+        Practically useless but here for completion.
+        Returns True/False on collision.        
+
+        Keyword arguments:
+        -- point_a: The first Entity.
+        -- point_b: The Entity we are checking against.
+        """        
+        point_a = point_a.collision_point_calculate_point()
+        point_b = point_b.collision_point_calculate_point()
+        return True if point_a[0] == point_b[0] and point_a[1] == point_b[1] else False
+
+
+# Define the collision function lookups so we entities know which one to call
+# depending on the types of Entities it is comparing.
+# (We can't create this  function map until the class has been defined so we must
+# do it out of the class definition here.)
+Game.collision_methods = {
+        (COLLISION_TYPE_RECTANGLE, COLLISION_TYPE_RECTANGLE) : Game.collision_rectangle_to_rectangle,
+        (COLLISION_TYPE_POINT, COLLISION_TYPE_RECTANGLE) : Game.collision_point_to_rectangle,
+        (COLLISION_TYPE_RECTANGLE, COLLISION_TYPE_POINT) : Game.collision_point_to_rectangle,
+        (COLLISION_TYPE_CIRCLE, COLLISION_TYPE_RECTANGLE) : Game.collision_circle_to_rectangle,
+        (COLLISION_TYPE_RECTANGLE, COLLISION_TYPE_CIRCLE) : Game.collision_circle_to_rectangle,
+        (COLLISION_TYPE_CIRCLE, COLLISION_TYPE_CIRCLE) : Game.collision_circle_to_circle,
+        (COLLISION_TYPE_POINT, COLLISION_TYPE_CIRCLE) : Game.collision_point_to_circle,
+        (COLLISION_TYPE_CIRCLE, COLLISION_TYPE_POINT) : Game.collision_point_to_circle,
+        (COLLISION_TYPE_POINT, COLLISION_TYPE_POINT) : Game.collision_point_to_point
+        }
 
 
 

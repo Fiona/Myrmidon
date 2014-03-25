@@ -239,7 +239,15 @@ class Myrmidon_Backend(object):
 
     def alter_alpha(self, entity, alpha):
         pass
-        
+
+
+    def alter_scale(self, entity, scale):
+        pass
+
+
+    def alter_rotation(self, entity, rotation):
+        pass
+
 
     def new_image(self, width, height, colour = None):
         # We need to work out the nearest power of 2

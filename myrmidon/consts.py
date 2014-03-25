@@ -46,4 +46,8 @@ ALIGN_BOTTOM_LEFT = 6
 ALIGN_BOTTOM = 7
 ALIGN_BOTTOM_RIGHT = 8 
 
+COLLISION_TYPE_RECTANGLE = 'rectangle'
+COLLISION_TYPE_CIRCLE = 'circle'
+COLLISION_TYPE_POINT = 'point'
+
 from pygame.locals import *

@@ -36,6 +36,7 @@ import pygame
 from pygame.locals import *
 
 from myrmidon import Entity
+from myrmidon.consts import *
 
 
 class Myrmidon_Backend(object):
@@ -63,6 +64,8 @@ class Myrmidon_Backend(object):
             self.mouse = self.Mouse()
             self.mouse.z = -512
             self.mouse.visible = True
+            self.mouse.collision_on = True
+            self.mouse.collision_type = COLLISION_TYPE_POINT
             self.initialise_mouse_state()
 
         if self.disable_input:

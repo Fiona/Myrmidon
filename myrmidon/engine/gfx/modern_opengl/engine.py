@@ -349,6 +349,14 @@ class Myrmidon_Backend(object):
         pass
 
 
+    def alter_scale(self, entity, scale):
+        pass
+
+
+    def alter_rotation(self, entity, rotation):
+        pass
+
+
     def new_image(self, width, height, colour = None):
         return Myrmidon_Backend.Image()
 
