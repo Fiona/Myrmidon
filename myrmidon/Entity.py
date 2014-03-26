@@ -151,6 +151,7 @@ class Entity(BaseEntity):
         try:
             next(self._generator)
         except StopIteration:
+            self.destroy()
             return
 
 
