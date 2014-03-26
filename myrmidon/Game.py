@@ -31,7 +31,7 @@ This contains the primary Game object from where you manipulate
 and interact with the application.
 """
 
-import sys, os, math
+import sys, os, math, copy, inspect
 from myrmidon.consts import *
 
 
@@ -261,8 +261,9 @@ class Game(object):
     def signal(cls, entity, signal_code, tree=False):
         """ Signal will let you kill a entity or put it to sleep
         
-            Will accept a entity object or an ID number to check against one,
-            or a entity type as a string to check for all of a specific type
+            Will accept an Entity object directly, an Entity type (will also match
+            all child types of that Entity or the Entity type as a string.
+            If more than one Entity matches, all of them will be signalled.
         
             The tree parameter can be used to recursively signal all the 
             entity's descendants
@@ -275,15 +276,19 @@ class Game(object):
             S_WAKEUP - Wakes up or unfreezes the entity """
         
         # We've entered a specific type as a string
-        if type(entity) == type(""):
-            
-            import copy
-            entity_iter = copy.copy(cls.entity_list)
-            
+        if isinstance(entity, str):
+            entity_iter = copy.copy(cls.entity_list)            
             for obj in entity_iter:
                 if obj.__class__.__name__ == entity:
                     cls.single_object_signal(obj, signal_code, tree)
-        
+
+        # We've passed in a class type directly
+        elif inspect.isclass(entity):
+            entity_iter = copy.copy(cls.entity_list)            
+            for obj in entity_iter:
+                if isinstance(obj, entity):
+                    cls.single_object_signal(obj, signal_code, tree)
+            
         # Passed in an object directly    
         else:
             cls.single_object_signal(entity, signal_code, tree)
