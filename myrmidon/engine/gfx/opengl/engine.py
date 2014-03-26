@@ -106,7 +106,7 @@ class Myrmidon_Backend(object):
                 
 
     def draw_single_entity(self, entity):
-        if entity.disable_draw or entity.status == S_SLEEP:
+        if not entity._drawing:
             return
                         
         dont_draw = False

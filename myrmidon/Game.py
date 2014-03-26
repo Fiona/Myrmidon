@@ -32,6 +32,7 @@ and interact with the application.
 """
 
 import sys, os, math, copy, inspect
+from myrmidon.BaseEntity import BaseEntity
 from myrmidon.consts import *
 
 
@@ -199,9 +200,8 @@ class Game(object):
             # For each entity in priority order we iterate their
             # generators executing their code
             for entity in cls.entity_list:
-                if entity.status == 0:
-                    cls.current_entity_executing = entity
-                    entity._iterate_generator()
+                cls.current_entity_executing = entity
+                entity._iterate_generator()
 
             # If we have marked any entities for removal we do that here
             for x in cls.entities_to_remove:
@@ -232,11 +232,12 @@ class Game(object):
         cls.engine['window'].change_resolution(resolution)
         cls.engine['gfx'].change_resolution(resolution)
 
-        
 
     ##############################################
     # ENTITIES
     ##############################################
+
+    
     @classmethod
     def entity_register(cls, entity):
         """
@@ -257,88 +258,161 @@ class Game(object):
             entity.parent.child = entity
 
 
-    @classmethod        
-    def signal(cls, entity, signal_code, tree=False):
-        """ Signal will let you kill a entity or put it to sleep
-        
-            Will accept an Entity object directly, an Entity type (will also match
-            all child types of that Entity or the Entity type as a string.
-            If more than one Entity matches, all of them will be signalled.
-        
-            The tree parameter can be used to recursively signal all the 
-            entity's descendants
-        
-            Signal types-
-            S_KILL - Permanently removes the entity
-            S_SLEEP - Entity will disappear and will stop executing code
-            S_FREEZE - Entity will stop executing code but will still appear
-                and will still be able to be checked for collisions.
-            S_WAKEUP - Wakes up or unfreezes the entity """
-        
-        # We've entered a specific type as a string
-        if isinstance(entity, str):
-            entity_iter = copy.copy(cls.entity_list)            
-            for obj in entity_iter:
-                if obj.__class__.__name__ == entity:
-                    cls.single_object_signal(obj, signal_code, tree)
+    @classmethod
+    def destroy_entities(cls, target, tree = False):
+        """Kills Entity objects, stopping them from executing, displaying and
+        irreversibly destroying them.
 
-        # We've passed in a class type directly
-        elif inspect.isclass(entity):
-            entity_iter = copy.copy(cls.entity_list)            
-            for obj in entity_iter:
-                if isinstance(obj, entity):
-                    cls.single_object_signal(obj, signal_code, tree)
-            
-        # Passed in an object directly    
-        else:
-            cls.single_object_signal(entity, signal_code, tree)
-            return
+        Keyword arguments:
+        -- target: A number of different types can be passed in as the target of this method -
+          * A single Entity instance, in this case only that one Entity will be destroyed.
+          * An Entity class type (not instanced object, will also match subclasses)
+          * A string containing the name of the class type searching for.
+        -- tree: If True then all children of all matched Entities (and their children
+          etc) will be destroyed too. (default False)
+        """
+        entity_list = cls.get_entities(target, tree = tree)
+        for entity in entity_list:
+            if (not entity in cls.entity_list) or (entity in cls.entities_to_remove):
+                continue
+            entity.on_exit()
+            cls.engine['gfx'].remove_entity(entity)
+            Game.entities_to_remove.append(entity)
 
 
     @classmethod
-    def single_object_signal(cls, entity, signal_code, tree = False):
-        """ Used by signal as a shortcut """
-        
-        # do children
-        if tree:
-            next_child = entity.child
-            while next_child != None:
-                cls.single_object_signal(next_child, signal_code, True)
-                next_child = next_child.next_sibling
-        
-        # do this one
-        if signal_code == S_KILL:
-            cls.entity_destroy(entity)
-        elif signal_code == S_WAKEUP:
-            entity.status = 0
-        elif signal_code == S_SLEEP:
-            entity.status = S_SLEEP
-        elif signal_code == S_FREEZE:
-            entity.status = S_FREEZE
+    def stop_entities_executing(cls, target, tree = False):
+        """Stops Entities executing code. Can be woke up again with start_entities_executing
+        or toggle_entities_executing.
+
+        Keyword arguments:
+        -- target: A number of different types can be passed in as the target of this method -
+          * A single Entity instance, in this case only that one Entity will be stopped.
+          * An Entity class type (not instanced object, will also match subclasses)
+          * A string containing the name of the class type searching for.
+        -- tree: If True then all children of all matched Entities (and their children
+          etc) will be stopped too. (default False)
+        """
+        entity_list = cls.get_entities(target, tree = tree)
+        for entity in entity_list:
+            entity._executing = False
+            
+
+    @classmethod
+    def start_entities_executing(cls, target, tree = False):
+        """Starts Entities executing code if previously stopped.
+
+        Keyword arguments:
+        -- target: A number of different types can be passed in as the target of this method -
+          * A single Entity instance, in this case only that one Entity will be stopped.
+          * An Entity class type (not instanced object, will also match subclasses)
+          * A string containing the name of the class type searching for.
+        -- tree: If True then all children of all matched Entities (and their children
+          etc) will be started too. (default False)
+        """
+        entity_list = cls.get_entities(target, tree = tree)
+        for entity in entity_list:
+            entity._executing = True
+
+
+    @classmethod
+    def toggle_entities_executing(cls, target, tree = False):
+        """Toggle the execution of Entities. If started they will be stopped
+        and vise-versa.
+
+        Keyword arguments:
+        -- target: A number of different types can be passed in as the target of this method -
+          * A single Entity instance, in this case only that one Entity will be stopped.
+          * An Entity class type (not instanced object, will also match subclasses)
+          * A string containing the name of the class type searching for.
+        -- tree: If True then all children of all matched Entities (and their children
+          etc) will be toggled too. (default False)
+        """
+        entity_list = cls.get_entities(target, tree = tree)
+        for entity in entity_list:
+            entity._executing = not entity._executing
+
+
+    @classmethod
+    def hide_entities(cls, target, tree = False):
+        """Stops Entities rendering. Can be set to draw again with show_entities or
+        or toggle_entities_display.
+
+        Keyword arguments:
+        -- target: A number of different types can be passed in as the target of this method -
+          * A single Entity instance, in this case only that one Entity will be stopped.
+          * An Entity class type (not instanced object, will also match subclasses)
+          * A string containing the name of the class type searching for.
+        -- tree: If True then all children of all matched Entities (and their children
+          etc) will be hidden too. (default False)
+        """
+        entity_list = cls.get_entities(target, tree = tree)
+        for entity in entity_list:
+            entity._drawing = False
+
+
+    @classmethod
+    def show_entities(cls, target, tree = False):
+        """Starts Entities rendering code if previously stopped.
+
+        Keyword arguments:
+        -- target: A number of different types can be passed in as the target of this method -
+          * A single Entity instance, in this case only that one Entity will be stopped.
+          * An Entity class type (not instanced object, will also match subclasses)
+          * A string containing the name of the class type searching for.
+        -- tree: If True then all children of all matched Entities (and their children
+          etc) will be shown too. (default False)
+        """
+        entity_list = cls.get_entities(target, tree = tree)
+        for entity in entity_list:
+            entity._drawing = True
+
+
+    @classmethod
+    def toggle_entities_display(cls, target, tree = False):
+        """Toggle the rendering of Entities. If hidden they will be shown
+        and vise-versa.
+
+        Keyword arguments:
+        -- target: A number of different types can be passed in as the target of this method -
+          * A single Entity instance, in this case only that one Entity will be stopped.
+          * An Entity class type (not instanced object, will also match subclasses)
+          * A string containing the name of the class type searching for.
+        -- tree: If True then all children of all matched Entities (and their children
+          etc) will be toggled too. (default False)
+        """
+        entity_list = cls.get_entities(target, tree = tree)
+        for entity in entity_list:
+            entity._drawing = not entity._drawing
 
 
     @classmethod        
-    def get_entities(cls, entity_type, tree=False):
+    def get_entities(cls, target, tree = False):
         """This method returns a list of all Entities matching a type searched for.
 
         Keyword arguments:
-        -- entity_type: Pass in either an Entity class (not instanced object)
-          or a string containing the name of the class searching for.
-          If passing in a class, this will also match all child classes.
-        -- tree: If True then all childen of matched Entities  will be added too.
+        -- target: A number of different types can be passed in as the target of this method -
+          * A single Entity instance, in this case only that one Entity will be destroyed.
+          * An Entity class type (not instanced object, will also match subclasses)
+          * A string containing the name of the class type searching for.
+        -- tree: If True then all childen of matched Entities  will be added too. (default False)
         """
         found_entity_list = []
         # We've entered a specific type as a string
-        if isinstance(entity_type, str):
+        if isinstance(target, str):
             for obj in cls.entity_list:
-                if obj.__class__.__name__ == entity_type:
+                if obj.__class__.__name__ == target:
                     cls.add_entity_to_list(obj, found_entity_list, tree = tree)
 
         # We've passed in a class type directly
-        elif inspect.isclass(entity_type):
+        elif isinstance(target, type):
             for obj in cls.entity_list:
-                if isinstance(obj, entity_type):
+                if isinstance(obj, target):
                     cls.add_entity_to_list(obj, found_entity_list, tree = tree)
+
+        # We've passed in an Entity instance
+        elif isinstance(target, BaseEntity):
+            cls.add_entity_to_list(target, found_entity_list, tree = tree)
 
         return found_entity_list
     
@@ -365,20 +439,12 @@ class Game(object):
                     entity_list.append(next_child)
                 next_child = next_child.next_sibling
            
-
-    @classmethod
-    def entity_destroy(cls, entity):
-        """ Removes a entity """
-        if (not entity in Game.entity_list) or (entity in Game.entities_to_remove):
-            return
-        entity.on_exit()
-        cls.engine['gfx'].remove_entity(entity)
-        Game.entities_to_remove.append(entity)
-
         
     ##############################################
     # INPUT
     ##############################################
+
+    
     @classmethod        
     def keyboard_key_down(cls, key_code):
         """
@@ -470,7 +536,7 @@ class Game(object):
     @classmethod    
     def delete_text(cls, text):
         if text in Game.entity_list:
-            Game.entity_destroy(text)
+            cls.destroy_entities(text)
 
 
     ##############################################

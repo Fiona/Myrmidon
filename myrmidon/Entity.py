@@ -34,9 +34,10 @@ game objects.
 import sys, os, math
 from myrmidon.consts import *
 from myrmidon.Game import Game
+from myrmidon.BaseEntity import BaseEntity
 
 
-class Entity(object):
+class Entity(BaseEntity):
 
     # Basic entity properties
     _x = 0.0
@@ -54,9 +55,7 @@ class Entity(object):
     blend = False
     clip = None
     scale_point = [0.0, 0.0]
-    disable_draw = False
     normal_draw = True
-    status = 0
 
     # Entity relationships
     parent = None
@@ -101,6 +100,9 @@ class Entity(object):
     # Internal private properties
     _is_text = False
     _generator = None
+    _executing = True
+    _drawing = True
+    
     
     def __init__(self, *args, **kargs):
         if not Game.started:
@@ -116,6 +118,8 @@ class Entity(object):
 
         Game.remember_current_entity_executing.append(Game.current_entity_executing)
         Game.current_entity_executing = self
+        self._executing = True
+        self._drawing = True        
         self._generator = self.execute(*args, **kargs)
         self._iterate_generator()
         Game.current_entity_executing = Game.remember_current_entity_executing.pop()
@@ -131,22 +135,23 @@ class Entity(object):
         """
         while True:
             yield
+            
 
     def on_exit(self):
         """
         Called automatically when a entity has finished executing for whatever reason.
-        Is also called when a entity is killed using signal S_KILL.
+        Is also called when a entity is killed using the destroy method.
         """
         pass
+    
         
     def _iterate_generator(self):
-        if not Game.started:
-            return
+        if not Game.started or not self._executing:
+            return        
         try:
             next(self._generator)
         except StopIteration:
             return
-            #self.signal(S_KILL)
 
 
     def draw(self):
@@ -156,34 +161,95 @@ class Entity(object):
         pass
 
 
-    def move_forward(self, distance, angle = None):
-        self.x, self.y = Game.move_forward((self.x, self.y), distance, self.rotation if angle == None else angle)
-
-        
-    def get_distance(self, pos):
-        return Game.get_distance((self.x, self.y), pos)
-    
-        
-    def signal(self, signal_code, tree=False):
-        """ Signal will let you kill the entity or put it to sleep.
-            The 'tree' parameter can be used to signal to an entity and all its
-            descendant entities (provided an unbroken tree exists)
-        
-            Signal types-
-            S_KILL - Permanently removes the entity
-            S_SLEEP - Entity will disappear and will stop executing code
-            S_FREEZE - Entity will stop executing code but will still appear
-                and will still be able to be checked for collisions.
-            S_WAKEUP - Wakes up or unfreezes the entity """
-        Game.signal(self, signal_code, tree)
-
-
     def get_screen_draw_position(self):
         """ At draw time this function is called to determine exactly where
         the entity will be drawn. Override this if you need to programatically
         constantly change the position of entity.
         Returns a tuple (x,y)"""
         return self.x, self.y
+
+
+    def move_forward(self, distance, angle = None):
+        self.x, self.y = Game.move_forward((self.x, self.y), distance, self.rotation if angle == None else angle)
+
+        
+    def get_distance(self, pos):
+        return Game.get_distance((self.x, self.y), pos)
+
+
+    def destroy(self, tree = False):
+        """Kills this Entity, stopping it from executing and displaying and
+        irreversibly destroying it.
+
+        Keyword arguments:
+        -- tree: If True then all children of this Entity (and their children
+          etc) will be destroyed too. (default False)
+        """
+        Game.destroy_entities(self, tree = tree)
+
+
+    def stop_executing(self, tree = False):
+        """Stops this Entity executing code. Can be woke up again with start_executing
+        or toggle_executing.
+
+        Keyword arguments:
+        -- tree: If True then all children of this Entity (and their children
+          etc) will be stopped too. (default False)
+        """
+        Game.stop_entities_executing(self, tree = tree)
+
+
+    def start_executing(self, tree = False):
+        """Start this Entity executing code if previously stopped.
+
+        Keyword arguments:
+        -- tree: If True then all children of this Entity (and their children
+          etc) will be started too. (default False)
+        """
+        Game.start_entities_executing(self, tree = tree)
+
+
+    def toggle_executing(self, tree = False):
+        """Toggle the execution of this Entity. If started it will be stopped
+        and vise-versa.
+
+        Keyword arguments:
+        -- tree: If True then all children of this Entity (and their children
+          etc) will be toggled too. (default False)
+        """
+        Game.toggle_entities_executing(self, tree = tree)
+
+
+    def hide(self, tree = False):
+        """Stops this Entity rendering. Can be set to draw again with show or
+        toggle_display.
+
+        Keyword arguments:
+        -- tree: If True then all children of this Entity (and their children
+          etc) will be hidden too. (default False)
+        """
+        Game.hide_entities(self, tree = tree)
+
+
+    def show(self, tree = False):
+        """Start this Entity rendering again if previously stopped.
+
+        Keyword arguments:
+        -- tree: If True then all children of this Entity (and their children
+          etc) will be shown too. (default False)
+        """
+        Game.show_entities(self, tree = tree)
+
+
+    def toggle_display(self, tree = False):
+        """Toggle the rendering of this Entity. If hidden it will be shown
+        and vise-versa.
+
+        Keyword arguments:
+        -- tree: If True then all children of this Entity (and their children
+          etc) will be toggled too. (default False)
+        """
+        Game.toggle_entities_display(self, tree = tree)
 
 
     ##############################################

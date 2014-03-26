@@ -164,7 +164,7 @@ class Myrmidon_Backend(object):
         # organise entities by graphic
         entity_by_z = {}
         for g in self.entities_z_order_list:
-            if g.image:
+            if g.image and g._drawing:
                 if not g.z in entity_by_z:
                     entity_by_z[g.z] = {}
                 
