@@ -317,6 +317,55 @@ class Game(object):
             entity.status = S_FREEZE
 
 
+    @classmethod        
+    def get_entities(cls, entity_type, tree=False):
+        """This method returns a list of all Entities matching a type searched for.
+
+        Keyword arguments:
+        -- entity_type: Pass in either an Entity class (not instanced object)
+          or a string containing the name of the class searching for.
+          If passing in a class, this will also match all child classes.
+        -- tree: If True then all childen of matched Entities  will be added too.
+        """
+        found_entity_list = []
+        # We've entered a specific type as a string
+        if isinstance(entity_type, str):
+            for obj in cls.entity_list:
+                if obj.__class__.__name__ == entity_type:
+                    cls.add_entity_to_list(obj, found_entity_list, tree = tree)
+
+        # We've passed in a class type directly
+        elif inspect.isclass(entity_type):
+            for obj in cls.entity_list:
+                if isinstance(obj, entity_type):
+                    cls.add_entity_to_list(obj, found_entity_list, tree = tree)
+
+        return found_entity_list
+    
+
+    @classmethod
+    def add_entity_to_list(cls, entity, entity_list, tree = False):
+        """Used by the get_entities method to add a single Entity object to
+        a list, if it doesn't already exist in the list, along with a tree of
+        children if applicable.
+
+        Keyword arguments:
+        -- entity: An Entity obj to add to the given list.
+        -- entity_list: The list to add to.
+        -- tree: If we want to also add all the children of the Entity to the
+          list. (default False)
+        """
+        if not entity in entity_list:
+            entity_list.append(entity)
+
+        if tree:
+            next_child = entity.child
+            while next_child != None:
+                if not next_child in entity_list:
+                    entity_list.append(next_child)
+                next_child = next_child.next_sibling
+           
+
     @classmethod
     def entity_destroy(cls, entity):
         """ Removes a entity """
