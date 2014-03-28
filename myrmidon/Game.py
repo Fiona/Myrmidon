@@ -922,6 +922,24 @@ class Game(object):
         return cls.rgb_to_colour(r, g, b)
 
 
+    @classmethod
+    def lerp(cls, start, end, percentage):
+        """Performs a linear interpolation by giving the value
+        of percentage between the specified start and end values.
+        
+        For instance:
+        lerp(0.0, 100.0, .5)        
+        Would return 50.0.
+
+        Keyword arguments:
+        -- start: The start value of the interpolation as a float.
+        -- end: The end value of the interpolation as a float.
+        -- percentage: What position between the start and end points
+         to return, given as a float value between 0 and 1.
+         """
+        return (start + percentage * (end - start))
+
+
 # Define the collision function lookups so we entities know which one to call
 # depending on the types of Entities it is comparing.
 # (We can't create this  function map until the class has been defined so we must
