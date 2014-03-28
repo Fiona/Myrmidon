@@ -940,6 +940,32 @@ class Game(object):
         return (start + percentage * (end - start))
 
 
+
+    @classmethod
+    def timer_ticks(self, ticks_to_wait):
+        """Returns a generator that iterates as many times as the value
+        given, is designed to be used in Entity code as a timer that counts
+        ticks.
+        The generator returns how many times it's returned to that point.
+        
+        Example usage:
+
+        for frame in Game.timer_ticks(10):
+            yield
+
+        Within an Entity's execute method, this would cause the Entity to
+        wait 10 ticks.
+
+        Keyword arguments:
+        -- ticks_to_wait: The number of times the generator should iterate.
+        """        
+        ticks_waited = 0
+        while ticks_waited < ticks_to_wait:
+            ticks_waited += 1
+            yield ticks_waited        
+            
+
+
 # Define the collision function lookups so we entities know which one to call
 # depending on the types of Entities it is comparing.
 # (We can't create this  function map until the class has been defined so we must
