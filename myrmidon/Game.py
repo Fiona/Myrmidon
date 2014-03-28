@@ -940,7 +940,6 @@ class Game(object):
         return (start + percentage * (end - start))
 
 
-
     @classmethod
     def timer_ticks(self, ticks_to_wait):
         """Returns a generator that iterates as many times as the value
