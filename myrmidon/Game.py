@@ -85,6 +85,12 @@ class Game(object):
     entity_priority_dirty = True
     did_collision_check = False
 
+    # Global flag disables all entity execution, does not apply to any screen overlay entities.
+    disable_entity_execution = False
+
+    # Set to an overlay Entity if one has been created
+    screen_overlay = None
+
 
     @classmethod
     def define_engine(cls, window = None, gfx = None, input = None, audio = None):
@@ -204,10 +210,20 @@ class Game(object):
                 
             # For each entity in priority order we iterate their
             # generators executing their code
-            for entity in cls.entity_list:
-                cls.current_entity_executing = entity
-                entity._iterate_generator()
-
+            if not cls.disable_entity_execution:
+                for entity in cls.entity_list:
+                    cls.current_entity_executing = entity
+                    entity._iterate_generator()
+                    if cls.disable_entity_execution:
+                        if not cls.screen_overlay is None:
+                            cls.current_entity_executing = cls.screen_overlay
+                            cls.screen_overlay._iterate_generator()
+                        break
+            else:
+                if not cls.screen_overlay is None:
+                    cls.current_entity_executing = cls.screen_overlay
+                    cls.screen_overlay._iterate_generator()
+                
             # If we have marked any entities for removal we do that here
             for x in cls.entities_to_remove:
                 if x in cls.entity_list:
@@ -881,6 +897,119 @@ class Game(object):
 
 
     ##############################################
+    # FULL SCREEN OVERLAY METHODS
+    ##############################################
+
+
+    @classmethod
+    def screen_overlay_on(
+        cls,
+        fade_speed = None,
+        colour_from = (0.0, 0.0, 0.0, 0.0),
+        colour_to = (0.0, 0.0, 0.0, 1.0),
+        blocking = False,
+        pos = (0, 0),
+        size = None,
+        z = -1024
+        ):
+        """Turns on and fades in a coloured overlay on the screen, usually this
+        is used to create full screen fading effects.
+        If called when the overlay is fading it will silently return instead
+        of starting another fade effect.
+
+        Keyword arguments:
+        -- fade_speed: Specify how fast the screen should fade in by passing in
+         a timer generator returned by timer_* methods.
+         Example:
+         Passing in Game.timer_ticks(60) as the fade_speed argument will cause the
+         fade to last for 60 game ticks.
+         If None, the overlay will take 30 ticks to fade in. (default None)
+        -- colour_from: RGBA colour values between 0 and 1 that specify what colour to
+         fade the screen from. A linear interpolation will be performed from these
+         values to the ones specified by the colour_to parameter.
+         By default this is a fully transparent black. (default (0.0, 0.0, 0.0, 1.0))
+        -- colour_to: RGBA colour values between 0 and 1 that specify what colour to
+         fade the screen to. By default this is a fully opaque black.
+         (default (0.0, 0.0, 0.0, 1.0))
+        -- blocking: If a fade is set to be blocking then no Entities will execute
+         their code while it the fade is happening. As soon as the fade is complete
+         Entities will continue to execute again. (Even if the screen is then hidden).
+         Entities will continue to draw if they are being blocked.
+         (default False)
+        -- pos: Where on the screen the overlay will be drawn from in pixels. By default
+         this is the top left corner of the screen. (default (0, 0))
+        -- size: How big the overlay should be in pixels, if None is passed in then it will
+         default to the entire screen resolution. (default None)
+        -- z: The Z layer that the overlay should be drawn at. (default -1024)
+        """
+        if not cls.screen_overlay is None:
+            return
+
+        # Set default args
+        if fade_speed is None:
+            fade_speed = cls.timer_ticks(30)
+        if pos is None:
+            pos = (0, 0)
+        if size is None:
+            size = cls.screen_resolution
+            
+        from myrmidon.ScreenOverlay import ScreenOverlay
+        cls.screen_overlay = ScreenOverlay(colour_from, colour_to, blocking, pos, size, z)
+        cls.screen_overlay.fade_from_to(fade_speed)
+        if blocking:
+            cls.disable_entity_execution = True
+        
+
+    @classmethod
+    def screen_overlay_off(cls, fade_speed = None):
+        """Any overlay that is currently on and completed will be faded out
+        using this method. It will do nothing if there is not currently
+        an overlay on the screen and finished it's fading.
+        It uses the colour_to and colour_from parameters previously
+        given to screen_overlay_on to fade between, interolating in the opposite
+        direction.
+        Once it has finished fading it will be automatically destroyed.
+
+        Keyword arguments:
+        -- fade_speed: Specify how fast the screen should fade in by passing in
+         a timer generator returned by timer_* methods.
+         Example:
+         Passing in Game.timer_ticks(60) as the fade_speed argument will cause the
+         fade to last for 60 game ticks.
+         If None, the overlay will take 30 ticks to fade in. (default None)
+        """
+        if cls.screen_overlay is None:
+            return
+        if fade_speed is None:
+            fade_speed = cls.timer_ticks(30)        
+        cls.screen_overlay.fade_to_from(fade_speed)
+        if cls.screen_overlay.blocking:
+            cls.disable_entity_execution = True
+
+
+    @classmethod
+    def is_screen_overlay_fading(cls):
+        """Returns a boolean denoting if any screen overlay currently
+        displayed is doing it's fade animation. It will return False
+        if there is no overlay and as soon as the fading animation is
+        finished, even if the overlay is still being displayed.
+        """
+        if cls.screen_overlay is None:
+            return False
+        return cls.screen_overlay.fading
+
+
+    @classmethod
+    def is_screen_overlay_on(cls):
+        """Returns a boolean denoting if a screen overlay is
+        currently on the screen. It will be True even if the overlay
+        is in the middle of a fade animation.
+        """
+        return not cls.screen_overlay is None
+    
+    
+
+    ##############################################
     # MISCELANEOUS HELPERS
     ##############################################
 
@@ -950,11 +1079,12 @@ class Game(object):
         """Returns a generator that iterates as many times as the value
         given, is designed to be used in Entity code as a timer that counts
         ticks.
-        The generator returns how many times it's returned to that point.
+        The generator returns how many times it's returned to that point and
+        the total number of ticks, as a two-part tuple.
         
         Example usage:
 
-        for frame in Game.timer_ticks(10):
+        for frame, total in Game.timer_ticks(10):
             yield
 
         Within an Entity's execute method, this would cause the Entity to
@@ -966,7 +1096,7 @@ class Game(object):
         ticks_waited = 0
         while ticks_waited < ticks_to_wait:
             ticks_waited += 1
-            yield ticks_waited        
+            yield ticks_waited,ticks_to_wait
             
 
 
