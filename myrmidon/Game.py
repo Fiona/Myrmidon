@@ -35,9 +35,11 @@ import sys, os, math, copy, inspect
 from myrmidon.BaseEntity import BaseEntity
 from myrmidon.consts import *
 
-
 class Game(object):
 
+    # Enabling debugging will allow invaking of PUDB with the F11 key
+    debug = False
+    
     # Engine related
     started = False
 
@@ -197,6 +199,9 @@ class Game(object):
             if cls.engine['input']:
                 cls.engine['input'].process_input()
 
+            if cls.debug and cls.keyboard_key_released(K_F11):
+                from pudb import set_trace; set_trace()
+                
             # For each entity in priority order we iterate their
             # generators executing their code
             for entity in cls.entity_list:
