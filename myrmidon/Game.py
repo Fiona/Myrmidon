@@ -875,6 +875,53 @@ class Game(object):
         return True if point_a[0] == point_b[0] and point_a[1] == point_b[1] else False
 
 
+    ##############################################
+    # MISCELANEOUS HELPERS
+    ##############################################
+
+
+    @classmethod
+    def rgba_to_colour(cls, r = 255, g = 255, b = 255, a = 255):
+        """Converts an RGBA colour value to a float based colour value that
+        myrmidon understands.
+        Returns a tuple containing RGBA colour values between 0 and 1.
+
+        Keyword arguments:
+        -- r: Red component value (default 255)
+        -- g: Green component value (default 255)
+        -- b: Blue component value (default 255)
+        -- a: Alpha component value (default 255)
+        """
+        return (r / 255.0, g / 255.0, b / 255.0, a / 255.0)
+
+
+    @classmethod
+    def rgb_to_colour(cls, r = 255, g = 255, b = 255):
+        """Converts an RGB colour value to a float based colour value that
+        myrmidon understands.
+        Returns a tuple containing RGB colour values between 0 and 1.
+
+        Keyword arguments:
+        -- r: Red component value (default 255)
+        -- g: Green component value (default 255)
+        -- b: Blue component value (default 255)
+        """
+        vals = cls.rgba_to_colour(r, g, b)
+        return (vals[0], vals[1], vals[2])
+
+
+    @classmethod
+    def rgba_to_color(cls, r = 255, g = 255, b = 255, a = 255):
+        """American spelling alias to rgba_to_colour"""
+        return cls.rgb_to_colour(r, g, b, a)
+
+
+    @classmethod
+    def rgb_to_color(cls, r = 255, g = 255, b = 255):
+        """American spelling alias to rgb_to_colour"""
+        return cls.rgb_to_colour(r, g, b)
+
+
 # Define the collision function lookups so we entities know which one to call
 # depending on the types of Entities it is comparing.
 # (We can't create this  function map until the class has been defined so we must
