@@ -42,14 +42,17 @@ class ScreenOverlay(Entity):
     current_colour_from = (0.0, 0.0, 0.0, 0.0)
     current_colour_to = (0.0, 0.0, 0.0, 0.0)
     kill_after_fade = False
-
-    def execute(self, colour_from, colour_to, blocking, pos, size, z):
+    callback = None
+    
+    def execute(self, colour_from, colour_to, blocking, pos, size, z, callback):
         self.colour_from = colour_from
         self.colour_to = colour_to
         self.blocking = blocking
         self.x, self.y = pos
         self.width, self.height = size
         self.z = z
+        self.callback = callback
+        
         while True:
             if self.fading:
                 for frame,total in self.fade_speed:
@@ -62,6 +65,9 @@ class ScreenOverlay(Entity):
                     yield
                 if self.blocking:                        
                     Game.disable_entity_execution = False
+                if not self.callback is None:
+                    self.callback()
+                    self.callback = None
                 if self.kill_after_fade:
                     Game.screen_overlay = None
                     self.destroy()

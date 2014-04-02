@@ -910,7 +910,8 @@ class Game(object):
         blocking = False,
         pos = (0, 0),
         size = None,
-        z = -1024
+        z = -1024,
+        callback = None
         ):
         """Turns on and fades in a coloured overlay on the screen, usually this
         is used to create full screen fading effects.
@@ -941,6 +942,9 @@ class Game(object):
         -- size: How big the overlay should be in pixels, if None is passed in then it will
          default to the entire screen resolution. (default None)
         -- z: The Z layer that the overlay should be drawn at. (default -1024)
+        -- callback: Sometimes you want some arbitrary code to run after a fade has completed,
+         you can pass a callable into this parameter to achieve that. As soon as the current fade
+         operation has completed it will be called.
         """
         if not cls.screen_overlay is None:
             return
@@ -954,14 +958,15 @@ class Game(object):
             size = cls.screen_resolution
             
         from myrmidon.ScreenOverlay import ScreenOverlay
-        cls.screen_overlay = ScreenOverlay(colour_from, colour_to, blocking, pos, size, z)
+        cls.screen_overlay = ScreenOverlay(colour_from, colour_to, blocking, pos, size, z, callback)
         cls.screen_overlay.fade_from_to(fade_speed)
         if blocking:
             cls.disable_entity_execution = True
-        
+
+
 
     @classmethod
-    def screen_overlay_off(cls, fade_speed = None, blocking = False):
+    def screen_overlay_off(cls, fade_speed = None, blocking = False, callback = None):
         """Any overlay that is currently on and completed will be faded out
         using this method. It will do nothing if there is not currently
         an overlay on the screen and finished it's fading.
@@ -982,13 +987,17 @@ class Game(object):
          Entities will continue to execute again. (Even if the screen is then hidden).
          Entities will continue to draw if they are being blocked.
          (default False)
+        -- callback: Sometimes you want some arbitrary code to run after a fade has completed,
+         you can pass a callable into this parameter to achieve that. As soon as the current fade
+         operation has completed it will be called. (default None)
         """
         if cls.screen_overlay is None:
             return
         if fade_speed is None:
             fade_speed = cls.timer_ticks(30)        
-        cls.screen_overlay.fade_to_from(fade_speed)
         cls.screen_overlay.blocking = blocking        
+        cls.screen_overlay.callback = callback
+        cls.screen_overlay.fade_to_from(fade_speed)
         if cls.screen_overlay.blocking:
             cls.disable_entity_execution = True
 
