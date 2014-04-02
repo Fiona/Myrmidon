@@ -961,7 +961,7 @@ class Game(object):
         
 
     @classmethod
-    def screen_overlay_off(cls, fade_speed = None):
+    def screen_overlay_off(cls, fade_speed = None, blocking = False):
         """Any overlay that is currently on and completed will be faded out
         using this method. It will do nothing if there is not currently
         an overlay on the screen and finished it's fading.
@@ -977,12 +977,18 @@ class Game(object):
          Passing in Game.timer_ticks(60) as the fade_speed argument will cause the
          fade to last for 60 game ticks.
          If None, the overlay will take 30 ticks to fade in. (default None)
+        -- blocking: If a fade is set to be blocking then no Entities will execute
+         their code while it the fade is happening. As soon as the fade is complete
+         Entities will continue to execute again. (Even if the screen is then hidden).
+         Entities will continue to draw if they are being blocked.
+         (default False)
         """
         if cls.screen_overlay is None:
             return
         if fade_speed is None:
             fade_speed = cls.timer_ticks(30)        
         cls.screen_overlay.fade_to_from(fade_speed)
+        cls.screen_overlay.blocking = blocking        
         if cls.screen_overlay.blocking:
             cls.disable_entity_execution = True
 
