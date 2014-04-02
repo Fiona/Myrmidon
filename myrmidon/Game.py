@@ -1075,6 +1075,22 @@ class Game(object):
 
 
     @classmethod
+    def slerp(cls, start, end, percentage):
+        """Does the same as lerp except maps the value to a smooth curve
+        as opposed to a straight line.
+
+        Keyword arguments:
+        -- start: The start value of the interpolation as a float.
+        -- end: The end value of the interpolation as a float.
+        -- percentage: What position between the start and end points
+         to return, given as a float value between 0 and 1.
+        """
+        # Perform the curve adjustment
+        percentage = ((percentage) * (percentage) * (3 - 2 * (percentage)))
+        return (start + percentage * (end - start))
+
+
+    @classmethod
     def timer_ticks(self, ticks_to_wait):
         """Returns a generator that iterates as many times as the value
         given, is designed to be used in Entity code as a timer that counts
