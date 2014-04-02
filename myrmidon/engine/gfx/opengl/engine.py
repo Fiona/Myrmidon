@@ -389,8 +389,8 @@ class Myrmidon_Backend(object):
                 rw = raw_surface.get_width()
                 rh = raw_surface.get_height()
 
-                for a in range(0, rh/self.height):
-                    for b in range(rw/self.width):
+                for a in range(0, rh//self.height):
+                    for b in range(rw//self.width):
                         surf = pygame.Surface((self.width, self.height), SRCALPHA, 32)
                         surf.blit(raw_surface, (0,0), pygame.Rect((b*self.width, a*self.height), (self.width, self.height)))
                         self.surfaces.append(self.gl_image_from_surface(surf, self.width, self.height, for_repeat))
