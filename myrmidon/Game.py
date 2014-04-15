@@ -315,7 +315,6 @@ class Game(object):
           etc) will be stopped too. (default False)
         """
         entity_list = cls.get_entities(target, tree = tree)
-        print(entity_list)
         for entity in entity_list:
             entity._executing = False
             
