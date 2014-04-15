@@ -315,6 +315,7 @@ class Game(object):
           etc) will be stopped too. (default False)
         """
         entity_list = cls.get_entities(target, tree = tree)
+        print(entity_list)
         for entity in entity_list:
             entity._executing = False
             
@@ -457,7 +458,7 @@ class Game(object):
             next_child = entity.child
             while next_child != None:
                 if not next_child in entity_list:
-                    entity_list.append(next_child)
+                    cls.add_entity_to_list(next_child, entity_list, tree = tree)
                 next_child = next_child.next_sibling
            
         
