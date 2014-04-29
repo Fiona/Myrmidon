@@ -87,11 +87,12 @@ class Shot(Entity):
         while True:
             self.move_forward(4.5, angle = angle_to)
             if self.x < 200 or self.x > Game.screen_resolution[0]-200 or self.y < 0 or self.y > Game.screen_resolution[1]:
-                self.signal(S_KILL)
+                self.destroy()
             yield
                         
 
 # Start game
 Game.screen_resolution = (1024, 768)
 Game.full_screen = False
+Game.modules_enabled = ('Entity_Helper',)
 Window()

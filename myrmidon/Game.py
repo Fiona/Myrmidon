@@ -33,8 +33,11 @@ and interact with the application.
 
 import sys, os, math, copy, inspect
 from myrmidon.BaseEntity import BaseEntity
+from myrmidon.ModuleLoader import ModuleLoader
 from myrmidon.consts import *
 
+
+@ModuleLoader
 class Game(object):
 
     # Enabling debugging will allow invaking of PUDB with the F11 key
@@ -69,6 +72,11 @@ class Game(object):
         "audio" : None
         }
 
+    # Module related members
+    _module_list = []
+    modules_enabled = ()
+    modules_loaded_for = []
+    
     current_fps = 30
     fps = 0
 
@@ -189,6 +197,10 @@ class Game(object):
         # No execution of anything if in test mode.
         if cls.test_mode:
             return
+
+        # Deal with creating modules
+        for x in cls._module_list:
+            x._module_setup(cls)
         
         while cls.started:
             # Reorder Entities by execution priority if necessary

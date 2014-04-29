@@ -35,8 +35,10 @@ import sys, os, math
 from myrmidon.consts import *
 from myrmidon.Game import Game
 from myrmidon.BaseEntity import BaseEntity
+from myrmidon.ModuleLoader import ModuleLoader
 
 
+@ModuleLoader
 class Entity(BaseEntity):
 
     # Basic entity properties
@@ -56,13 +58,16 @@ class Entity(BaseEntity):
     clip = None
     scale_point = [0.0, 0.0]
     normal_draw = True
-
+    
     # Entity relationships
     parent = None
     child = None
     prev_sibling = None
     next_sibling = None
 
+    # Module list
+    _module_list = []
+    
     # Collision related
     
     # If set to False this Entity will never collide with
@@ -123,7 +128,10 @@ class Entity(BaseEntity):
         self._generator = self.execute(*args, **kargs)
         self._iterate_generator()
         Game.current_entity_executing = Game.remember_current_entity_executing.pop()
-        
+
+        for x in self._module_list:
+            x._module_setup(self)
+            
         if not Game.started:
             Game.started = True             
             Game.run_game()
@@ -168,14 +176,6 @@ class Entity(BaseEntity):
         constantly change the position of entity.
         Returns a tuple (x,y)"""
         return self.x, self.y
-
-
-    def move_forward(self, distance, angle = None):
-        self.x, self.y = Game.move_forward((self.x, self.y), distance, self.rotation if angle == None else angle)
-
-        
-    def get_distance(self, pos):
-        return Game.get_distance((self.x, self.y), pos)
 
 
     def destroy(self, tree = False):
