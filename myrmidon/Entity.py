@@ -103,7 +103,7 @@ class Entity(BaseEntity):
 
 
     # Internal private properties
-    _is_text = False
+    _is_text = FalseS
     _generator = None
     _executing = True
     _drawing = True
@@ -111,14 +111,11 @@ class Entity(BaseEntity):
     
     def __init__(self, *args, **kargs):
         if not Game.started:
+            Game.first_registered_entity = self
             Game.start_game()
+        else:
+            Game.entity_register(self)
 
-        Game.entity_register(self)
-
-        self.z = 0.0
-        self.x = 0.0
-        self.y = 0.0
-        self.priority = 0
         self._collision_rectangle_calculated_corners = {'ul' : (0.0, 0.0), 'ur' : (0.0, 0.0), 'll' : (0.0, 0.0), 'lr' : (0.0, 0.0)}
 
         Game.remember_current_entity_executing.append(Game.current_entity_executing)
@@ -132,7 +129,7 @@ class Entity(BaseEntity):
         for x in self._module_list:
             x._module_setup(self)
             
-        if not Game.started:
+        if not Game.started:           
             Game.started = True             
             Game.run_game()
             
