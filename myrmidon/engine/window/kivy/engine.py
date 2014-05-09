@@ -83,7 +83,6 @@ class Myrmidon_Backend(object):
         #Config.set('graphics', 'height', str(Game.screen_resolution[1]))
         #Config.set('graphics', 'resizable', 0)
         #Config.set('graphics', 'fullscreen', '1' if Game.full_screen else '0')
-        Game.screen_resolution = Window.width, Window.height
         self.kivy_app = KivyApp()
 
 

@@ -38,6 +38,7 @@ from myrmidon.consts import *
 from kivy.core.image import Image
 from kivy.uix.widget import Widget
 from kivy.graphics import Rectangle, Color, Scale, Rotate
+from kivy.core.window import Window
 
 
 class Entity_Widget(Widget):
@@ -58,6 +59,9 @@ class Myrmidon_Backend(object):
     entity_widgets = {}
 
     def __init__(self):
+        self.device_resolution = Window.width, Window.height
+        self.scale = Window.width / Game.screen_resolution[0]
+        print(self.scale)
         self.entity_widgets = {}
     
 
@@ -105,13 +109,13 @@ class Myrmidon_Backend(object):
     
     def alter_x(self, entity, x):
         y = entity.y if entity.image is None else Game.screen_resolution[1] - entity.image.height - entity.y
-        self.entity_widgets[entity].rect.pos = (x, y)
+        self.entity_widgets[entity].rect.pos = (x * self.scale, y * self.scale)
         self.entity_widgets[entity].rotation.origin = (x + (self.entity_widgets[entity].rect.size[0]/2), y + (self.entity_widgets[entity].rect.size[1]/2))
 
 
     def alter_y(self, entity, y):
         y = y if entity.image is None else Game.screen_resolution[1] - entity.image.height - y
-        self.entity_widgets[entity].rect.pos = (entity.x, y)
+        self.entity_widgets[entity].rect.pos = (entity.x * self.scale, y * self.scale)
         self.entity_widgets[entity].rotation.origin = (entity.x + (self.entity_widgets[entity].rect.size[0]/2), y + (self.entity_widgets[entity].rect.size[1]/2))
 
 
@@ -141,7 +145,7 @@ class Myrmidon_Backend(object):
     def alter_scale(self, entity, scale):
         if entity.image is None:
             return
-        self.entity_widgets[entity].rect.size = (entity.image.width * scale, entity.image.height * scale)
+        self.entity_widgets[entity].rect.size = (entity.image.width * (scale * self.scale), entity.image.height * (scale * self.scale))
 
 
     def alter_rotation(self, entity, rotation):
