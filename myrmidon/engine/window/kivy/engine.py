@@ -40,27 +40,50 @@ from kivy.app import App
 from kivy.clock import Clock
 from kivy.uix.widget import Widget
 from kivy.config import Config
+from kivy.core.window import Window
+from kivy.core.window import Window
 
 
 class KivyApp(App):
+    
     built = False
+    
     def build(self):
-        print("test")
         self.built = True
-        self.widget = Widget()
-        self.widget.size = Game.screen_resolution
+        self.widget = KivyApp.App_Widget()
         return self.widget
+        
+    class App_Widget(Widget):
+        def __init__(self, **kwargs):
+            super(KivyApp.App_Widget, self).__init__(**kwargs)
+            self.size = Game.screen_resolution
+        
+        def on_touch_down(self, touch):
+            if not Game.engine['input'].map_touch_to_mouse:
+                return
+            Game.engine['input'].mouse.pos = (touch.pos[0], Game.screen_resolution[1] - touch.pos[1])
+            Game.engine['input'].mouse.x = Game.engine['input'].mouse.pos[0]
+            Game.engine['input'].mouse.y = Game.engine['input'].mouse.pos[1]
 
+        def on_touch_move(self, touch):
+            if not Game.engine['input'].map_touch_to_mouse:
+                return
+            Game.engine['input'].mouse.pos = (touch.pos[0], Game.screen_resolution[1] - touch.pos[1])
+            Game.engine['input'].mouse.x = Game.engine['input'].mouse.pos[0]
+            Game.engine['input'].mouse.y = Game.engine['input'].mouse.pos[1]
+
+    
     
 class Myrmidon_Backend(object):
 
     kivy_app = None
     
     def __init__(self):
-        Config.set('graphics', 'width', str(Game.screen_resolution[0]))
-        Config.set('graphics', 'height', str(Game.screen_resolution[1]))
-        Config.set('graphics', 'resizable', 0)
-        Config.set('graphics', 'fullscreen', '1' if Game.full_screen else '0')
+        #Config.set('graphics', 'width', str(Game.screen_resolution[0]))
+        #Config.set('graphics', 'height', str(Game.screen_resolution[1]))
+        #Config.set('graphics', 'resizable', 0)
+        #Config.set('graphics', 'fullscreen', '1' if Game.full_screen else '0')
+        Game.screen_resolution = Window.width, Window.height
         self.kivy_app = KivyApp()
 
 

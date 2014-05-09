@@ -32,9 +32,10 @@ A Kivy driven backend for user input.
 
 """
 
-from myrmidon import Entity
+from myrmidon import Entity, Game
 from myrmidon.consts import *
 
+from kivy.core.window import Window
 
 class Myrmidon_Backend(object):
 
@@ -44,7 +45,9 @@ class Myrmidon_Backend(object):
     mouse = None
     
     disable_input = False
-        
+
+    map_touch_to_mouse = True
+
     def __init__(self):
         pass
                 
@@ -58,14 +61,14 @@ class Myrmidon_Backend(object):
         if self.disable_input:
             self.initialise_mouse_state()
             return
-                
+
         self.last_keys_pressed  = self.keys_pressed
         #self.keys_pressed  = pygame.key.get_pressed()
 
-        #self.mouse.pos = pygame.mouse.get_pos()
+        #self.mouse.pos = (Window.mouse_pos[0], Game.screen_resolution[1] - Window.mouse_pos[1])
         #self.mouse.rel = pygame.mouse.get_rel()
-        #self.mouse.x = self.mouse.pos[0]
-        #self.mouse.y = self.mouse.pos[1]
+        self.mouse.x = self.mouse.pos[0]
+        self.mouse.y = self.mouse.pos[1]
                 
         self.mouse.wheel_up = False
         self.mouse.wheel_down = False
