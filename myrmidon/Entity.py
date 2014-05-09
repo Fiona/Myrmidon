@@ -103,7 +103,7 @@ class Entity(BaseEntity):
 
 
     # Internal private properties
-    _is_text = FalseS
+    _is_text = False
     _generator = None
     _executing = True
     _drawing = True
