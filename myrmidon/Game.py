@@ -307,6 +307,7 @@ class Game(object):
         # If we have marked any entities for removal we do that here
         for x in cls.entities_to_remove:
             if x in cls.entity_list:
+                cls.engine['gfx'].remove_entity(x)
                 cls.entity_list.remove(x)
         cls.entities_to_remove = []
 
@@ -370,7 +371,6 @@ class Game(object):
             if (not entity in cls.entity_list) or (entity in cls.entities_to_remove):
                 continue
             entity.on_exit()
-            cls.engine['gfx'].remove_entity(entity)
             Game.entities_to_remove.append(entity)
 
 
