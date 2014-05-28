@@ -36,11 +36,22 @@ from myrmidon import Game, MyrmidonError, BaseFont
 
 import kivy
 kivy.require('1.8.0')
+from kivy import platform as kivy_platform
+if kivy_platform in ['ios', 'android']:
+    Game.is_phone = True
+
+# THIS IS HORRIBLE
+# KIVY IS HORRIBLE
+if not Game.is_phone:
+    from kivy.config import Config
+    Config.set('graphics', 'width', str(Game.screen_resolution[0]))
+    Config.set('graphics', 'height', str(Game.screen_resolution[1]))
+    Config.set('graphics', 'resizable', 0)
+    Config.set('graphics', 'fullscreen', '1' if Game.full_screen else '0')
+
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.uix.widget import Widget
-from kivy.config import Config
-from kivy.core.window import Window
 from kivy.core.window import Window
 
 
@@ -61,6 +72,7 @@ class KivyApp(App):
         def on_touch_down(self, touch):
             if not Game.engine['input'].map_touch_to_mouse:
                 return
+            Game.engine['input'].mouse.left = True            
             Game.engine['input'].mouse.pos = (touch.pos[0], Game.screen_resolution[1] - touch.pos[1])
             Game.engine['input'].mouse.x = Game.engine['input'].mouse.pos[0]
             Game.engine['input'].mouse.y = Game.engine['input'].mouse.pos[1]
@@ -72,6 +84,11 @@ class KivyApp(App):
             Game.engine['input'].mouse.x = Game.engine['input'].mouse.pos[0]
             Game.engine['input'].mouse.y = Game.engine['input'].mouse.pos[1]
 
+        def on_touch_up(self, touch):
+            if not Game.engine['input'].map_touch_to_mouse:
+                return
+            Game.engine['input'].mouse.left = False
+
     
     
 class Myrmidon_Backend(object):
@@ -79,10 +96,6 @@ class Myrmidon_Backend(object):
     kivy_app = None
     
     def __init__(self):
-        #Config.set('graphics', 'width', str(Game.screen_resolution[0]))
-        #Config.set('graphics', 'height', str(Game.screen_resolution[1]))
-        #Config.set('graphics', 'resizable', 0)
-        #Config.set('graphics', 'fullscreen', '1' if Game.full_screen else '0')
         self.kivy_app = KivyApp()
 
 
@@ -119,9 +132,4 @@ class Myrmidon_Backend(object):
         
         def __init__(self, font = None, size = 20):
             self.size = size
-            if isinstance(font, str):
-                self.filename = font
-            elif font is None:
-                pass
-            else:
-                self.loaded_font = font
+            self.filename = font

@@ -48,6 +48,8 @@ class Myrmidon_Backend(object):
 
     map_touch_to_mouse = True
 
+    last_left = False
+    
     def __init__(self):
         pass
                 
@@ -73,6 +75,9 @@ class Myrmidon_Backend(object):
         self.mouse.wheel_up = False
         self.mouse.wheel_down = False
 
+        self.mouse.left_up = True if self.last_left and not Game.engine['input'].mouse.left else False
+        self.last_left = Game.engine['input'].mouse.left
+        
         """
         self.event_store = []
         

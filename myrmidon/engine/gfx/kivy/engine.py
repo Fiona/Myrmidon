@@ -35,7 +35,8 @@ Provides a Kviy-based graphics adaptor.
 from myrmidon import Game, Entity, BaseImage, MyrmidonError
 from myrmidon.consts import *
 
-from kivy.core.image import Image
+from kivy.core.image import Image as Kivy_Image
+from kivy.core.text import Label
 from kivy.uix.widget import Widget
 from kivy.graphics import Rectangle, Color, Scale, Rotate
 from kivy.core.window import Window
@@ -58,10 +59,13 @@ class Myrmidon_Backend(object):
     clear_colour = (0.0, 0.0, 0.0, 1.0)
     entity_widgets = {}
 
-    def __init__(self):
+    def __init__(self):        
         self.device_resolution = Window.width, Window.height
-        self.scale = Window.width / Game.screen_resolution[0]
-        print(self.scale)
+        self.scale = float(Window.width) / Game.screen_resolution[0]
+        print("SCREEN SIZE DEBUG")
+        print("WINDOW RES:", self.device_resolution)
+        print("SET SCREEN RES:", Game.screen_resolution)
+        print("SCALE:", self.scale)
         self.entity_widgets = {}
     
 
@@ -78,7 +82,14 @@ class Myrmidon_Backend(object):
 
 
     def draw_entities(self, entity_list):
-        pass
+        self.device_resolution = Window.width, Window.height        
+        for entity in entity_list:
+            if entity.image is None:
+                continue
+            x, y = entity.get_screen_draw_position()
+            y = Game.screen_resolution[1] - (entity.image.height * entity.scale) - y
+            self.entity_widgets[entity].rect.pos = (x * self.scale, y * self.scale)
+            self.entity_widgets[entity].rotation.origin = (x + (self.entity_widgets[entity].rect.size[0]/2), y + (self.entity_widgets[entity].rect.size[1]/2))
     
 
     def draw_single_entity(self, entity):
@@ -108,16 +119,12 @@ class Myrmidon_Backend(object):
 
     
     def alter_x(self, entity, x):
-        y = entity.y if entity.image is None else Game.screen_resolution[1] - entity.image.height - entity.y
-        self.entity_widgets[entity].rect.pos = (x * self.scale, y * self.scale)
-        self.entity_widgets[entity].rotation.origin = (x + (self.entity_widgets[entity].rect.size[0]/2), y + (self.entity_widgets[entity].rect.size[1]/2))
-
+        pass
+    
 
     def alter_y(self, entity, y):
-        y = y if entity.image is None else Game.screen_resolution[1] - entity.image.height - y
-        self.entity_widgets[entity].rect.pos = (entity.x * self.scale, y * self.scale)
-        self.entity_widgets[entity].rotation.origin = (entity.x + (self.entity_widgets[entity].rect.size[0]/2), y + (self.entity_widgets[entity].rect.size[1]/2))
-
+        pass
+    
 
     def alter_z(self, entity, z):
         #Game.engine['window'].kivy_app.widget.remove_widget(self.entity_widgets[entity])
@@ -183,35 +190,98 @@ class Myrmidon_Backend(object):
             if isinstance(image, str):
                 self.filename = image
                 try:
-                    loaded_image = Image(image)
+                    loaded_image = Kivy_Image(image)
                 except:
                     raise MyrmidonError("Couldn't load image from " + image)
             else:
-                loaded_image = image
+                loaded_image = Kivy_Image(image)
             self.image = loaded_image
-            self.width = self.image.height
+            self.width = self.image.width
             self.height = self.image.height
             
 
-    class Text(object):
-        font = None
-        x = 0
-        y = 0
-        z = -500.0
-        alignment = 0
-        text = ""
-        antialias = True
-        rotation = 0.0
+    class Text(Entity):
+        _text = ""
+        _font = None
+        _antialias = True
+
         text_image_size = (0,0)
 
+        _shadow = None
+
         def __init__(self, font, x, y, alignment, text, antialias = True):
+            Entity.__init__(self)
+            if font is None:
+                print(font.filename, font.size)
+                self.label = Label(font_name = font.filename, font_size = font.size)
+            else:
+                self.label = Label(font_size = "30")
             self.font = font
             self.x = x
             self.y = y
+            self.z = -500.0
             self.alignment = alignment
             self.text = text
             self.antialias = antialias
+            self._is_text = True
+            self.rotation = 0.0
+            self.normal_draw = False
+
+
+        def execute(self):
+            while True:
+                yield
+
+
+        def generate_text_image(self):
+            self.label.text = self.text
+            self.label.refresh()
+            self.text_image_size = self.label.content_size
+            self.image = Myrmidon_Backend.Image(self.label.texture)
+
 
         def get_screen_draw_position(self):
-            return self.x, self.y
+            """ Overriding entity method to account for text alignment. """
+            draw_x, draw_y = self.x, self.y
+                        
+            if self.alignment == ALIGN_TOP:
+                draw_x -= (self.text_image_size[0]/2)
+            elif self.alignment == ALIGN_TOP_RIGHT:
+                draw_x -= self.text_image_size[0]
+            elif self.alignment == ALIGN_CENTER_LEFT:
+                draw_y -= (self.text_image_size[1]/2)
+            elif self.alignment == ALIGN_CENTER:
+                draw_x -= (self.text_image_size[0]/2)
+                draw_y -= (self.text_image_size[1]/2)
+            elif self.alignment == ALIGN_CENTER_RIGHT:
+                draw_x -= self.text_image_size[0]
+                draw_y -= (self.text_image_size[1]/2)
+            elif self.alignment == ALIGN_BOTTOM_LEFT:
+                draw_y -= self.text_image_size[1]
+            elif self.alignment == ALIGN_BOTTOM:
+                draw_x -= (self.text_image_size[0]/2)
+                draw_y -= self.text_image_size[1]
+            elif self.alignment == ALIGN_BOTTOM_RIGHT:
+                draw_x -= self.text_image_size[0]
+                draw_y -= self.text_image_size[1]
+
+            return draw_x, draw_y
+
+
+        # text
+        @property
+        def text(self):
+             return self._text
+
+        @text.setter
+        def text(self, value):
+            if not self._text == value:
+                self._text = str(value)
+                self.generate_text_image()
+                                
+                                
+        @text.deleter
+        def text(self):
+            self._text = ""
+            self.generate_text_image()
 

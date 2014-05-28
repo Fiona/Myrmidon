@@ -100,6 +100,10 @@ class Game(object):
     # Set to an overlay Entity if one has been created
     screen_overlay = None
 
+    # Designed to be set by the window engine, if it's set to True, we imply that the device
+    # we're running on is a mobile device of some kind. (Will also be True for tablets.)
+    is_phone = False
+    
 
     @classmethod
     def define_engine(cls, window = None, gfx = None, input = None, audio = None):
@@ -205,64 +209,7 @@ class Game(object):
 
         cls.engine['window'].set_window_loop(cls.app_loop_callback, cls.current_fps)
         cls.engine['window'].open_window()
-        
-        """
-        while cls.started:
-            # Reorder Entities by execution priority if necessary
-            if cls.entity_priority_dirty == True:
-                cls.entity_list.sort(
-                    reverse=True,
-                    key=lambda object:
-                    object.priority if hasattr(object, "priority") else 0
-                    )
-                cls.entity_priority_dirty = False
 
-            # If we have an input engine enabled we pass off to it
-            # to manage and process input events.
-            if cls.engine['input']:
-                cls.engine['input'].process_input()
-
-            if cls.debug and cls.keyboard_key_released(K_F11):
-                from pudb import set_trace; set_trace()
-                
-            # For each entity in priority order we iterate their
-            # generators executing their code
-            if not cls.disable_entity_execution:
-                for entity in cls.entity_list:
-                    cls.current_entity_executing = entity
-                    entity._iterate_generator()
-                    if cls.disable_entity_execution:
-                        if not cls.screen_overlay is None:
-                            cls.current_entity_executing = cls.screen_overlay
-                            cls.screen_overlay._iterate_generator()
-                        break
-            else:
-                if not cls.screen_overlay is None:
-                    cls.current_entity_executing = cls.screen_overlay
-                    cls.screen_overlay._iterate_generator()
-                
-            # If we have marked any entities for removal we do that here
-            for x in cls.entities_to_remove:
-                if x in cls.entity_list:
-                    cls.entity_list.remove(x)
-            cls.entities_to_remove = []
-
-            # If we did a collision along the way then we should reset any
-            # optimisations we may or may not have done on each entity.
-            if cls.did_collision_check:
-                cls.did_collision_check = False
-                for entity in cls.entity_list:
-                    entity.reset_collision_model()
-
-            # Pass off to the gfx engine to display entities
-            cls.engine['gfx'].update_screen_pre()
-            cls.engine['gfx'].draw_entities(cls.entity_list)              
-            cls.engine['gfx'].update_screen_post()
-
-            # Wait for next frame, hitting a particular fps
-            cls.fps = int(cls.clock.get_fps())
-            cls.clock.tick(cls.current_fps)
-        """
 
     @classmethod
     def app_loop_callback(cls, dt):

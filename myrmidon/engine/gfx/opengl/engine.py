@@ -69,7 +69,7 @@ class Myrmidon_Backend(object):
         glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
         glEnable(GL_LINE_SMOOTH)
 
-        pygame.display.flip()
+        #pygame.display.flip()
         
 
     def change_resolution(self, resolution):

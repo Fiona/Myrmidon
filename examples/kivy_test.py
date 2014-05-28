@@ -12,13 +12,12 @@ class Test_entity(Entity):
         self.window = window
         self.image = self.window.test_image
         self.x, self.y = 0, 0
-        self.colour = (1.0, 0.0, 0.0)
-        self.alpha = 0.5
+        #self.colour = (1.0, 0.0, 0.0)
+        #self.alpha = 0.5
         while True:            
-            self.x += 1
-            self.y += 1
-            self.rotation -= 1
-            self.scale += 0.005
+            self.x, self.y = Game.mouse().pos
+            #self.rotation -= 1
+            #self.scale += 0.005
             yield
 
 

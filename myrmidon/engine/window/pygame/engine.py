@@ -44,11 +44,8 @@ class Myrmidon_Backend(object):
     def __init__(self):
         if Game.engine_def['gfx'] in ["opengl", "modern_opengl"]:
             self.opengl = True
-                
         os.environ['SDL_VIDEO_CENTERED'] = '1'
-
-        pygame.mixer.pre_init(44100,-16,2, 1024 * 3)
-                
+        pygame.mixer.pre_init(44100,-16,2, 1024 * 3)                
         pygame.init()
 
         if self.opengl:
@@ -71,6 +68,16 @@ class Myrmidon_Backend(object):
             elif self.opengl:
                 # Try to fix "Couldn't find matching GLX visual" error with unsupported samplebuffers
                 self.disable_multisamples()
+
+
+    def set_window_loop(self, callback, target_fps = 30):
+        self.callback = callback
+        
+
+    def open_window(self):
+        # Do the traditional loop here
+        while Game.started:
+            self.callback(0.0)
                                 
 
     def resolution_fallback(self):
