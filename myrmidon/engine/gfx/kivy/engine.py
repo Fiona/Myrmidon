@@ -61,11 +61,11 @@ class Myrmidon_Backend(object):
 
     def __init__(self):        
         self.device_resolution = Window.width, Window.height
-        self.scale = float(Window.width) / Game.screen_resolution[0]
+        Game.device_scale = float(Window.height) / Game.screen_resolution[1]
         print("SCREEN SIZE DEBUG")
-        print("WINDOW RES:", self.device_resolution)
-        print("SET SCREEN RES:", Game.screen_resolution)
-        print("SCALE:", self.scale)
+        print("DEVICE RES:", self.device_resolution)
+        print("TARGET SCREEN RES:", Game.screen_resolution)
+        print("SCALE:", Game.device_scale)
         self.entity_widgets = {}
     
 
@@ -88,7 +88,7 @@ class Myrmidon_Backend(object):
                 continue
             x, y = entity.get_screen_draw_position()
             y = Game.screen_resolution[1] - (entity.image.height * entity.scale) - y
-            self.entity_widgets[entity].rect.pos = (x * self.scale, y * self.scale)
+            self.entity_widgets[entity].rect.pos = (x * Game.device_scale, y * Game.device_scale)
             self.entity_widgets[entity].rotation.origin = (x + (self.entity_widgets[entity].rect.size[0]/2), y + (self.entity_widgets[entity].rect.size[1]/2))
     
 
@@ -137,7 +137,8 @@ class Myrmidon_Backend(object):
             self.entity_widgets[entity].rect.texture = None
         else:
             self.entity_widgets[entity].rect.texture = image.image.texture
-            self.entity_widgets[entity].rect.size = (image.width * entity.scale, image.height * entity.scale)
+            self.entity_widgets[entity].rect.size = ((image.width) * (entity.scale * Game.device_scale), (image.height) * (entity.scale * Game.device_scale))
+            #self.entity_widgets[entity].rect.size = (image.width * entity.scale, image.height * entity.scale)
             self.entity_widgets[entity].rect.pos = (entity.x, Game.screen_resolution[1] - entity.image.height - entity.y)
         
 
@@ -152,7 +153,7 @@ class Myrmidon_Backend(object):
     def alter_scale(self, entity, scale):
         if entity.image is None:
             return
-        self.entity_widgets[entity].rect.size = (entity.image.width * (scale * self.scale), entity.image.height * (scale * self.scale))
+        self.entity_widgets[entity].rect.size = ((entity.image.width) * (scale * Game.device_scale), (entity.image.height) * (scale * Game.device_scale))
 
 
     def alter_rotation(self, entity, rotation):
@@ -190,7 +191,7 @@ class Myrmidon_Backend(object):
             if isinstance(image, str):
                 self.filename = image
                 try:
-                    loaded_image = Kivy_Image(image)
+                    loaded_image = Kivy_Image(image, mipmap = True)
                 except:
                     raise MyrmidonError("Couldn't load image from " + image)
             else:
@@ -213,9 +214,9 @@ class Myrmidon_Backend(object):
             Entity.__init__(self)
             if font is None:
                 print(font.filename, font.size)
-                self.label = Label(font_name = font.filename, font_size = font.size)
+                self.label = Label(font_name = font.filename, font_size = font.size, mipmap = True)
             else:
-                self.label = Label(font_size = "30")
+                self.label = Label(font_size = "30", mipmap = True)
             self.font = font
             self.x = x
             self.y = y

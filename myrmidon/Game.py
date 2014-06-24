@@ -1131,7 +1131,7 @@ class Game(object):
         given, is designed to be used in Entity code as a timer that counts
         ticks.
         The generator returns how many times it's returned to that point and
-        the total number of ticks, as a two-part tuple.
+        the total number of ticks, as floats in a two-part tuple.
         
         Example usage:
 
@@ -1147,7 +1147,7 @@ class Game(object):
         ticks_waited = 0
         while ticks_waited < ticks_to_wait:
             ticks_waited += 1
-            yield ticks_waited,ticks_to_wait
+            yield float(ticks_waited),float(ticks_to_wait)
             
 
 

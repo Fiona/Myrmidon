@@ -44,8 +44,6 @@ if kivy_platform in ['ios', 'android']:
 # KIVY IS HORRIBLE
 if not Game.is_phone:
     from kivy.config import Config
-    Config.set('graphics', 'width', str(Game.screen_resolution[0]))
-    Config.set('graphics', 'height', str(Game.screen_resolution[1]))
     Config.set('graphics', 'resizable', 0)
     Config.set('graphics', 'fullscreen', '1' if Game.full_screen else '0')
 
@@ -73,14 +71,14 @@ class KivyApp(App):
             if not Game.engine['input'].map_touch_to_mouse:
                 return
             Game.engine['input'].mouse.left = True            
-            Game.engine['input'].mouse.pos = (touch.pos[0], Game.screen_resolution[1] - touch.pos[1])
+            Game.engine['input'].mouse.pos = (touch.pos[0] / Game.device_scale, (Game.engine['gfx'].device_resolution[1]  - touch.pos[1]) / Game.device_scale)
             Game.engine['input'].mouse.x = Game.engine['input'].mouse.pos[0]
             Game.engine['input'].mouse.y = Game.engine['input'].mouse.pos[1]
 
         def on_touch_move(self, touch):
             if not Game.engine['input'].map_touch_to_mouse:
                 return
-            Game.engine['input'].mouse.pos = (touch.pos[0], Game.screen_resolution[1] - touch.pos[1])
+            Game.engine['input'].mouse.pos = (touch.pos[0] / Game.device_scale, (Game.engine['gfx'].device_resolution[1]  - touch.pos[1]) / Game.device_scale)
             Game.engine['input'].mouse.x = Game.engine['input'].mouse.pos[0]
             Game.engine['input'].mouse.y = Game.engine['input'].mouse.pos[1]
 
