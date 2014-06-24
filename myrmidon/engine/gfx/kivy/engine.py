@@ -62,11 +62,13 @@ class Myrmidon_Backend(object):
     def __init__(self):        
         self.device_resolution = Window.width, Window.height
         Game.device_scale = float(Window.height) / Game.screen_resolution[1]
-        print("SCREEN SIZE DEBUG")
-        print("DEVICE RES:", self.device_resolution)
-        print("TARGET SCREEN RES:", Game.screen_resolution)
-        print("SCALE:", Game.device_scale)
         self.entity_widgets = {}
+
+        # If any x position adjustment is necessary cos aspect ratio is lower than ideal
+        Game.global_x_pos_adjust = 0.0
+        if self.device_resolution[0] / self.device_resolution[1] < Game.screen_resolution[0] / Game.screen_resolution[1]:
+            Game.global_x_pos_adjust = ((Game.screen_resolution[0] * Game.device_scale) - self.device_resolution[0]) / 2
+            
     
 
     def change_resolution(self, resolution):
@@ -88,8 +90,8 @@ class Myrmidon_Backend(object):
                 continue
             x, y = entity.get_screen_draw_position()
             y = Game.screen_resolution[1] - (entity.image.height * entity.scale) - y
-            self.entity_widgets[entity].rect.pos = (x * Game.device_scale, y * Game.device_scale)
-            self.entity_widgets[entity].rotation.origin = (x + (self.entity_widgets[entity].rect.size[0]/2), y + (self.entity_widgets[entity].rect.size[1]/2))
+            self.entity_widgets[entity].rect.pos = ((x * Game.device_scale) - Game.global_x_pos_adjust, y * Game.device_scale)
+            self.entity_widgets[entity].rotation.origin = ((x + (self.entity_widgets[entity].rect.size[0]/2)) - Game.global_x_pos_adjust, y + (self.entity_widgets[entity].rect.size[1]/2))
     
 
     def draw_single_entity(self, entity):
