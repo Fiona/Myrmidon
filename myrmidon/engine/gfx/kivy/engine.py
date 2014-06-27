@@ -36,7 +36,7 @@ from myrmidon import Game, Entity, BaseImage, MyrmidonError
 from myrmidon.consts import *
 
 from kivy.core.image import Image as Kivy_Image
-from kivy.core.text import Label
+from kivy.uix.label import Label
 from kivy.uix.widget import Widget
 from kivy.graphics import Rectangle, Color, Scale, Rotate
 from kivy.core.window import Window
@@ -129,9 +129,8 @@ class Myrmidon_Backend(object):
     
 
     def alter_z(self, entity, z):
-        #Game.engine['window'].kivy_app.widget.remove_widget(self.entity_widgets[entity])
-        #Game.engine['window'].kivy_app.widget.add_widget(self.entity_widgets[entity], entity.z)
-        pass
+        Game.engine['window'].kivy_app.widget.remove_widget(self.entity_widgets[entity])
+        Game.engine['window'].kivy_app.widget.add_widget(self.entity_widgets[entity], abs(entity.z))
 
 	
     def alter_image(self, entity, image):
@@ -140,7 +139,6 @@ class Myrmidon_Backend(object):
         else:
             self.entity_widgets[entity].rect.texture = image.image.texture
             self.entity_widgets[entity].rect.size = ((image.width) * (entity.scale * Game.device_scale), (image.height) * (entity.scale * Game.device_scale))
-            #self.entity_widgets[entity].rect.size = (image.width * entity.scale, image.height * entity.scale)
             self.entity_widgets[entity].rect.pos = (entity.x, Game.screen_resolution[1] - entity.image.height - entity.y)
         
 
@@ -204,9 +202,11 @@ class Myrmidon_Backend(object):
             
 
     class Text(Entity):
+        alignment = ALIGN_CENTER
+        label = None
         _text = ""
         _font = None
-        _antialias = True
+        _antialias = True        
 
         text_image_size = (0,0)
 
@@ -214,8 +214,7 @@ class Myrmidon_Backend(object):
 
         def __init__(self, font, x, y, alignment, text, antialias = True):
             Entity.__init__(self)
-            if font is None:
-                print(font.filename, font.size)
+            if font is not None:
                 self.label = Label(font_name = font.filename, font_size = font.size, mipmap = True)
             else:
                 self.label = Label(font_size = "30", mipmap = True)
@@ -231,16 +230,11 @@ class Myrmidon_Backend(object):
             self.normal_draw = False
 
 
-        def execute(self):
-            while True:
-                yield
-
-
         def generate_text_image(self):
             self.label.text = self.text
-            self.label.refresh()
-            self.text_image_size = self.label.content_size
-            self.image = Myrmidon_Backend.Image(self.label.texture)
+            self.label.texture_update()
+            self.text_image_size = self.label.texture_size            
+            self.image = Myrmidon_Backend.Image(self.label._label.texture)
 
 
         def get_screen_draw_position(self):
@@ -269,7 +263,7 @@ class Myrmidon_Backend(object):
                 draw_y -= self.text_image_size[1]
 
             return draw_x, draw_y
-
+            
 
         # text
         @property
