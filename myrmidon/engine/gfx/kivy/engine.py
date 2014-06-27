@@ -31,6 +31,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 Provides a Kviy-based graphics adaptor.
 """
 
+import copy
 
 from myrmidon import Game, Entity, BaseImage, MyrmidonError
 from myrmidon.consts import *
@@ -58,6 +59,8 @@ class Entity_Widget(Widget):
 class Myrmidon_Backend(object):
     clear_colour = (0.0, 0.0, 0.0, 1.0)
     entity_widgets = {}
+    z_index_dirty = True
+    entity_list_draw_order = []
 
     def __init__(self):        
         self.device_resolution = Window.width, Window.height
@@ -84,15 +87,30 @@ class Myrmidon_Backend(object):
 
 
     def draw_entities(self, entity_list):
-        self.device_resolution = Window.width, Window.height        
-        for entity in entity_list:
-            if entity.image is None:
-                continue
-            x, y = entity.get_screen_draw_position()
-            y = Game.screen_resolution[1] - (entity.image.height * entity.scale) - y
-            self.entity_widgets[entity].rect.pos = ((x * Game.device_scale) - Game.global_x_pos_adjust, y * Game.device_scale)
-            self.entity_widgets[entity].rotation.origin = ((x + (self.entity_widgets[entity].rect.size[0]/2)) - Game.global_x_pos_adjust, y + (self.entity_widgets[entity].rect.size[1]/2))
-    
+        # Make sure we know exactly what screen size we have
+        self.device_resolution = Window.width, Window.height
+
+        # Need to make sure all widgets are in the correct order when drawing
+        if self.z_index_dirty:
+            self.entity_list_draw_order = copy.copy(entity_list)
+            self.entity_list_draw_order.sort(
+                key=lambda object:
+                object.z if hasattr(object, "z") else 100
+                )
+            # Kivy is strict about sequential indexing so we enumerate the list
+            for index, entity in enumerate(self.entity_list_draw_order):
+                Game.engine['window'].kivy_app.widget.remove_widget(self.entity_widgets[entity])
+                Game.engine['window'].kivy_app.widget.add_widget(self.entity_widgets[entity], index)
+
+        # Make sure the entity widgets are all in the right position
+        for entity in self.entity_list_draw_order:
+            if not entity.image is None:
+                x, y = entity.get_screen_draw_position()
+                y = Game.screen_resolution[1] - (entity.image.height * entity.scale) - y
+                self.entity_widgets[entity].rect.pos = ((x * Game.device_scale) - Game.global_x_pos_adjust, y * Game.device_scale)
+                self.entity_widgets[entity].rotation.origin = ((x + (self.entity_widgets[entity].rect.size[0]/2)) - Game.global_x_pos_adjust, y + (self.entity_widgets[entity].rect.size[1]/2))
+            entity.draw()
+            
 
     def draw_single_entity(self, entity):
         pass
@@ -109,6 +127,7 @@ class Myrmidon_Backend(object):
     def register_entity(self, entity):
         if entity in self.entity_widgets:
             return
+        self.z_index_dirty = True
         self.entity_widgets[entity] = Entity_Widget(kivy_app = Game.engine['window'].kivy_app)
         Game.engine['window'].kivy_app.widget.add_widget(self.entity_widgets[entity])
     
@@ -116,6 +135,7 @@ class Myrmidon_Backend(object):
     def remove_entity(self, entity):
         if not entity in self.entity_widgets:
             return
+        self.z_index_dirty = True
         Game.engine['window'].kivy_app.widget.remove_widget(self.entity_widgets[entity])
         del(self.entity_widgets[entity])
 
@@ -129,8 +149,7 @@ class Myrmidon_Backend(object):
     
 
     def alter_z(self, entity, z):
-        Game.engine['window'].kivy_app.widget.remove_widget(self.entity_widgets[entity])
-        Game.engine['window'].kivy_app.widget.add_widget(self.entity_widgets[entity], abs(entity.z))
+        self.z_index_dirty = True
 
 	
     def alter_image(self, entity, image):

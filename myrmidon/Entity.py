@@ -44,7 +44,7 @@ class Entity(BaseEntity):
     # Basic entity properties
     _x = 0.0
     _y = 0.0
-    _z = 0.0
+    _z = 0
     _priority = 0
     _image = None
     _image_seq = 0
@@ -423,7 +423,7 @@ class Entity(BaseEntity):
 
     @z.deleter
     def z(self):
-        self._z = 0.0
+        self._z = 0
 
     # priority
     @property

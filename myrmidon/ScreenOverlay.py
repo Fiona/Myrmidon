@@ -52,7 +52,7 @@ class ScreenOverlay(Entity):
         self.width, self.height = size
         self.z = z
         self.callback = callback
-        
+            
         while True:
             if self.fading:
                 for frame,total in self.fade_speed:
@@ -96,5 +96,13 @@ class ScreenOverlay(Entity):
             (self.width, self.height),
             self.current_colour
             )
+
+        # Kivy is special so we make sure that our attached widget is the right colour and size
+        # to get the overlay to appear
+        if Game.engine_def['gfx'] == "kivy":
+            Game.engine['gfx'].entity_widgets[self].rect.pos = (self.x, self.y)
+            Game.engine['gfx'].entity_widgets[self].rect.size = (self.width, self.height)
+            Game.engine['gfx'].entity_widgets[self].colour.rgba = self.current_colour
+        
         
     
