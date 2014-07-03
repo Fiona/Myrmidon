@@ -39,39 +39,25 @@ from myrmidon.consts import *
 from kivy.core.image import Image as Kivy_Image
 from kivy.uix.label import Label
 from kivy.uix.widget import Widget
-from kivy.graphics import Rectangle, Color, Scale, Rotate
+from kivy.graphics import Rectangle, Color, Scale, Rotate, PushMatrix, PopMatrix, Translate, Quad
 from kivy.core.window import Window
 
 
-class Entity_Widget(Widget):
-    rect = None
-    rotation = None
-    colour = None
-    def __init__(self, **kwargs):
-        self.kivy_app = kwargs['kivy_app']
-        super(Entity_Widget, self).__init__(**kwargs)
-        with self.canvas:
-            self.colour = Color(1.0, 1.0, 1.0, 1.0, mode = 'rgba')
-            self.rotation = Rotate(angle = 0)
-            self.rect = Rectangle(pos = (0, 0), size = (0, 0))
-
-
-class Myrmidon_Backend(object):
+class Myrmidon_Backend(Entity):
     clear_colour = (0.0, 0.0, 0.0, 1.0)
-    entity_widgets = {}
     z_index_dirty = True
     entity_list_draw_order = []
 
-    def __init__(self):        
+    def __init__(self):
         self.device_resolution = Window.width, Window.height
         Game.device_scale = float(Window.height) / Game.screen_resolution[1]
-        self.entity_widgets = {}
-
+        self.entity_draws = {}
+        self.widget = None
+        
         # If any x position adjustment is necessary cos aspect ratio is lower than ideal
         Game.global_x_pos_adjust = 0.0
         if self.device_resolution[0] / self.device_resolution[1] < Game.screen_resolution[0] / Game.screen_resolution[1]:
             Game.global_x_pos_adjust = ((Game.screen_resolution[0] * Game.device_scale) - self.device_resolution[0]) / 2
-            
     
 
     def change_resolution(self, resolution):
@@ -87,28 +73,64 @@ class Myrmidon_Backend(object):
 
 
     def draw_entities(self, entity_list):
+        # Create our canvas to draw to if we hadn't got one yet
+        if self.widget is None:
+            self.widget = Widget()
+            Game.engine['window'].kivy_app.widget.add_widget(self.widget)
+        
         # Make sure we know exactly what screen size we have
         self.device_resolution = Window.width, Window.height
-
-        # Need to make sure all widgets are in the correct order when drawing
+        
+        # If our z order is potentially dirty then we need to completely redraw
+        # everything, se we clear the canvas and draw list, then get the proper order.
         if self.z_index_dirty:
+            self.widget.canvas.clear()
+            self.entity_draws = {}
             self.entity_list_draw_order = copy.copy(entity_list)
             self.entity_list_draw_order.sort(
                 key=lambda object:
-                object.z if hasattr(object, "z") else 100
+                object.z if hasattr(object, "z") else 0,
+                reverse = True
                 )
-            # Kivy is strict about sequential indexing so we enumerate the list
-            for index, entity in enumerate(self.entity_list_draw_order):
-                Game.engine['window'].kivy_app.widget.remove_widget(self.entity_widgets[entity])
-                Game.engine['window'].kivy_app.widget.add_widget(self.entity_widgets[entity], index)
-
-        # Make sure the entity widgets are all in the right position
+            self.z_index_dirty = False
+            
+        # Now render for each entity
         for entity in self.entity_list_draw_order:
-            if not entity.image is None:
-                x, y = entity.get_screen_draw_position()
-                y = Game.screen_resolution[1] - (entity.image.height * entity.scale) - y
-                self.entity_widgets[entity].rect.pos = ((x * Game.device_scale) - Game.global_x_pos_adjust, y * Game.device_scale)
-                self.entity_widgets[entity].rotation.origin = ((x + (self.entity_widgets[entity].rect.size[0]/2)) - Game.global_x_pos_adjust, y + (self.entity_widgets[entity].rect.size[1]/2))
+            if entity.image is None:
+                continue
+
+            # Work out the real width/height and screen position of the entity
+            size = ((entity.image.width) * (entity.scale * Game.device_scale), (entity.image.height) * (entity.scale * Game.device_scale))
+            x, y = entity.get_screen_draw_position()
+            y = Game.screen_resolution[1] - (entity.image.height * entity.scale) - y
+            pos = ((x * Game.device_scale) - Game.global_x_pos_adjust, y * Game.device_scale)
+
+            # If this entity hasn't yet been attached to the canvas then do so
+            if not entity in self.entity_draws:
+                self.entity_draws[entity] = dict()
+                with self.widget.canvas:
+                    self.entity_draws[entity]['color'] = Color()
+                    self.entity_draws[entity]['color'].rgb = entity.colour
+                    self.entity_draws[entity]['color'].a = entity.alpha                    
+                    PushMatrix()
+                    self.entity_draws[entity]['translate'] = Translate()
+                    self.entity_draws[entity]['rotate'] = Rotate()
+                    self.entity_draws[entity]['rotate'].set(entity.rotation, 0, 0, 1)
+                    self.entity_draws[entity]['rect'] = Quad(
+                        texture = entity.image.image.texture,
+                        points = (0.0, 0.0, size[0], 0.0, size[0], size[1], 0.0, size[1])
+                        )
+                    self.entity_draws[entity]['translate'].xy = pos
+                    PopMatrix()
+            # Otherwise just update values
+            else:
+                self.entity_draws[entity]['rotate'].angle = entity.rotation
+                self.entity_draws[entity]['translate'].xy = pos
+                self.entity_draws[entity]['color'].rgb = entity.colour
+                self.entity_draws[entity]['color'].a = entity.alpha
+                self.entity_draws[entity]['rect'].texture = entity.image.image.texture
+                self.entity_draws[entity]['rect'].points = (0.0, 0.0, size[0], 0.0, size[0], size[1], 0.0, size[1])
+                
             entity.draw()
             
 
@@ -125,19 +147,11 @@ class Myrmidon_Backend(object):
 
 
     def register_entity(self, entity):
-        if entity in self.entity_widgets:
-            return
         self.z_index_dirty = True
-        self.entity_widgets[entity] = Entity_Widget(kivy_app = Game.engine['window'].kivy_app)
-        Game.engine['window'].kivy_app.widget.add_widget(self.entity_widgets[entity])
     
 
     def remove_entity(self, entity):
-        if not entity in self.entity_widgets:
-            return
         self.z_index_dirty = True
-        Game.engine['window'].kivy_app.widget.remove_widget(self.entity_widgets[entity])
-        del(self.entity_widgets[entity])
 
     
     def alter_x(self, entity, x):
@@ -153,43 +167,40 @@ class Myrmidon_Backend(object):
 
 	
     def alter_image(self, entity, image):
-        if image is None:
-            self.entity_widgets[entity].rect.texture = None
-        else:
-            self.entity_widgets[entity].rect.texture = image.image.texture
-            self.entity_widgets[entity].rect.size = ((image.width) * (entity.scale * Game.device_scale), (image.height) * (entity.scale * Game.device_scale))
-            self.entity_widgets[entity].rect.pos = (entity.x, Game.screen_resolution[1] - entity.image.height - entity.y)
-        
-
-    def alter_colour(self, entity, colour):
-        self.entity_widgets[entity].colour.rgb = colour
+        pass
 
 
     def alter_alpha(self, entity, alpha):
-        self.entity_widgets[entity].colour.a = alpha
+        pass
+        
+
+    def alter_colour(self, entity, colour):
+        pass
 
 
     def alter_scale(self, entity, scale):
-        if entity.image is None:
-            return
-        self.entity_widgets[entity].rect.size = ((entity.image.width) * (scale * Game.device_scale), (entity.image.height) * (scale * Game.device_scale))
-
+        pass
+    
 
     def alter_rotation(self, entity, rotation):
-        self.entity_widgets[entity].rotation.angle = rotation
+        pass
         
 
     def new_image(self, width, height, colour = None):
         return Myrmidon_Backend.Image()
 
+
     def draw_line(self, start, finish, colour = (1.0,1.0,1.0,1.0), width = 5.0, noloadidentity = False):
         pass
+
 
     def draw_circle(self, position, radius, colour = (1.0,1.0,1.0,1.0), width = 5.0, filled = False, accuracy = 24, noloadidentity = False):
         pass
 
+
     def draw_rectangle(self, top_left, bottom_right, colour = (1.0,1.0,1.0,1.0), filled = True, width = 2.0, noloadidentity = False):
         pass
+
 
     def rgb_to_colour(self, colour):
         col = []
