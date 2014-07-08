@@ -34,6 +34,9 @@ gradually changes from one colour to another.
 from myrmidon.Entity import Entity
 from myrmidon.Game import Game
 
+from kivy.graphics import Color, PushMatrix, PopMatrix, Translate, Quad
+
+
 class ScreenOverlay(Entity):
 
     fading = False
@@ -100,9 +103,24 @@ class ScreenOverlay(Entity):
         # Kivy is special so we make sure that our attached widget is the right colour and size
         # to get the overlay to appear
         if Game.engine_def['gfx'] == "kivy":
-            Game.engine['gfx'].entity_widgets[self].rect.pos = (self.x, self.y)
-            Game.engine['gfx'].entity_widgets[self].rect.size = (self.width, self.height)
-            Game.engine['gfx'].entity_widgets[self].colour.rgba = self.current_colour
+            if not self in Game.engine['gfx'].entity_draws:
+                Game.engine['gfx'].entity_draws[self] = dict()
+                with Game.engine['gfx'].widget.canvas:
+                    Game.engine['gfx'].entity_draws[self]['color'] = Color()
+                    Game.engine['gfx'].entity_draws[self]['color'].rgba = self.current_colour
+                    PushMatrix()
+                    Game.engine['gfx'].entity_draws[self]['translate'] = Translate()
+                    
+                    Game.engine['gfx'].entity_draws[self]['rect'] = Quad(
+                        points = (0.0, 0.0, self.width, 0.0, self.width, self.height, 0.0, self.height)
+                        )
+                    Game.engine['gfx'].entity_draws[self]['translate'].xy = (self.x, self.y)
+                    PopMatrix()
+            # Otherwise just update values
+            else:
+                Game.engine['gfx'].entity_draws[self]['translate'].xy = (self.x, self.y)
+                Game.engine['gfx'].entity_draws[self]['color'].rgba = self.current_colour
+                Game.engine['gfx'].entity_draws[self]['rect'].points = (0.0, 0.0, self.width, 0.0, self.width, self.height, 0.0, self.height)
         
         
     

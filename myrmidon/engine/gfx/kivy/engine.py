@@ -96,40 +96,38 @@ class Myrmidon_Backend(Entity):
             
         # Now render for each entity
         for entity in self.entity_list_draw_order:
-            if entity.image is None:
-                continue
+            if not entity.image is None:
+                # Work out the real width/height and screen position of the entity
+                size = ((entity.image.width) * (entity.scale * Game.device_scale), (entity.image.height) * (entity.scale * Game.device_scale))
+                x, y = entity.get_screen_draw_position()
+                y = Game.screen_resolution[1] - (entity.image.height * entity.scale) - y
+                pos = ((x * Game.device_scale) - Game.global_x_pos_adjust, y * Game.device_scale)
 
-            # Work out the real width/height and screen position of the entity
-            size = ((entity.image.width) * (entity.scale * Game.device_scale), (entity.image.height) * (entity.scale * Game.device_scale))
-            x, y = entity.get_screen_draw_position()
-            y = Game.screen_resolution[1] - (entity.image.height * entity.scale) - y
-            pos = ((x * Game.device_scale) - Game.global_x_pos_adjust, y * Game.device_scale)
-
-            # If this entity hasn't yet been attached to the canvas then do so
-            if not entity in self.entity_draws:
-                self.entity_draws[entity] = dict()
-                with self.widget.canvas:
-                    self.entity_draws[entity]['color'] = Color()
-                    self.entity_draws[entity]['color'].rgb = entity.colour
-                    self.entity_draws[entity]['color'].a = entity.alpha                    
-                    PushMatrix()
-                    self.entity_draws[entity]['translate'] = Translate()
-                    self.entity_draws[entity]['rotate'] = Rotate()
-                    self.entity_draws[entity]['rotate'].set(entity.rotation, 0, 0, 1)
-                    self.entity_draws[entity]['rect'] = Quad(
-                        texture = entity.image.image.texture,
-                        points = (0.0, 0.0, size[0], 0.0, size[0], size[1], 0.0, size[1])
-                        )
+                # If this entity hasn't yet been attached to the canvas then do so
+                if not entity in self.entity_draws:
+                    self.entity_draws[entity] = dict()
+                    with self.widget.canvas:
+                        self.entity_draws[entity]['color'] = Color()
+                        self.entity_draws[entity]['color'].rgb = entity.colour
+                        self.entity_draws[entity]['color'].a = entity.alpha                    
+                        PushMatrix()
+                        self.entity_draws[entity]['translate'] = Translate()
+                        self.entity_draws[entity]['rotate'] = Rotate()
+                        self.entity_draws[entity]['rotate'].set(entity.rotation, 0, 0, 1)
+                        self.entity_draws[entity]['rect'] = Quad(
+                            texture = entity.image.image.texture,
+                            points = (0.0, 0.0, size[0], 0.0, size[0], size[1], 0.0, size[1])
+                            )
+                        self.entity_draws[entity]['translate'].xy = pos
+                        PopMatrix()
+                    # Otherwise just update values
+                else:
+                    self.entity_draws[entity]['rotate'].angle = entity.rotation
                     self.entity_draws[entity]['translate'].xy = pos
-                    PopMatrix()
-            # Otherwise just update values
-            else:
-                self.entity_draws[entity]['rotate'].angle = entity.rotation
-                self.entity_draws[entity]['translate'].xy = pos
-                self.entity_draws[entity]['color'].rgb = entity.colour
-                self.entity_draws[entity]['color'].a = entity.alpha
-                self.entity_draws[entity]['rect'].texture = entity.image.image.texture
-                self.entity_draws[entity]['rect'].points = (0.0, 0.0, size[0], 0.0, size[0], size[1], 0.0, size[1])
+                    self.entity_draws[entity]['color'].rgb = entity.colour
+                    self.entity_draws[entity]['color'].a = entity.alpha
+                    self.entity_draws[entity]['rect'].texture = entity.image.image.texture
+                    self.entity_draws[entity]['rect'].points = (0.0, 0.0, size[0], 0.0, size[0], size[1], 0.0, size[1])
                 
             entity.draw()
             
