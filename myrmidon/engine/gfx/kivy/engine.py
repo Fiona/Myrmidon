@@ -76,6 +76,8 @@ class Myrmidon_Backend(Entity):
         # Create our canvas to draw to if we hadn't got one yet
         if self.widget is None:
             self.widget = Widget()
+            self.widget.width = Window.width
+            self.widget.height = Window.height
             Game.engine['window'].kivy_app.widget.add_widget(self.widget)
         
         # Make sure we know exactly what screen size we have
@@ -86,7 +88,9 @@ class Myrmidon_Backend(Entity):
         if self.z_index_dirty:
             self.widget.canvas.clear()
             self.entity_draws = {}
-            self.entity_list_draw_order = copy.copy(entity_list)
+            
+            #self.entity_list_draw_order = copy.copy(entity_list)
+            self.entity_list_draw_order = entity_list
             self.entity_list_draw_order.sort(
                 key=lambda object:
                 object.z if hasattr(object, "z") else 0,
@@ -259,7 +263,10 @@ class Myrmidon_Backend(Entity):
 
 
         def generate_text_image(self):
-            self.label.text = self.text
+            # When set to a blank text, for some reason kivy wanted the texture update to happen
+            # twice otherwise it wouldn't set the text to be empty. WHO KNOWS. KIVY BE CRAZY.
+            self.label.texture_update()
+            self.label.text = self._text
             self.label.texture_update()
             self.text_image_size = self.label.texture_size            
             self.image = Myrmidon_Backend.Image(self.label._label.texture)
