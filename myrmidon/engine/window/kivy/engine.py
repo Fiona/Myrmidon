@@ -54,7 +54,7 @@ from kivy.core.window import Window
 
 
 class KivyApp(App):
-    
+    use_kivy_settings = False
     built = False
     
     def build(self):
@@ -62,6 +62,9 @@ class KivyApp(App):
         self.widget = KivyApp.App_Widget()
         return self.widget
         
+    def open_settings(self, *largs):
+        pass
+    
     class App_Widget(Widget):
         def __init__(self, **kwargs):
             super(KivyApp.App_Widget, self).__init__(**kwargs)
