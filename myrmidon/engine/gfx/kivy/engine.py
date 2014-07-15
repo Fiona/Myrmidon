@@ -100,7 +100,7 @@ class Myrmidon_Backend(Entity):
             
         # Now render for each entity
         for entity in self.entity_list_draw_order:
-            if not entity.image is None:
+            if not entity.image is None and hasattr(entity.image, "image"):
                 # Work out the real width/height and screen position of the entity
                 size = ((entity.image.width) * (entity.scale * Game.device_scale), (entity.image.height) * (entity.scale * Game.device_scale))
                 x, y = entity.get_screen_draw_position()
@@ -265,10 +265,11 @@ class Myrmidon_Backend(Entity):
         def generate_text_image(self):
             # When set to a blank text, for some reason kivy wanted the texture update to happen
             # twice otherwise it wouldn't set the text to be empty. WHO KNOWS. KIVY BE CRAZY.
+            self.label.text = " "
             self.label.texture_update()
             self.label.text = self._text
             self.label.texture_update()
-            self.text_image_size = self.label.texture_size            
+            self.text_image_size = self.label.texture_size
             self.image = Myrmidon_Backend.Image(self.label._label.texture)
 
 
@@ -307,9 +308,9 @@ class Myrmidon_Backend(Entity):
 
         @text.setter
         def text(self, value):
-            if not self._text == value:
-                self._text = str(value)
-                self.generate_text_image()
+            #if not self._text == value:
+            self._text = value#str(value)
+            self.generate_text_image()
                                 
                                 
         @text.deleter
