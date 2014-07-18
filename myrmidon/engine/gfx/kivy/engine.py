@@ -47,6 +47,13 @@ class Myrmidon_Backend(Entity):
     clear_colour = (0.0, 0.0, 0.0, 1.0)
     z_index_dirty = True
     entity_list_draw_order = []
+            
+    def __init__(self):
+        # Try hiding soft keys on certain ondroid phones
+        self.hide_soft_keys()
+        self.get_device_size_metrics()
+        self.entity_draws = {}
+        self.widget = None
 
     def hide_soft_keys(self):
         """Ensure on screen soft keys are hidden on Google Nexus devices."""
@@ -69,22 +76,14 @@ class Myrmidon_Backend(Entity):
                         View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
 
             activity.runOnUiThread(Runnable())
-            
-    def __init__(self):
-        # Try hiding soft keys on certain ondroid phones
-        self.hide_soft_keys()
         
+    def get_device_size_metrics(self):
         self.device_resolution = Window.width, Window.height
         Game.device_scale = float(Window.height) / Game.screen_resolution[1]
-        self.entity_draws = {}
-        self.widget = None
-        
-        
         # If any x position adjustment is necessary cos aspect ratio is lower than ideal
         Game.global_x_pos_adjust = 0.0
-        if self.device_resolution[0] / self.device_resolution[1] < Game.screen_resolution[0] / Game.screen_resolution[1]:
-            Game.global_x_pos_adjust = ((Game.screen_resolution[0] * Game.device_scale) - self.device_resolution[0]) / 2
-    
+        if float(self.device_resolution[0]) / self.device_resolution[1] < float(Game.screen_resolution[0]) / Game.screen_resolution[1]:
+            Game.global_x_pos_adjust = float((Game.screen_resolution[0] * Game.device_scale) - self.device_resolution[0]) / 2
 
     def change_resolution(self, resolution):
         pass
@@ -99,15 +98,14 @@ class Myrmidon_Backend(Entity):
 
 
     def draw_entities(self, entity_list):
+        self.get_device_size_metrics()
+        
         # Create our canvas to draw to if we hadn't got one yet
         if self.widget is None:
             self.widget = Widget()
-            self.widget.width = Window.width
-            self.widget.height = Window.height
             Game.engine['window'].kivy_app.widget.add_widget(self.widget)
-        
-        # Make sure we know exactly what screen size we have
-        self.device_resolution = Window.width, Window.height
+        self.widget.width = Window.width
+        self.widget.height = Window.height
         
         # If our z order is potentially dirty then we need to completely redraw
         # everything, se we clear the canvas and draw list, then get the proper order.
@@ -132,7 +130,6 @@ class Myrmidon_Backend(Entity):
                 x, y = entity.get_screen_draw_position()
                 y = Game.screen_resolution[1] - (entity.image.height * entity.scale) - y
                 pos = ((x * Game.device_scale) - Game.global_x_pos_adjust, y * Game.device_scale)
-
                 # If this entity hasn't yet been attached to the canvas then do so
                 if not entity in self.entity_draws:
                     self.entity_draws[entity] = dict()

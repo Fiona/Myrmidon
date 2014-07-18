@@ -84,6 +84,7 @@ class Game(object):
     screen_resolution = 1024,768
     lowest_resolution = 800,600
     full_screen = False
+    device_scale = 1.0
 
     # Entity related
     first_registered_entity = None
@@ -975,7 +976,7 @@ class Game(object):
         if pos is None:
             pos = (0, 0)
         if size is None:
-            size = cls.screen_resolution
+            size = cls.screen_resolution[0] * cls.device_scale, cls.screen_resolution[1] * cls.device_scale
             
         from myrmidon.ScreenOverlay import ScreenOverlay
         cls.screen_overlay = ScreenOverlay(colour_from, colour_to, blocking, pos, size, z, callback)
