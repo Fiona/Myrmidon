@@ -33,6 +33,7 @@ A Kivy driven backend for handling and playing audio.
 """
 
 from myrmidon import BaseAudio
+from kivy.core.audio import SoundLoader
 
 
 class Myrmidon_Backend(object):
@@ -42,7 +43,17 @@ class Myrmidon_Backend(object):
             if audio is None:
                 return
             if isinstance(audio, str):
-                pass
+                self.sound = SoundLoader.load(audio)
             else:
                 self.sound = audio
-                
+
+        def play(self):
+            self.sound.loop = False
+            self.sound.play()
+
+        def play_and_loop(self):
+            self.sound.loop = True
+            self.sound.play()
+
+        def stop(self):
+            self.sound.stop()
