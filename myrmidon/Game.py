@@ -153,7 +153,7 @@ class Game(object):
             
         # Test mode uses dummy engines
         if cls.test_mode:
-            from backend_dummy import MyrmidonWindowDummy, MyrmidonGfxDummy, MyrmidonInputDummy, MyrmidonAudioDummy
+            from .backend_dummy import MyrmidonWindowDummy, MyrmidonGfxDummy, MyrmidonInputDummy, MyrmidonAudioDummy
             cls.engine['window'] = MyrmidonWindowDummy()
             cls.engine['gfx'] = MyrmidonGfxDummy()
             cls.engine['input'] = MyrmidonInputDummy()
