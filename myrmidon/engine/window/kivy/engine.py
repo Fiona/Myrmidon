@@ -64,7 +64,10 @@ class KivyApp(App):
         
     def open_settings(self, *largs):
         pass
-    
+
+    def on_pause(self):
+        return True
+
     class App_Widget(Widget):
         def __init__(self, **kwargs):
             super(KivyApp.App_Widget, self).__init__(**kwargs)
