@@ -50,32 +50,9 @@ class Myrmidon_Backend(Entity):
             
     def __init__(self):
         # Try hiding soft keys on certain ondroid phones
-        self.hide_soft_keys()
         self.get_device_size_metrics()
         self.entity_draws = {}
         self.widget = None
-
-    def hide_soft_keys(self):
-        """Ensure on screen soft keys are hidden on Google Nexus devices."""
-        from kivy import platform as kivy_platform
-
-        if kivy_platform == 'android':
-            from jnius import autoclass, PythonJavaClass, java_method
-
-            PythonActivity = autoclass('org.renpy.android.PythonActivity')
-            View = autoclass('android.view.View')
-
-            activity = PythonActivity.mActivity
-
-            class Runnable(PythonJavaClass):
-                __javainterfaces__ = ['java/lang/Runnable']
-
-                @java_method('()V')
-                def run(self):
-                    activity.getWindow().getDecorView().setSystemUiVisibility(
-                        View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
-
-            activity.runOnUiThread(Runnable())
         
     def get_device_size_metrics(self):
         self.device_resolution = Window.width, Window.height

@@ -214,6 +214,8 @@ class Game(object):
 
     @classmethod
     def app_loop_callback(cls, dt):
+        cls.engine['window'].app_loop_tick()
+        
         # If we need to register something
         if cls.first_registered_entity:
             cls.entity_register(cls.first_registered_entity)

@@ -68,6 +68,10 @@ class KivyApp(App):
     def on_pause(self):
         return True
 
+    def on_resume(self):
+        Game.engine['window'].hide_android_soft_keys()
+        return True
+
     class App_Widget(Widget):
         def __init__(self, **kwargs):
             super(KivyApp.App_Widget, self).__init__(**kwargs)
@@ -104,10 +108,31 @@ class KivyApp(App):
 class Myrmidon_Backend(object):
 
     kivy_app = None
-    
+
+    def hide_android_soft_keys(self):
+        """Ensure on screen soft keys are hidden on Google Nexus devices."""
+        from jnius import autoclass, PythonJavaClass, java_method
+
+        PythonActivity = autoclass('org.renpy.android.PythonActivity')
+        View = autoclass('android.view.View')
+        LayoutParams = autoclass('android.view.WindowManager$LayoutParams')
+
+        activity = PythonActivity.mActivity
+
+        class Runnable(PythonJavaClass):
+            __javainterfaces__ = ['java/lang/Runnable']
+            
+            @java_method('()V')
+            def run(self):
+                activity.getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
+                activity.getWindow().addFlags(LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    
+        activity.runOnUiThread(Runnable())
+
     def __init__(self):
         self.kivy_app = KivyApp()
-
+        
 
     def set_window_loop(self, callback, target_fps = 30):
         Clock.schedule_interval(callback, 1.0 / target_fps)
@@ -116,6 +141,16 @@ class Myrmidon_Backend(object):
     def open_window(self):
         self.kivy_app.run()
 
+
+    def app_loop_tick(self):
+        """Runs once every frame before any entity code or rendering."""
+        # Do this once but late
+        if Game.first_registered_entity:
+            print("hide soft keys")
+            from kivy import platform as kivy_platform            
+            if kivy_platform == 'android':
+                self.hide_android_soft_keys()
+        
         
     def Clock(self):            
         return Myrmidon_Backend.Kivy_Clock()
