@@ -66,9 +66,11 @@ class KivyApp(App):
         pass
 
     def on_pause(self):
+        Game.engine['audio'].on_pause_app()
         return True
 
     def on_resume(self):
+        Game.engine['audio'].on_resume_app()
         Game.engine['window'].hide_android_soft_keys()
         return True
 

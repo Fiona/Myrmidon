@@ -37,8 +37,24 @@ from kivy.core.audio import SoundLoader
 
 
 class Myrmidon_Backend(object):
+    current_playing_sounds = []
+
+    def on_pause_app(self):
+        self.audio_to_resume = []
+        for sound in self.current_playing_sounds:
+            if sound.is_playing():
+                self.audio_to_resume.append(sound)
+                sound.pause()
+
+    def on_resume_app(self):
+        for sound in self.audio_to_resume:
+            sound.resume()
+        self.audio_to_resume = []
+    
     class Audio(BaseAudio):
         sound = None
+        paused = False
+        paused_position = 0
         def __init__(self, audio = None):
             if audio is None:
                 return
@@ -47,13 +63,33 @@ class Myrmidon_Backend(object):
             else:
                 self.sound = audio
 
+        def is_playing(self):
+            return self.sound.state == 'play'
+
         def play(self):
             self.sound.loop = False
-            self.sound.play()
+            if not self in Myrmidon_Backend.current_playing_sounds:
+                Myrmidon_Backend.current_playing_sounds.append(self)
 
         def play_and_loop(self):
-            self.sound.loop = True
             self.sound.play()
+            self.sound.loop = True
+            if not self in Myrmidon_Backend.current_playing_sounds:
+                Myrmidon_Backend.current_playing_sounds.append(self)
 
         def stop(self):
             self.sound.stop()
+            if self in Myrmidon_Backend.current_playing_sounds:
+                Myrmidon_Backend.current_playing_sounds.remove(self)
+
+        def pause(self):
+            self.paused = True
+            self.paused_position = self.sound.get_pos()
+            self.sound.stop()
+
+        def resume(self):
+            if not self.paused:
+                return
+            self.sound.play()
+            self.sound.seek(self.paused_position)
+            self.paused = False
