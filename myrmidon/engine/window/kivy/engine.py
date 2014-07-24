@@ -71,7 +71,8 @@ class KivyApp(App):
 
     def on_resume(self):
         Game.engine['audio'].on_resume_app()
-        Game.engine['window'].hide_android_soft_keys()
+        if kivy_platform == 'ios':
+            Game.engine['window'].hide_android_soft_keys()
         return True
 
     class App_Widget(Widget):
@@ -147,8 +148,7 @@ class Myrmidon_Backend(object):
     def app_loop_tick(self):
         """Runs once every frame before any entity code or rendering."""
         # Do this once but late
-        if Game.first_registered_entity:
-            print("hide soft keys")
+        if Game.first_registered_entity: 
             from kivy import platform as kivy_platform            
             if kivy_platform == 'android':
                 self.hide_android_soft_keys()
