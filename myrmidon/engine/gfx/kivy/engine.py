@@ -41,6 +41,7 @@ from kivy.uix.label import Label
 from kivy.uix.widget import Widget
 from kivy.graphics import Rectangle, Color, Scale, Rotate, PushMatrix, PopMatrix, Translate, Quad
 from kivy.core.window import Window
+from kivy.graphics.opengl import glBlendFunc, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA
 
 
 class Myrmidon_Backend(Entity):
@@ -111,6 +112,7 @@ class Myrmidon_Backend(Entity):
                 if not entity in self.entity_draws:
                     self.entity_draws[entity] = dict()
                     with self.widget.canvas:
+                        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
                         self.entity_draws[entity]['color'] = Color()
                         self.entity_draws[entity]['color'].rgb = entity.colour
                         self.entity_draws[entity]['color'].a = entity.alpha                    
