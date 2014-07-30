@@ -233,6 +233,12 @@ class Myrmidon_Backend(Entity):
             self.image = loaded_image
             self.width = self.image.width
             self.height = self.image.height
+
+
+        def __del__(self):
+            if self.image is None:
+                return
+            self.image.remove_from_cache()
             
 
     class Text(Entity):
