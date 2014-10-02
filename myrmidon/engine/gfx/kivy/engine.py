@@ -1,7 +1,7 @@
 """
 Myrmidon
 Copyright (c) 2010 Fiona Burrows
- 
+
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
 files (the "Software"), to deal in the Software without
@@ -10,10 +10,10 @@ copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the
 Software is furnished to do so, subject to the following
 conditions:
- 
+
 The above copyright notice and this permission notice shall be
 included in all copies or substantial portions of the Software.
- 
+
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
 OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -22,7 +22,7 @@ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
- 
+
 ---------------------
 
 - BACKEND FILE -
@@ -48,13 +48,13 @@ class Myrmidon_Backend(Entity):
     clear_colour = (0.0, 0.0, 0.0, 1.0)
     z_index_dirty = True
     entity_list_draw_order = []
-            
+
     def __init__(self):
         # Try hiding soft keys on certain ondroid phones
         self.get_device_size_metrics()
         self.entity_draws = {}
         self.widget = None
-        
+
     def get_device_size_metrics(self):
         self.device_resolution = Window.width, Window.height
         Game.device_scale = float(Window.height) / Game.screen_resolution[1]
@@ -69,28 +69,28 @@ class Myrmidon_Backend(Entity):
 
     def update_screen_pre(self):
         pass
-    
-	
+
+
     def update_screen_post(self):
         pass
 
 
     def draw_entities(self, entity_list):
         self.get_device_size_metrics()
-        
+
         # Create our canvas to draw to if we hadn't got one yet
         if self.widget is None:
             self.widget = Widget()
             Game.engine['window'].kivy_app.widget.add_widget(self.widget)
         self.widget.width = Window.width
         self.widget.height = Window.height
-        
+
         # If our z order is potentially dirty then we need to completely redraw
         # everything, se we clear the canvas and draw list, then get the proper order.
         if self.z_index_dirty:
             self.widget.canvas.clear()
             self.entity_draws = {}
-            
+
             #self.entity_list_draw_order = copy.copy(entity_list)
             self.entity_list_draw_order = entity_list
             self.entity_list_draw_order.sort(
@@ -99,7 +99,7 @@ class Myrmidon_Backend(Entity):
                 reverse = True
                 )
             self.z_index_dirty = False
-            
+
         # Now render for each entity
         for entity in self.entity_list_draw_order:
             if not entity.image is None and hasattr(entity.image, "image"):
@@ -115,7 +115,7 @@ class Myrmidon_Backend(Entity):
                         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
                         self.entity_draws[entity]['color'] = Color()
                         self.entity_draws[entity]['color'].rgb = entity.colour
-                        self.entity_draws[entity]['color'].a = entity.alpha                    
+                        self.entity_draws[entity]['color'].a = entity.alpha
                         PushMatrix()
                         self.entity_draws[entity]['translate'] = Translate()
                         self.entity_draws[entity]['rotate'] = Rotate()
@@ -134,14 +134,14 @@ class Myrmidon_Backend(Entity):
                     self.entity_draws[entity]['color'].a = entity.alpha
                     self.entity_draws[entity]['rect'].texture = entity.image.image.texture
                     self.entity_draws[entity]['rect'].points = (0.0, 0.0, size[0], 0.0, size[0], size[1], 0.0, size[1])
-                
+
             entity.draw()
-            
+
 
     def draw_single_entity(self, entity):
         pass
-    
-	
+
+
     def create_texture_list(self, entity, image):
         return None
 
@@ -152,31 +152,31 @@ class Myrmidon_Backend(Entity):
 
     def register_entity(self, entity):
         self.z_index_dirty = True
-    
+
 
     def remove_entity(self, entity):
         self.z_index_dirty = True
 
-    
+
     def alter_x(self, entity, x):
         pass
-    
+
 
     def alter_y(self, entity, y):
         pass
-    
+
 
     def alter_z(self, entity, z):
         self.z_index_dirty = True
 
-	
+
     def alter_image(self, entity, image):
         pass
 
 
     def alter_alpha(self, entity, alpha):
         pass
-        
+
 
     def alter_colour(self, entity, colour):
         pass
@@ -184,11 +184,11 @@ class Myrmidon_Backend(Entity):
 
     def alter_scale(self, entity, scale):
         pass
-    
+
 
     def alter_rotation(self, entity, rotation):
         pass
-        
+
 
     def new_image(self, width, height, colour = None):
         return Myrmidon_Backend.Image()
@@ -218,14 +218,14 @@ class Myrmidon_Backend(Entity):
         height = 0
         filename = None
         is_sequence_image = False
-        def __init__(self, image = None, sequence = False, width = None, height = None):
+        def __init__(self, image = None, sequence = False, width = None, height = None, mipmap = True):
             if image is None:
                 return
             loaded_image = None
             if isinstance(image, str):
                 self.filename = image
                 try:
-                    loaded_image = Kivy_Image(image, mipmap = True)
+                    loaded_image = Kivy_Image(image, mipmap = mipmap)
                 except:
                     raise MyrmidonError("Couldn't load image from " + image)
             else:
@@ -239,14 +239,14 @@ class Myrmidon_Backend(Entity):
             if self.image is None:
                 return
             self.image.remove_from_cache()
-            
+
 
     class Text(Entity):
         alignment = ALIGN_CENTER
         label = None
         _text = ""
         _font = None
-        _antialias = True        
+        _antialias = True
 
         text_image_size = (0,0)
 
@@ -284,7 +284,7 @@ class Myrmidon_Backend(Entity):
         def get_screen_draw_position(self):
             """ Overriding entity method to account for text alignment. """
             draw_x, draw_y = self.x, self.y
-                        
+
             if self.alignment == ALIGN_TOP:
                 draw_x -= (self.text_image_size[0]/2)
             elif self.alignment == ALIGN_TOP_RIGHT:
@@ -307,7 +307,7 @@ class Myrmidon_Backend(Entity):
                 draw_y -= self.text_image_size[1]
 
             return draw_x, draw_y
-            
+
 
         # text
         @property
@@ -319,10 +319,9 @@ class Myrmidon_Backend(Entity):
             #if not self._text == value:
             self._text = value#str(value)
             self.generate_text_image()
-                                
-                                
+
+
         @text.deleter
         def text(self):
             self._text = ""
             self.generate_text_image()
-
