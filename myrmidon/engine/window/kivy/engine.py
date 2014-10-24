@@ -71,7 +71,7 @@ class KivyApp(App):
 
     def on_resume(self):
         Game.engine['audio'].on_resume_app()
-        if kivy_platform == 'ios':
+        if kivy_platform == 'android':
             Game.engine['window'].hide_android_soft_keys()
         return True
 
