@@ -1,7 +1,7 @@
 """
 Myrmidon
 Copyright (c) 2010 Fiona Burrows
- 
+
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
 files (the "Software"), to deal in the Software without
@@ -10,10 +10,10 @@ copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the
 Software is furnished to do so, subject to the following
 conditions:
- 
+
 The above copyright notice and this permission notice shall be
 included in all copies or substantial portions of the Software.
- 
+
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
 OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -22,7 +22,7 @@ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
- 
+
 ---------------------
 
 - BACKEND FILE -
@@ -56,12 +56,12 @@ from kivy.core.window import Window
 class KivyApp(App):
     use_kivy_settings = False
     built = False
-    
+
     def build(self):
         self.built = True
         self.widget = KivyApp.App_Widget()
         return self.widget
-        
+
     def open_settings(self, *largs):
         pass
 
@@ -79,11 +79,11 @@ class KivyApp(App):
         def __init__(self, **kwargs):
             super(KivyApp.App_Widget, self).__init__(**kwargs)
             self.size = Game.screen_resolution
-        
+
         def on_touch_down(self, touch):
             if not Game.engine['input'].map_touch_to_mouse:
                 return
-            Game.engine['input'].mouse.left = True            
+            Game.engine['input'].mouse.left = True
             Game.engine['input'].mouse.pos = (
                 ((touch.pos[0] + Game.global_x_pos_adjust) / Game.device_scale),
                 (Game.engine['gfx'].device_resolution[1]  - touch.pos[1]) / Game.device_scale
@@ -106,8 +106,8 @@ class KivyApp(App):
                 return
             Game.engine['input'].mouse.left = False
 
-    
-    
+
+
 class Myrmidon_Backend(object):
 
     kivy_app = None
@@ -124,18 +124,18 @@ class Myrmidon_Backend(object):
 
         class Runnable(PythonJavaClass):
             __javainterfaces__ = ['java/lang/Runnable']
-            
+
             @java_method('()V')
             def run(self):
                 activity.getWindow().getDecorView().setSystemUiVisibility(
                     View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
                 activity.getWindow().addFlags(LayoutParams.FLAG_KEEP_SCREEN_ON)
-                    
+
         activity.runOnUiThread(Runnable())
 
     def __init__(self):
         self.kivy_app = KivyApp()
-        
+
 
     def set_window_loop(self, callback, target_fps = 30):
         Clock.schedule_interval(callback, 1.0 / target_fps)
@@ -148,20 +148,22 @@ class Myrmidon_Backend(object):
     def app_loop_tick(self):
         """Runs once every frame before any entity code or rendering."""
         # Do this once but late
-        if Game.first_registered_entity: 
-            from kivy import platform as kivy_platform            
+        from kivy.config import Config
+        Config.set('graphics', 'show_cursor', 0)
+        if Game.first_registered_entity:
+            from kivy import platform as kivy_platform
             if kivy_platform == 'android':
                 self.hide_android_soft_keys()
-        
-        
-    def Clock(self):            
+
+
+    def Clock(self):
         return Myrmidon_Backend.Kivy_Clock()
-    
+
 
     def change_resolution(self, resolution):
         pass
-    
-                
+
+
     def set_title(self, title):
         pass
 
@@ -169,14 +171,14 @@ class Myrmidon_Backend(object):
     class Kivy_Clock(object):
         def get_fps(self):
             return 0
-        
+
         def tick(self, fps_target):
             pass
 
 
     class Font(BaseFont):
         loaded_font = None
-        
+
         def __init__(self, font = None, size = 20):
             self.size = size
             self.filename = font
