@@ -234,11 +234,33 @@ class Myrmidon_Backend(Entity):
             self.width = self.image.width
             self.height = self.image.height
 
-
-        def __del__(self):
+        def destroy(self):
+            """
+            Explicitly removes this image from the video memory and
+            Kivy's cache.
+            """
             if self.image is None:
                 return
-            self.image.remove_from_cache()
+
+            from kivy.cache import Cache
+            from kivy.graphics.opengl import glBindTexture, glDeleteTextures
+            from kivy.logger import Logger
+
+            Logger.debug("MyrmidonGFX: Destroying <{0}>".format(self.filename))
+
+            # Remove from cache
+            Cache.remove('kv.texture', self.filename)
+            Cache.remove('kv.image', self.filename)
+
+            # Convert the ID to the right byte format for the GL method
+            a1 = (self.image.texture.id >>  0) & 0xFF
+            a2 = (self.image.texture.id >>  8) & 0xFF
+            a3 = (self.image.texture.id >> 16) & 0xFF
+            a4 = (self.image.texture.id >> 24) & 0xFF
+
+            # Remove texture completely
+            glBindTexture(self.image.texture.target, 0)
+            glDeleteTextures(1, str.encode(chr(a1) + chr(a2) + chr(a3) + chr(a4)))
 
 
     class Text(Entity):
