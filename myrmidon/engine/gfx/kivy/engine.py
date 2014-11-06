@@ -102,7 +102,7 @@ class Myrmidon_Backend(Entity):
 
         # Now render for each entity
         for entity in self.entity_list_draw_order:
-            if not entity.image is None and hasattr(entity.image, "image"):
+            if not entity.image is None and hasattr(entity.image, "image") and not entity.image.image is None:
                 # Work out the real width/height and screen position of the entity
                 size = ((entity.image.width) * (entity.scale * Game.device_scale), (entity.image.height) * (entity.scale * Game.device_scale))
                 x, y = entity.get_screen_draw_position()
@@ -238,6 +238,8 @@ class Myrmidon_Backend(Entity):
             """
             Explicitly removes this image from the video memory and
             Kivy's cache.
+            This functionality requires the custom kivy version at
+            http://github.com/arcticshores/kivy
             """
             if self.image is None:
                 return
@@ -249,8 +251,7 @@ class Myrmidon_Backend(Entity):
             Logger.debug("MyrmidonGFX: Destroying <{0}>".format(self.filename))
 
             # Remove from cache
-            Cache.remove('kv.texture', self.filename)
-            Cache.remove('kv.image', self.filename)
+            self.image.remove_from_cache()
 
             # Convert the ID to the right byte format for the GL method
             a1 = (self.image.texture.id >>  0) & 0xFF
@@ -261,6 +262,12 @@ class Myrmidon_Backend(Entity):
             # Remove texture completely
             glBindTexture(self.image.texture.target, 0)
             glDeleteTextures(1, str.encode(chr(a1) + chr(a2) + chr(a3) + chr(a4)))
+
+            # Since we've done a manual removal kivy shouldn't do it's own removal later
+            self.image.texture.nofree = 1
+
+            # Stop this image from being used as a texture now
+            self.image = None
 
 
     class Text(Entity):
