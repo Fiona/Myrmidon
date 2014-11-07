@@ -261,7 +261,7 @@ class Myrmidon_Backend(Entity):
 
             # Remove texture completely
             glBindTexture(self.image.texture.target, 0)
-            glDeleteTextures(1, str.encode(chr(a1) + chr(a2) + chr(a3) + chr(a4)))
+            glDeleteTextures(1, bytes(bytearray([a1, a2, a3, a4])))
 
             # Since we've done a manual removal kivy shouldn't do it's own removal later
             self.image.texture.nofree = 1
