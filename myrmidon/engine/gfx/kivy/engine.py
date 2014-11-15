@@ -36,12 +36,14 @@ import copy
 from myrmidon import Game, Entity, BaseImage, MyrmidonError
 from myrmidon.consts import *
 
+import kivy
 from kivy.core.image import Image as Kivy_Image
 from kivy.uix.label import Label
 from kivy.uix.widget import Widget
 from kivy.graphics import Rectangle, Color, Scale, Rotate, PushMatrix, PopMatrix, Translate, Quad
+from kivy.graphics.texture import Texture
 from kivy.core.window import Window
-from kivy.graphics.opengl import glBlendFunc, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA
+from kivy.graphics.opengl import glBlendFunc, glBlendFuncSeparate, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE
 
 
 class Myrmidon_Backend(Entity):
@@ -102,20 +104,22 @@ class Myrmidon_Backend(Entity):
 
         # Now render for each entity
         for entity in self.entity_list_draw_order:
-            if not entity.image is None and hasattr(entity.image, "image") and not entity.image.image is None:
+
+            if entity.image and getattr(entity.image, "image", None):
+                platform.gl_image_blend()
                 # Work out the real width/height and screen position of the entity
                 size = ((entity.image.width) * (entity.scale * Game.device_scale), (entity.image.height) * (entity.scale * Game.device_scale))
                 x, y = entity.get_screen_draw_position()
                 y = Game.screen_resolution[1] - (entity.image.height * entity.scale) - y
                 pos = ((x * Game.device_scale) - Game.global_x_pos_adjust, y * Game.device_scale)
+
                 # If this entity hasn't yet been attached to the canvas then do so
                 if not entity in self.entity_draws:
                     self.entity_draws[entity] = dict()
                     with self.widget.canvas:
-                        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-                        self.entity_draws[entity]['color'] = Color()
-                        self.entity_draws[entity]['color'].rgb = entity.colour
-                        self.entity_draws[entity]['color'].a = entity.alpha
+                        self.entity_draws[entity]['color'] = color = Color()
+                        platform.apply_rgb(entity, color)
+                        color.a = entity.alpha
                         PushMatrix()
                         self.entity_draws[entity]['translate'] = Translate()
                         self.entity_draws[entity]['rotate'] = Rotate()
@@ -130,8 +134,9 @@ class Myrmidon_Backend(Entity):
                 else:
                     self.entity_draws[entity]['rotate'].angle = entity.rotation
                     self.entity_draws[entity]['translate'].xy = pos
-                    self.entity_draws[entity]['color'].rgb = entity.colour
-                    self.entity_draws[entity]['color'].a = entity.alpha
+                    color = self.entity_draws[entity]['color']
+                    platform.apply_rgb(entity, color)
+                    color.a = entity.alpha
                     self.entity_draws[entity]['rect'].texture = entity.image.image.texture
                     self.entity_draws[entity]['rect'].points = (0.0, 0.0, size[0], 0.0, size[0], size[1], 0.0, size[1])
 
@@ -300,14 +305,21 @@ class Myrmidon_Backend(Entity):
 
 
         def generate_text_image(self):
+            platform.gl_text_blend()
             # When set to a blank text, for some reason kivy wanted the texture update to happen
             # twice otherwise it wouldn't set the text to be empty. WHO KNOWS. KIVY BE CRAZY.
-            self.label.text = " "
-            self.label.texture_update()
             self.label.text = self._text
             self.label.texture_update()
+            if not self.label.texture:
+                self.text_image_size = (0, 0)
+                self.image = Myrmidon_Backend.Image(Texture.create(size=(0, 0)))
+                return
+
             self.text_image_size = self.label.texture_size
-            self.image = Myrmidon_Backend.Image(self.label._label.texture)
+            tex = Texture.create(size=self.label.texture.size, mipmap=True)
+            tex.blit_buffer(self.label.texture.pixels, colorfmt='rgba', bufferfmt='ubyte')
+            tex.flip_vertical()
+            self.image = Myrmidon_Backend.Image(tex)
 
 
         def get_screen_draw_position(self):
@@ -354,3 +366,42 @@ class Myrmidon_Backend(Entity):
         def text(self):
             self._text = ""
             self.generate_text_image()
+
+
+# Platform specific functions
+class DefaultPlatform(object):
+    @staticmethod
+    def gl_image_blend():
+        """Blend function for blending images onscreen."""
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
+    @staticmethod
+    def gl_text_blend():
+        """Blend function for blending text offscreen."""
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
+    @staticmethod
+    def apply_rgb(entity, color):
+        """Apply an entity's colour and alpha to a Kivy Colour object."""
+        color.rgb = entity.colour
+
+
+class ApplePlatform(object):
+    @staticmethod
+    def gl_image_blend():
+        glBlendFuncSeparate(GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
+    @staticmethod
+    def gl_text_blend():
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        #glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
+    @staticmethod
+    def apply_rgb(entity, color):
+        color.rgb = entity.alpha, entity.alpha, entity.alpha
+
+
+platform = {
+    'ios': ApplePlatform,
+    'macosx': ApplePlatform,
+}.get(kivy.platform, DefaultPlatform)
