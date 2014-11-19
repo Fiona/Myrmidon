@@ -106,7 +106,7 @@ class Myrmidon_Backend(Entity):
         for entity in self.entity_list_draw_order:
 
             if entity.image and getattr(entity.image, "image", None):
-                platform.gl_image_blend()
+                platform.glBlendFunc()
                 # Work out the real width/height and screen position of the entity
                 size = ((entity.image.width) * (entity.scale * Game.device_scale), (entity.image.height) * (entity.scale * Game.device_scale))
                 x, y = entity.get_screen_draw_position()
@@ -275,7 +275,7 @@ class Myrmidon_Backend(Entity):
             self.image = None
 
 
-    class Text(Entity):
+    class _Text(Entity):
         alignment = ALIGN_CENTER
         label = None
         _text = ""
@@ -302,22 +302,6 @@ class Myrmidon_Backend(Entity):
             self._is_text = True
             self.rotation = 0.0
             self.normal_draw = False
-
-
-        def generate_text_image(self):
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-            self.label.text = self._text
-            self.label.texture_update()
-            if not self.label.texture:
-                self.text_image_size = (0, 0)
-                self.image = Myrmidon_Backend.Image(Texture.create(size=(0, 0)))
-                return
-
-            self.text_image_size = self.label.texture_size
-            tex = Texture.create(size=self.label.texture.size, mipmap=True)
-            tex.blit_buffer(self.label.texture.pixels, colorfmt='rgba', bufferfmt='ubyte')
-            tex.flip_vertical()
-            self.image = Myrmidon_Backend.Image(tex)
 
 
         def get_screen_draw_position(self):
@@ -366,10 +350,45 @@ class Myrmidon_Backend(Entity):
             self.generate_text_image()
 
 
+    class DefaultText(_Text):
+        def generate_text_image(self):
+            self.label.text = self._text
+            self.label.texture_update()
+            if not self.label.texture:
+                self.text_image_size = (0, 0)
+                self.image = Myrmidon_Backend.Image(Texture.create(size=(0, 0)))
+                return
+
+            self.text_image_size = self.label.texture_size
+            self.image = Myrmidon_Backend.Image(self.label.texture)
+
+
+    class AppleText(_Text):
+        def generate_text_image(self):
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+            self.label.text = self._text
+            self.label.texture_update()
+            if not self.label.texture:
+                self.text_image_size = (0, 0)
+                self.image = Myrmidon_Backend.Image(Texture.create(size=(0, 0)))
+                return
+
+            self.text_image_size = self.label.texture_size
+            tex = Texture.create(size=self.label.texture.size, mipmap=True)
+            tex.blit_buffer(self.label.texture.pixels, colorfmt='rgba', bufferfmt='ubyte')
+            tex.flip_vertical()
+            self.image = Myrmidon_Backend.Image(tex)
+
+    Text = {
+        'ios': AppleText,
+        'macosx': AppleText,
+    }.get(kivy.platform, DefaultText)
+
+
 # Platform specific functions
 class DefaultPlatform(object):
     @staticmethod
-    def gl_image_blend():
+    def glBlendFunc():
         """Blend function for blending images onscreen."""
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
@@ -381,7 +400,7 @@ class DefaultPlatform(object):
 
 class ApplePlatform(object):
     @staticmethod
-    def gl_image_blend():
+    def glBlendFunc():
         glBlendFuncSeparate(GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
     @staticmethod
