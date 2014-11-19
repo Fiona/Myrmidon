@@ -305,9 +305,7 @@ class Myrmidon_Backend(Entity):
 
 
         def generate_text_image(self):
-            platform.gl_text_blend()
-            # When set to a blank text, for some reason kivy wanted the texture update to happen
-            # twice otherwise it wouldn't set the text to be empty. WHO KNOWS. KIVY BE CRAZY.
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
             self.label.text = self._text
             self.label.texture_update()
             if not self.label.texture:
@@ -376,11 +374,6 @@ class DefaultPlatform(object):
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
     @staticmethod
-    def gl_text_blend():
-        """Blend function for blending text offscreen."""
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-
-    @staticmethod
     def apply_rgb(entity, color):
         """Apply an entity's colour and alpha to a Kivy Colour object."""
         color.rgb = entity.colour
@@ -392,13 +385,9 @@ class ApplePlatform(object):
         glBlendFuncSeparate(GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
     @staticmethod
-    def gl_text_blend():
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-        #glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-
-    @staticmethod
     def apply_rgb(entity, color):
-        color.rgb = entity.alpha, entity.alpha, entity.alpha
+        # Premultiply
+        color.rgb = tuple(entity.alpha * value for value in entity.colour)
 
 
 platform = {
