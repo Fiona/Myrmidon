@@ -365,7 +365,6 @@ class Myrmidon_Backend(Entity):
                 self.image.destroy()
                 self.image = None
 
-            
 
     class DefaultText(_Text):
         def generate_text_image(self):
@@ -424,8 +423,7 @@ class ApplePlatform(object):
 
     @staticmethod
     def apply_rgb(entity, color):
-        # Premultiply
-        color.rgb = tuple(entity.alpha * value for value in entity.colour)
+        color.rgb = entity.alpha, entity.alpha, entity.alpha
 
 
 platform = {
