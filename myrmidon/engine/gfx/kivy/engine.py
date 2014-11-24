@@ -219,23 +219,27 @@ class Myrmidon_Backend(Entity):
 
 
     class Image(object):
+        EMPTY_IMAGE = Kivy_Image(Texture.create(size=(0, 0)))
+
         width = 0
         height = 0
         filename = None
         is_sequence_image = False
+
         def __init__(self, image = None, sequence = False, width = None, height = None, mipmap = True):
             if image is None:
+                self.image = self.EMPTY_IMAGE
+                self.width = 0
+                self.height = 0
                 return
-            loaded_image = None
             if isinstance(image, str):
                 self.filename = image
                 try:
-                    loaded_image = Kivy_Image(image, mipmap = mipmap)
+                    self.image = Kivy_Image(image, mipmap = mipmap)
                 except:
                     raise MyrmidonError("Couldn't load image from " + image)
             else:
-                loaded_image = Kivy_Image(image)
-            self.image = loaded_image
+                self.image = Kivy_Image(image)
             self.width = self.image.width
             self.height = self.image.height
 
@@ -246,14 +250,14 @@ class Myrmidon_Backend(Entity):
             This functionality requires the custom kivy version at
             http://github.com/arcticshores/kivy
             """
-            if self.image is None:
+            if self.image is None or self.image is self.EMPTY_IMAGE:
                 return
 
             from kivy.cache import Cache
             from kivy.graphics.opengl import glBindTexture, glDeleteTextures
             from kivy.logger import Logger
 
-            Logger.debug("MyrmidonGFX: Destroying <{0}>".format(self.filename))
+            Logger.debug("MyrmidonGFX: Destroying {0}".format(self.filename if self.filename else self.image))
 
             # Remove from cache
             self.image.remove_from_cache()
@@ -286,12 +290,15 @@ class Myrmidon_Backend(Entity):
 
         _shadow = None
 
+        def generate_label(self):
+            if self.font is not None:
+                label = Label(font_name = self.font.filename, font_size = self.font.size, mipmap = True)
+            else:
+                label = Label(font_size = "30", mipmap = True)
+            return label
+
         def __init__(self, font, x, y, alignment, text, antialias = True):
             Entity.__init__(self)
-            if font is not None:
-                self.label = Label(font_name = font.filename, font_size = font.size, mipmap = True)
-            else:
-                self.label = Label(font_size = "30", mipmap = True)
             self.font = font
             self.x = x
             self.y = y
@@ -302,7 +309,6 @@ class Myrmidon_Backend(Entity):
             self._is_text = True
             self.rotation = 0.0
             self.normal_draw = False
-
 
         def get_screen_draw_position(self):
             """ Overriding entity method to account for text alignment. """
@@ -331,7 +337,6 @@ class Myrmidon_Backend(Entity):
 
             return draw_x, draw_y
 
-
         # text
         @property
         def text(self):
@@ -339,43 +344,57 @@ class Myrmidon_Backend(Entity):
 
         @text.setter
         def text(self, value):
-            #if not self._text == value:
-            self._text = value#str(value)
+            if self._text == value:
+                return
+            self._text = value
+            self.destroy_text_image()
             self.generate_text_image()
-
 
         @text.deleter
         def text(self):
             self._text = ""
+            self.destroy_text_image()
             self.generate_text_image()
 
+        def on_exit(self):
+            self.destroy_text_image()
+
+        def destroy_text_image(self):
+            """Destroy the underlying image."""
+            if self.image:
+                self.image.destroy()
+                self.image = None
+
+            
 
     class DefaultText(_Text):
         def generate_text_image(self):
-            self.label.text = self._text
-            self.label.texture_update()
-            if not self.label.texture:
+            label = self.generate_label()
+            label.text = self._text
+            label.texture_update()
+            if not label.texture:
                 self.text_image_size = (0, 0)
-                self.image = Myrmidon_Backend.Image(Texture.create(size=(0, 0)))
+                self.image = Myrmidon_Backend.Image()
                 return
 
-            self.text_image_size = self.label.texture_size
-            self.image = Myrmidon_Backend.Image(self.label.texture)
+            self.text_image_size = label.texture_size
+            self.image = Myrmidon_Backend.Image(label.texture)
 
 
     class AppleText(_Text):
         def generate_text_image(self):
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-            self.label.text = self._text
-            self.label.texture_update()
-            if not self.label.texture:
+            label = self.generate_label()
+            label.text = self._text
+            label.texture_update()
+            if not label.texture:
                 self.text_image_size = (0, 0)
-                self.image = Myrmidon_Backend.Image(Texture.create(size=(0, 0)))
+                self.image = Myrmidon_Backend.Image()
                 return
 
-            self.text_image_size = self.label.texture_size
-            tex = Texture.create(size=self.label.texture.size, mipmap=True)
-            tex.blit_buffer(self.label.texture.pixels, colorfmt='rgba', bufferfmt='ubyte')
+            self.text_image_size = label.texture_size
+            tex = Texture.create(size=label.texture.size, mipmap=True)
+            tex.blit_buffer(label.texture.pixels, colorfmt='rgba', bufferfmt='ubyte')
             tex.flip_vertical()
             self.image = Myrmidon_Backend.Image(tex)
 
