@@ -1064,8 +1064,7 @@ class Game(object):
         -- b: Blue component value (default 255)
         -- a: Alpha component value (default 255)
         """
-        return (r / 255.0, g / 255.0, b / 255.0, a / 255.0)
-
+        return cls.engine['gfx'].rgb_to_colour((r, g, b, a))
 
     @classmethod
     def rgb_to_colour(cls, r = 255, g = 255, b = 255):

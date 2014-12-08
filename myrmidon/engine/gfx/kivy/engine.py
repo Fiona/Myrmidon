@@ -212,10 +212,14 @@ class Myrmidon_Backend(Entity):
 
 
     def rgb_to_colour(self, colour):
-        col = []
-        for a in colour:
-            col.append(a/255.0)
-        return tuple(col)
+        colour = list(colour)
+        if kivy.platform in ['ios', 'macosx'] and len(colour) > 3:
+            pre_multiply = colour[3] / 255.0
+        else:
+            pre_multiply = 1.0
+        for k,a in enumerate(colour):
+            colour[k] = ((a/255.0) * (pre_multiply if k < 3 else 1.0))
+        return colour
 
 
     class Image(object):
