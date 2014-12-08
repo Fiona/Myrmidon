@@ -36,12 +36,14 @@ import copy
 from myrmidon import Game, Entity, BaseImage, MyrmidonError
 from myrmidon.consts import *
 
+import kivy
 from kivy.core.image import Image as Kivy_Image
 from kivy.uix.label import Label
 from kivy.uix.widget import Widget
 from kivy.graphics import Rectangle, Color, Scale, Rotate, PushMatrix, PopMatrix, Translate, Quad
+from kivy.graphics.texture import Texture
 from kivy.core.window import Window
-from kivy.graphics.opengl import glBlendFunc, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA
+from kivy.graphics.opengl import glBlendFunc, glBlendFuncSeparate, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE
 
 
 class Myrmidon_Backend(Entity):
@@ -102,20 +104,22 @@ class Myrmidon_Backend(Entity):
 
         # Now render for each entity
         for entity in self.entity_list_draw_order:
-            if not entity.image is None and hasattr(entity.image, "image") and not entity.image.image is None:
+
+            if entity.image and getattr(entity.image, "image", None):
+                platform.glBlendFunc()
                 # Work out the real width/height and screen position of the entity
                 size = ((entity.image.width) * (entity.scale * Game.device_scale), (entity.image.height) * (entity.scale * Game.device_scale))
                 x, y = entity.get_screen_draw_position()
                 y = Game.screen_resolution[1] - (entity.image.height * entity.scale) - y
                 pos = ((x * Game.device_scale) - Game.global_x_pos_adjust, y * Game.device_scale)
+
                 # If this entity hasn't yet been attached to the canvas then do so
                 if not entity in self.entity_draws:
                     self.entity_draws[entity] = dict()
                     with self.widget.canvas:
-                        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-                        self.entity_draws[entity]['color'] = Color()
-                        self.entity_draws[entity]['color'].rgb = entity.colour
-                        self.entity_draws[entity]['color'].a = entity.alpha
+                        self.entity_draws[entity]['color'] = color = Color()
+                        platform.apply_rgb(entity, color)
+                        color.a = entity.alpha
                         PushMatrix()
                         self.entity_draws[entity]['translate'] = Translate()
                         self.entity_draws[entity]['rotate'] = Rotate()
@@ -130,8 +134,9 @@ class Myrmidon_Backend(Entity):
                 else:
                     self.entity_draws[entity]['rotate'].angle = entity.rotation
                     self.entity_draws[entity]['translate'].xy = pos
-                    self.entity_draws[entity]['color'].rgb = entity.colour
-                    self.entity_draws[entity]['color'].a = entity.alpha
+                    color = self.entity_draws[entity]['color']
+                    platform.apply_rgb(entity, color)
+                    color.a = entity.alpha
                     self.entity_draws[entity]['rect'].texture = entity.image.image.texture
                     self.entity_draws[entity]['rect'].points = (0.0, 0.0, size[0], 0.0, size[0], size[1], 0.0, size[1])
 
@@ -207,30 +212,38 @@ class Myrmidon_Backend(Entity):
 
 
     def rgb_to_colour(self, colour):
-        col = []
-        for a in colour:
-            col.append(a/255.0)
-        return tuple(col)
+        colour = list(colour)
+        if kivy.platform in ['ios', 'macosx'] and len(colour) > 3:
+            pre_multiply = colour[3] / 255.0
+        else:
+            pre_multiply = 1.0
+        for k,a in enumerate(colour):
+            colour[k] = ((a/255.0) * (pre_multiply if k < 3 else 1.0))
+        return colour
 
 
     class Image(object):
+        EMPTY_IMAGE = Kivy_Image(Texture.create(size=(0, 0)))
+
         width = 0
         height = 0
         filename = None
         is_sequence_image = False
+
         def __init__(self, image = None, sequence = False, width = None, height = None, mipmap = True):
             if image is None:
+                self.image = self.EMPTY_IMAGE
+                self.width = 0
+                self.height = 0
                 return
-            loaded_image = None
             if isinstance(image, str):
                 self.filename = image
                 try:
-                    loaded_image = Kivy_Image(image, mipmap = mipmap)
+                    self.image = Kivy_Image(image, mipmap = mipmap)
                 except:
                     raise MyrmidonError("Couldn't load image from " + image)
             else:
-                loaded_image = Kivy_Image(image)
-            self.image = loaded_image
+                self.image = Kivy_Image(image)
             self.width = self.image.width
             self.height = self.image.height
 
@@ -241,14 +254,14 @@ class Myrmidon_Backend(Entity):
             This functionality requires the custom kivy version at
             http://github.com/arcticshores/kivy
             """
-            if self.image is None:
+            if self.image is None or self.image is self.EMPTY_IMAGE:
                 return
 
             from kivy.cache import Cache
             from kivy.graphics.opengl import glBindTexture, glDeleteTextures
             from kivy.logger import Logger
 
-            Logger.debug("MyrmidonGFX: Destroying <{0}>".format(self.filename))
+            Logger.debug("MyrmidonGFX: Destroying {0}".format(self.filename if self.filename else self.image))
 
             # Remove from cache
             self.image.remove_from_cache()
@@ -270,7 +283,7 @@ class Myrmidon_Backend(Entity):
             self.image = None
 
 
-    class Text(Entity):
+    class _Text(Entity):
         alignment = ALIGN_CENTER
         label = None
         _text = ""
@@ -281,12 +294,15 @@ class Myrmidon_Backend(Entity):
 
         _shadow = None
 
+        def generate_label(self):
+            if self.font is not None:
+                label = Label(font_name = self.font.filename, font_size = self.font.size, mipmap = True)
+            else:
+                label = Label(font_size = "30", mipmap = True)
+            return label
+
         def __init__(self, font, x, y, alignment, text, antialias = True):
             Entity.__init__(self)
-            if font is not None:
-                self.label = Label(font_name = font.filename, font_size = font.size, mipmap = True)
-            else:
-                self.label = Label(font_size = "30", mipmap = True)
             self.font = font
             self.x = x
             self.y = y
@@ -297,18 +313,6 @@ class Myrmidon_Backend(Entity):
             self._is_text = True
             self.rotation = 0.0
             self.normal_draw = False
-
-
-        def generate_text_image(self):
-            # When set to a blank text, for some reason kivy wanted the texture update to happen
-            # twice otherwise it wouldn't set the text to be empty. WHO KNOWS. KIVY BE CRAZY.
-            self.label.text = " "
-            self.label.texture_update()
-            self.label.text = self._text
-            self.label.texture_update()
-            self.text_image_size = self.label.texture_size
-            self.image = Myrmidon_Backend.Image(self.label._label.texture)
-
 
         def get_screen_draw_position(self):
             """ Overriding entity method to account for text alignment. """
@@ -337,7 +341,6 @@ class Myrmidon_Backend(Entity):
 
             return draw_x, draw_y
 
-
         # text
         @property
         def text(self):
@@ -345,12 +348,89 @@ class Myrmidon_Backend(Entity):
 
         @text.setter
         def text(self, value):
-            #if not self._text == value:
-            self._text = value#str(value)
+            if self._text == value:
+                return
+            self._text = value
+            self.destroy_text_image()
             self.generate_text_image()
-
 
         @text.deleter
         def text(self):
             self._text = ""
+            self.destroy_text_image()
             self.generate_text_image()
+
+        def on_exit(self):
+            self.destroy_text_image()
+
+        def destroy_text_image(self):
+            """Destroy the underlying image."""
+            if self.image:
+                self.image.destroy()
+                self.image = None
+
+
+    class DefaultText(_Text):
+        def generate_text_image(self):
+            label = self.generate_label()
+            label.text = self._text
+            label.texture_update()
+            if not label.texture:
+                self.text_image_size = (0, 0)
+                self.image = Myrmidon_Backend.Image()
+                return
+
+            self.text_image_size = label.texture_size
+            self.image = Myrmidon_Backend.Image(label.texture)
+
+
+    class AppleText(_Text):
+        def generate_text_image(self):
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+            label = self.generate_label()
+            label.text = self._text
+            label.texture_update()
+            if not label.texture:
+                self.text_image_size = (0, 0)
+                self.image = Myrmidon_Backend.Image()
+                return
+
+            self.text_image_size = label.texture_size
+            tex = Texture.create(size=label.texture.size, mipmap=True)
+            tex.blit_buffer(label.texture.pixels, colorfmt='rgba', bufferfmt='ubyte')
+            tex.flip_vertical()
+            self.image = Myrmidon_Backend.Image(tex)
+
+    Text = {
+        'ios': AppleText,
+        'macosx': AppleText,
+    }.get(kivy.platform, DefaultText)
+
+
+# Platform specific functions
+class DefaultPlatform(object):
+    @staticmethod
+    def glBlendFunc():
+        """Blend function for blending images onscreen."""
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
+    @staticmethod
+    def apply_rgb(entity, color):
+        """Apply an entity's colour and alpha to a Kivy Colour object."""
+        color.rgb = entity.colour
+
+
+class ApplePlatform(object):
+    @staticmethod
+    def glBlendFunc():
+        glBlendFuncSeparate(GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
+    @staticmethod
+    def apply_rgb(entity, color):
+        color.rgb = entity.alpha, entity.alpha, entity.alpha
+
+
+platform = {
+    'ios': ApplePlatform,
+    'macosx': ApplePlatform,
+}.get(kivy.platform, DefaultPlatform)
