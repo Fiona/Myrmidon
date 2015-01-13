@@ -347,8 +347,8 @@ class Entity(BaseEntity):
 
     def collide_with(self, entities_colliding):
         """
-        Checks collisions with an arbitrary list of Entities using the relevant
-        algorithms depending on collision types specified.
+        Checks collisions with an arbitrary list of Entities (or a single Entity)
+        using the relevant algorithms depending on collision types specified.
         Returns a two-part tuple containing True/False and the first Entity we detected
         a collision with, if indeed we did.
 
@@ -356,6 +356,13 @@ class Entity(BaseEntity):
         -- entities_colliding: List of Entities to check collisons against."""
         if not self.collision_on:
             return (False, None)
+
+        # If we haven't passed in an iterator we assume it's a single Entity object
+        # and turn it into a list
+        try:
+            iter(entities_colliding)
+        except TypeError:
+            entities_colliding = [entities_colliding]
 
         # Myrmidon needs to be told we're doing a collision for optimisation reasons
         Game.did_collision_check = True
