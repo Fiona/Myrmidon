@@ -1,7 +1,7 @@
 """
 Myrmidon
 Copyright (c) 2010 Fiona Burrows
- 
+
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
 files (the "Software"), to deal in the Software without
@@ -10,10 +10,10 @@ copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the
 Software is furnished to do so, subject to the following
 conditions:
- 
+
 The above copyright notice and this permission notice shall be
 included in all copies or substantial portions of the Software.
- 
+
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
 OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -22,7 +22,7 @@ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
- 
+
 ---------------------
 
 - BACKEND FILE -
@@ -43,16 +43,16 @@ class Myrmidon_Backend(object):
     last_keys_pressed = []
 
     mouse = None
-    
+
     disable_input = False
 
     map_touch_to_mouse = True
 
     last_left = False
-    
+
     def __init__(self):
         pass
-                
+
     def process_input(self):
         if not self.mouse:
             self.mouse = self.Mouse()
@@ -71,16 +71,16 @@ class Myrmidon_Backend(object):
         #self.mouse.rel = pygame.mouse.get_rel()
         self.mouse.x = self.mouse.pos[0]
         self.mouse.y = self.mouse.pos[1]
-                
+
         self.mouse.wheel_up = False
         self.mouse.wheel_down = False
 
         self.mouse.left_up = True if self.last_left and not Game.engine['input'].mouse.left else False
         self.last_left = Game.engine['input'].mouse.left
-        
+
         """
         self.event_store = []
-        
+
         for event in pygame.event.get(MOUSEBUTTONDOWN):
             self.event_store.append(event)
             if event.type == MOUSEBUTTONDOWN:
@@ -88,26 +88,26 @@ class Myrmidon_Backend(object):
                     self.mouse.wheel_up = True
                 if event.button == 5:
                     self.mouse.wheel_down = True
-                                        
+
         self.last_mouse_buttons_pressed  = self.mouse_buttons_pressed
         self.mouse_buttons_pressed = pygame.mouse.get_pressed()
 
         self.mouse.left = True if self.mouse_buttons_pressed[0] else False
         self.mouse.left_up = True if self.last_mouse_buttons_pressed[0] and not self.mouse_buttons_pressed[0] else False
-                
+
         self.mouse.middle = True if self.mouse_buttons_pressed[1] else False
         self.mouse.middle_up = True if self.last_mouse_buttons_pressed[1] and not self.mouse_buttons_pressed[1] else False
-                
+
         self.mouse.right = True if self.mouse_buttons_pressed[2] else False
         self.mouse.right_up = True if self.last_mouse_buttons_pressed[2] and not self.mouse_buttons_pressed[2] else False
         """
-        
+
 
     def keyboard_key_down(self, key_code):
         if self.keys_pressed[key_code]:
             return True
         return False
-        
+
 
     def keyboard_key_released(self, key_code):
          if self.last_keys_pressed[key_code] and not self.keys_pressed[key_code]:
@@ -125,12 +125,13 @@ class Myrmidon_Backend(object):
         self.mouse.middle_up = False
         self.mouse.right_up = False
         self.mouse.wheel_up = False
-        self.mouse.wheel_down = False      
+        self.mouse.wheel_down = False
 
-                
+
     class Mouse(Entity):
         """ Record for holding mouse info """
-
+        collision_type = COLLISION_TYPE_POINT
+        collision_on = True
         _visible = True
         @property
         def visible(self):

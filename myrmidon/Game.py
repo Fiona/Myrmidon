@@ -812,7 +812,7 @@ class Game(object):
             )
 
         # Check that point is within the rectangle
-        return Game.point_in_rectangle(rotated_point, (rectangle.x, rectangle.y), check_object_b_size)
+        return Game.point_in_rectangle(rotated_point, check_object_b['ul'], check_object_b_size)
 
 
     @classmethod

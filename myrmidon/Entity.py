@@ -52,13 +52,13 @@ class Entity(BaseEntity):
     _alpha = 1.0
     _scale = 1.0
     _rotation = 0.0
+    _centre_point = [-1, -1]
 
     # Other properties (document)
     blend = False
     clip = None
     scale_point = [0.0, 0.0]
     normal_draw = True
-    centre_point = [-1, -1]
 
     # Entity relationships
     parent = None
@@ -175,11 +175,16 @@ class Entity(BaseEntity):
         Returns a tuple (x,y)"""
         if Game.centre_point_compatability_mode:
             return self.x, self.y
-        if -1 in self.centre_point:
-            centre = self.image.width / 2, self.image.height / 2
-        else:
-            centre = self.centre_point
+        centre = self.get_centre_point()
         return self.x - (centre[0] * self.scale), self.y - (centre[1] * self.scale)
+
+    def get_centre_point(self):
+        """Returns the centre of the current image if the centre_point member
+        has not been explicitly set."""
+        if -1 in self.centre_point and not self.image is None:
+            return self.image.width / 2, self.image.height / 2
+        else:
+            return self.centre_point
 
 
     def destroy(self, tree = False):
@@ -265,7 +270,7 @@ class Entity(BaseEntity):
     def collision_rectangle_calculate_corners(self):
         """This method is used as an optimisation for recangle collisions.
         We store the location of corners and only do it either once per frame
-        or if a relevant value has changed. (x/y/rotation/scale)
+        or if a relevant value has changed. (x/y/rotation/scale/centre_point)
 
         Returns a dictionary containing four tuples, 'ul', 'ur', 'll', 'lr'.
         The tuples are coordinates pointing to the four corners of the rotated and
@@ -276,16 +281,21 @@ class Entity(BaseEntity):
         # Determine the size of the rectangle to use
         width, height = self.collision_rectangle_size()
 
+        # Get the real x/y
+        centre = self.get_centre_point()
+        x = self.x - centre[0]
+        y = self.y - centre[1]
+
         # Rotate each point of the rectangle as the Entitiy is to calculate
         # it's true position.
         rot = Game.rotate_point(0, 0, self.rotation)
-        self._collision_rectangle_calculated_corners['ul'] = float(self.x + rot[0]), float(self.y + rot[1])
+        self._collision_rectangle_calculated_corners['ul'] = float(x + rot[0]), float(y + rot[1])
         rot = Game.rotate_point(width, 0, self.rotation)
-        self._collision_rectangle_calculated_corners['ur'] = float(self.x + rot[0]), float(self.y + rot[1])
+        self._collision_rectangle_calculated_corners['ur'] = float(x + rot[0]), float(y + rot[1])
         rot = Game.rotate_point(0, height, self.rotation)
-        self._collision_rectangle_calculated_corners['ll'] = float(self.x + rot[0]), float(self.y + rot[1])
+        self._collision_rectangle_calculated_corners['ll'] = float(x + rot[0]), float(y + rot[1])
         rot = Game.rotate_point(width, height, self.rotation)
-        self._collision_rectangle_calculated_corners['lr'] = float(self.x + rot[0]), float(self.y + rot[1])
+        self._collision_rectangle_calculated_corners['lr'] = float(x + rot[0]), float(y + rot[1])
 
         # Flag so we don't do this more than we need to.
         self._collision_rectangle_recalculate_corners = False
@@ -364,7 +374,6 @@ class Entity(BaseEntity):
                 params = {self.collision_type + '_a' : self, check_object.collision_type + '_b' : check_object}
             else:
                 params = {self.collision_type : self, check_object.collision_type : check_object}
-
             collision_result = Game.collision_methods[(self.collision_type, check_object.collision_type)](**params)
 
             if collision_result:
@@ -543,4 +552,19 @@ class Entity(BaseEntity):
     @rotation.deleter
     def rotation(self):
         self._rotation = None
+        _collision_rectangle_recalculate_corners = True
+
+    # Centre point of graphic
+    @property
+    def centre_point(self):
+        return self._centre_point
+
+    @centre_point.setter
+    def centre_point(self, value):
+        self._centre_point = value
+        _collision_rectangle_recalculate_corners = True
+
+    @centre_point.deleter
+    def centre_point(self):
+        self._centre_point = None
         _collision_rectangle_recalculate_corners = True
