@@ -1,7 +1,7 @@
 """
 Myrmidon
 Copyright (c) 2010 Fiona Burrows
- 
+
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
 files (the "Software"), to deal in the Software without
@@ -10,10 +10,10 @@ copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the
 Software is furnished to do so, subject to the following
 conditions:
- 
+
 The above copyright notice and this permission notice shall be
 included in all copies or substantial portions of the Software.
- 
+
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
 OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -22,9 +22,9 @@ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
- 
+
 ---------------------
- 
+
 An open source, actor based framework for fast game development for Python.
 
 This file contains the Entity object that represents displayable and interactable
@@ -58,7 +58,8 @@ class Entity(BaseEntity):
     clip = None
     scale_point = [0.0, 0.0]
     normal_draw = True
-    
+    centre_point = [-1, -1]
+
     # Entity relationships
     parent = None
     child = None
@@ -67,9 +68,9 @@ class Entity(BaseEntity):
 
     # Module list
     _module_list = []
-    
+
     # Collision related
-    
+
     # If set to False this Entity will never collide with
     # any other. It will silently fail to do so rather than error.
     collision_on = False
@@ -107,8 +108,8 @@ class Entity(BaseEntity):
     _generator = None
     _executing = True
     _drawing = True
-    
-    
+
+
     def __init__(self, *args, **kargs):
         if not Game.started:
             Game.first_registered_entity = self
@@ -121,18 +122,18 @@ class Entity(BaseEntity):
         Game.remember_current_entity_executing.append(Game.current_entity_executing)
         Game.current_entity_executing = self
         self._executing = True
-        self._drawing = True        
+        self._drawing = True
         self._generator = self.execute(*args, **kargs)
         self._iterate_generator()
         Game.current_entity_executing = Game.remember_current_entity_executing.pop()
 
         for x in self._module_list:
             x._module_setup(self)
-            
-        if not Game.started:           
-            Game.started = True             
+
+        if not Game.started:
+            Game.started = True
             Game.run_game()
-            
+
 
     def execute(self):
         """
@@ -140,7 +141,7 @@ class Entity(BaseEntity):
         """
         while True:
             yield
-            
+
 
     def on_exit(self):
         """
@@ -148,11 +149,11 @@ class Entity(BaseEntity):
         Is also called when a entity is killed using the destroy method.
         """
         pass
-    
-        
+
+
     def _iterate_generator(self):
         if not Game.started or not self._executing:
-            return        
+            return
         try:
             next(self._generator)
         except StopIteration:
@@ -172,7 +173,13 @@ class Entity(BaseEntity):
         the entity will be drawn. Override this if you need to programatically
         constantly change the position of entity.
         Returns a tuple (x,y)"""
-        return self.x, self.y
+        if Game.centre_point_compatability_mode:
+            return self.x, self.y
+        if -1 in self.centre_point:
+            centre = self.image.width / 2, self.image.height / 2
+        else:
+            centre = self.centre_point
+        return self.x - (centre[0] * self.scale), self.y - (centre[1] * self.scale)
 
 
     def destroy(self, tree = False):
@@ -251,7 +258,7 @@ class Entity(BaseEntity):
 
 
     ##############################################
-    # Collision model related methods 
+    # Collision model related methods
     ##############################################
 
 
@@ -284,7 +291,7 @@ class Entity(BaseEntity):
         self._collision_rectangle_recalculate_corners = False
 
         return self._collision_rectangle_calculated_corners
-        
+
 
     def collision_rectangle_size(self):
         """Returns the width and height of the collision rectangle as a two-part tuple.
@@ -302,8 +309,8 @@ class Entity(BaseEntity):
         else:
             height = self.collision_rectangle_height
         return (float(width * self.scale), float(height * self.scale))
-        
-    
+
+
     def collision_circle_calculate_radius(self):
         """Returns the radius of the collision circle used in collision calucations.
         By default this uses the image width. Can be overriden by setting collision_circle_radius.
@@ -339,7 +346,7 @@ class Entity(BaseEntity):
         -- entities_colliding: List of Entities to check collisons against."""
         if not self.collision_on:
             return (False, None)
-        
+
         # Myrmidon needs to be told we're doing a collision for optimisation reasons
         Game.did_collision_check = True
 
@@ -365,7 +372,7 @@ class Entity(BaseEntity):
 
         # No collision
         return (False, None)
-    
+
 
     def reset_collision_model(self):
         """ During checking of collisions we may set some temporary values to
@@ -373,7 +380,7 @@ class Entity(BaseEntity):
         checks to reset those."""
         self._collision_rectangle_recalculate_corners = True
 
-        
+
 
     ##############################################
     # Special properties
@@ -393,7 +400,7 @@ class Entity(BaseEntity):
     def x(self):
         self._x = 0.0
         _collision_rectangle_recalculate_corners = True
-        
+
     # Y
     @property
     def y(self):
@@ -537,5 +544,3 @@ class Entity(BaseEntity):
     def rotation(self):
         self._rotation = None
         _collision_rectangle_recalculate_corners = True
-
-
