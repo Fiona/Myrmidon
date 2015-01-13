@@ -1,7 +1,7 @@
 """
 Myrmidon
 Copyright (c) 2014 Fiona Burrows
- 
+
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
 files (the "Software"), to deal in the Software without
@@ -10,10 +10,10 @@ copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the
 Software is furnished to do so, subject to the following
 conditions:
- 
+
 The above copyright notice and this permission notice shall be
 included in all copies or substantial portions of the Software.
- 
+
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
 OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -22,7 +22,7 @@ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
- 
+
 ---------------------
 
 This is a special Entity that is typically used for fading the
@@ -34,8 +34,6 @@ gradually changes from one colour to another.
 from myrmidon.Entity import Entity
 from myrmidon.Game import Game
 
-from kivy.graphics import Color, PushMatrix, PopMatrix, Translate, Quad
-
 
 class ScreenOverlay(Entity):
 
@@ -46,7 +44,7 @@ class ScreenOverlay(Entity):
     current_colour_to = (0.0, 0.0, 0.0, 0.0)
     kill_after_fade = False
     callback = None
-    
+
     def execute(self, colour_from, colour_to, blocking, pos, size, z, callback):
         self.colour_from = colour_from
         self.colour_to = colour_to
@@ -55,7 +53,7 @@ class ScreenOverlay(Entity):
         self.width, self.height = size
         self.z = z
         self.callback = callback
-            
+
         while True:
             if self.fading:
                 for frame,total in self.fade_speed:
@@ -66,7 +64,7 @@ class ScreenOverlay(Entity):
                         Game.lerp(self.current_colour_from[3], self.current_colour_to[3], frame / total)
                         )
                     yield
-                if self.blocking:                        
+                if self.blocking:
                     Game.disable_entity_execution = False
                 if not self.callback is None:
                     self.callback()
@@ -83,7 +81,7 @@ class ScreenOverlay(Entity):
         self.current_colour_from = self.colour_from
         self.current_colour_to = self.colour_to
         self.fading = True
-        
+
 
     def fade_to_from(self, fade_speed):
         self.fade_speed = fade_speed
@@ -91,7 +89,7 @@ class ScreenOverlay(Entity):
         self.current_colour_to = self.colour_from
         self.kill_after_fade = True
         self.fading = True
-        
+
 
     def draw(self):
         Game.engine['gfx'].draw_rectangle(
@@ -103,6 +101,7 @@ class ScreenOverlay(Entity):
         # Kivy is special so we make sure that our attached widget is the right colour and size
         # to get the overlay to appear
         if Game.engine_def['gfx'] == "kivy":
+            from kivy.graphics import Color, PushMatrix, PopMatrix, Translate, Quad
             if not self in Game.engine['gfx'].entity_draws:
                 Game.engine['gfx'].entity_draws[self] = dict()
                 with Game.engine['gfx'].widget.canvas:
@@ -110,7 +109,7 @@ class ScreenOverlay(Entity):
                     Game.engine['gfx'].entity_draws[self]['color'].rgba = self.current_colour
                     PushMatrix()
                     Game.engine['gfx'].entity_draws[self]['translate'] = Translate()
-                    
+
                     Game.engine['gfx'].entity_draws[self]['rect'] = Quad(
                         points = (0.0, 0.0, self.width, 0.0, self.width, self.height, 0.0, self.height)
                         )
@@ -121,6 +120,3 @@ class ScreenOverlay(Entity):
                 Game.engine['gfx'].entity_draws[self]['translate'].xy = (self.x, self.y)
                 Game.engine['gfx'].entity_draws[self]['color'].rgba = self.current_colour
                 Game.engine['gfx'].entity_draws[self]['rect'].points = (0.0, 0.0, self.width, 0.0, self.width, self.height, 0.0, self.height)
-        
-        
-    

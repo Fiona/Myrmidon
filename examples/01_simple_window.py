@@ -15,6 +15,9 @@ import sys
 from myrmidon import Game, Entity
 from myrmidon.consts import *
 
+# This example uses Pygame locals for it's input routines
+from pygame.locals import *
+
 # An Entity object must be running before the application will open, in this case
 # we will have an Entity to represent our screen that will be responsible for
 # quitting the application upon hitting the escape key.
@@ -22,7 +25,7 @@ class Screen(Entity):
 
     # Each Entity will at least have this method, which contains the behaviour of it.
     # Rather than being a typical method it is instead a Python generator, allowing
-    # entities to essentially be mini-program loops themselves.    
+    # entities to essentially be mini-program loops themselves.
     def execute(self):
         # We want this entity to check for the escape key every frame, so we use a loop.
         while True:
@@ -38,4 +41,3 @@ class Screen(Entity):
 # We create our Entity object and start executing from it's code. As soon as an Entity
 # is made the application will start.
 Screen()
-            

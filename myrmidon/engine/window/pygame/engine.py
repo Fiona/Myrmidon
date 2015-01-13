@@ -1,7 +1,7 @@
 """
 Myrmidon
 Copyright (c) 2010 Fiona Burrows
- 
+
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
 files (the "Software"), to deal in the Software without
@@ -10,10 +10,10 @@ copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the
 Software is furnished to do so, subject to the following
 conditions:
- 
+
 The above copyright notice and this permission notice shall be
 included in all copies or substantial portions of the Software.
- 
+
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
 OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -22,7 +22,7 @@ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
- 
+
 ---------------------
 
 - BACKEND FILE -
@@ -33,6 +33,7 @@ A pygame-based window creation and handling backend.
 """
 
 import os, pygame
+import pygame.locals
 from myrmidon import Game, MyrmidonError, BaseFont
 
 
@@ -40,12 +41,12 @@ class Myrmidon_Backend(object):
     opengl = False
     screen = None
     flags = 0
-        
+
     def __init__(self):
         if Game.engine_def['gfx'] in ["opengl", "modern_opengl"]:
             self.opengl = True
         os.environ['SDL_VIDEO_CENTERED'] = '1'
-        pygame.mixer.pre_init(44100,-16,2, 1024 * 3)                
+        pygame.mixer.pre_init(44100,-16,2, 1024 * 3)
         pygame.init()
 
         if self.opengl:
@@ -72,13 +73,16 @@ class Myrmidon_Backend(object):
 
     def set_window_loop(self, callback, target_fps = 30):
         self.callback = callback
-        
+
 
     def open_window(self):
         # Do the traditional loop here
         while Game.started:
             self.callback(0.0)
-                                
+
+    def app_loop_tick(self):
+        """Runs once every frame before any entity code or rendering."""
+        pass
 
     def resolution_fallback(self):
         """ Reset resolution down to the lowest supported and windowed. """
@@ -93,8 +97,8 @@ class Myrmidon_Backend(object):
                 self.disable_multisamples()
             else:
                 raise MyrmidonError("Couldn't find a supported video mode.")
-                        
-                        
+
+
     def disable_multisamples(self):
         """ If this system doesn't support samplebuffers and also as a last ditch to get
         a working video mode we'll try disabling them. """
@@ -109,24 +113,24 @@ class Myrmidon_Backend(object):
                 self.resolution_fallback()
             else:
                 raise MyrmidonError("Couldn't find a supported video mode.")
-                        
+
 
     def Clock(self):
         return pygame.time.Clock()
-        
+
 
     def change_resolution(self, resolution):
         pygame.display.quit()
         self.__init__()
 
-                
+
     def set_title(self, title):
         pygame.display.set_caption(title)
 
 
     class Font(BaseFont):
         loaded_font = None
-        
+
         def __init__(self, font = None, size = 20):
             self.size = size
             if isinstance(font, str):

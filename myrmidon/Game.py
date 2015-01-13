@@ -1,7 +1,7 @@
 """
 Myrmidon
 Copyright (c) 2010 Fiona Burrows
- 
+
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
 files (the "Software"), to deal in the Software without
@@ -10,10 +10,10 @@ copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the
 Software is furnished to do so, subject to the following
 conditions:
- 
+
 The above copyright notice and this permission notice shall be
 included in all copies or substantial portions of the Software.
- 
+
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
 OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -22,9 +22,9 @@ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
- 
+
 ---------------------
- 
+
 An open source, actor based framework for fast game development for Python.
 
 This contains the primary Game object from where you manipulate
@@ -42,7 +42,7 @@ class Game(object):
 
     # Enabling debugging will allow invaking of PUDB with the F11 key
     debug = False
-    
+
     # Engine related
     started = False
 
@@ -52,7 +52,7 @@ class Game(object):
     # Any entity objects you create will not interate their generator
     # unless you run Entity._iterate_generator manually.
     test_mode = False
-    
+
     engine_def = {
         "window" : "pygame",
         "gfx" : "opengl",
@@ -76,7 +76,7 @@ class Game(object):
     _module_list = []
     modules_enabled = ()
     modules_loaded_for = []
-    
+
     current_fps = 30
     fps = 0
 
@@ -104,7 +104,7 @@ class Game(object):
     # Designed to be set by the window engine, if it's set to True, we imply that the device
     # we're running on is a mobile device of some kind. (Will also be True for tablets.)
     is_phone = False
-    
+
 
     @classmethod
     def define_engine(cls, window = None, gfx = None, input = None, audio = None):
@@ -120,7 +120,7 @@ class Game(object):
         if audio:
             cls.engine_def['audio'] = audio
 
-            
+
     @classmethod
     def define_engine_plugins(cls, window = [], gfx = [], input = [], audio = []):
         """
@@ -132,11 +132,11 @@ class Game(object):
         cls.engine_plugin_def['gfx'] = gfx
         cls.engine_plugin_def['input'] = input
         cls.engine_plugin_def['audio'] = audio
-            
+
 
     @classmethod
     def init_engines(cls):
-        # Attempt to dynamically import the required engines 
+        # Attempt to dynamically import the required engines
         try:
             for backend_name in ['window', 'gfx', 'input', 'audio']:
                 backend_module = __import__(
@@ -147,11 +147,11 @@ class Game(object):
                     0
                     )
                 cls.engine[backend_name] = backend_module.Myrmidon_Backend()
-                
+
         except ImportError as detail:
             print("Error importing a backend engine.", detail)
             sys.exit()
-            
+
         # Test mode uses dummy engines
         if cls.test_mode:
             from .backend_dummy import MyrmidonWindowDummy, MyrmidonGfxDummy, MyrmidonInputDummy, MyrmidonAudioDummy
@@ -160,7 +160,7 @@ class Game(object):
             cls.engine['input'] = MyrmidonInputDummy()
             cls.engine['audio'] = MyrmidonAudioDummy()
             return
-        
+
 
     @classmethod
     def load_engine_plugins(cls, engine_object, backend_name):
@@ -177,12 +177,12 @@ class Game(object):
                         -1
                         )
                     engine_object.plugins[plugin_name] = plugin_module.Myrmidon_Engine_Plugin(engine_object)
-                
+
         except ImportError as detail:
             print("Error importing a backend engine plugin.", detail)
             sys.exit()
 
-            
+
     @classmethod
     def start_game(cls):
         """
@@ -215,12 +215,12 @@ class Game(object):
     @classmethod
     def app_loop_callback(cls, dt):
         cls.engine['window'].app_loop_tick()
-        
+
         # If we need to register something
         if cls.first_registered_entity:
             cls.entity_register(cls.first_registered_entity)
             cls.first_registered_entity = None
-        
+
         # Reorder Entities by execution priority if necessary
         if cls.entity_priority_dirty == True:
             cls.entity_list.sort(
@@ -237,7 +237,7 @@ class Game(object):
 
         if cls.debug and cls.keyboard_key_released(K_F11):
             from pudb import set_trace; set_trace()
-                
+
         # For each entity in priority order we iterate their
         # generators executing their code
         if not cls.disable_entity_execution:
@@ -253,7 +253,7 @@ class Game(object):
             if not cls.screen_overlay is None:
                 cls.current_entity_executing = cls.screen_overlay
                 cls.screen_overlay._iterate_generator()
-                
+
         # If we have marked any entities for removal we do that here
         for x in cls.entities_to_remove:
             if x in cls.entity_list:
@@ -263,7 +263,7 @@ class Game(object):
 
         # Pass off to the gfx engine to display entities
         cls.engine['gfx'].update_screen_pre()
-        cls.engine['gfx'].draw_entities(cls.entity_list)              
+        cls.engine['gfx'].draw_entities(cls.entity_list)
         cls.engine['gfx'].update_screen_post()
 
         # Wait for next frame, hitting a particular fps
@@ -282,7 +282,7 @@ class Game(object):
     # ENTITIES
     ##############################################
 
-    
+
     @classmethod
     def entity_register(cls, entity):
         """
@@ -295,10 +295,10 @@ class Game(object):
         # Handle relationships
         if cls.current_entity_executing != None:
             entity.parent = cls.current_entity_executing
-                
+
             if not entity.parent.child == None:
                 entity.parent.child.prev_sibling = entity
-                    
+
             entity.next_sibling = entity.parent.child
             entity.parent.child = entity
 
@@ -340,7 +340,7 @@ class Game(object):
         entity_list = cls.get_entities(target, tree = tree)
         for entity in entity_list:
             entity._executing = False
-            
+
 
     @classmethod
     def start_entities_executing(cls, target, tree = False):
@@ -430,7 +430,7 @@ class Game(object):
             entity._drawing = not entity._drawing
 
 
-    @classmethod        
+    @classmethod
     def get_entities(cls, target, tree = False):
         """This method returns a list of all Entities matching a type searched for.
 
@@ -459,7 +459,7 @@ class Game(object):
             cls.add_entity_to_list(target, found_entity_list, tree = tree)
 
         return found_entity_list
-    
+
 
     @classmethod
     def add_entity_to_list(cls, entity, entity_list, tree = False):
@@ -482,14 +482,14 @@ class Game(object):
                 if not next_child in entity_list:
                     cls.add_entity_to_list(next_child, entity_list, tree = tree)
                 next_child = next_child.next_sibling
-           
-        
+
+
     ##############################################
     # INPUT
     ##############################################
 
-    
-    @classmethod        
+
+    @classmethod
     def keyboard_key_down(cls, key_code):
         """
         Ask if a key is currently being pressed.
@@ -500,7 +500,7 @@ class Game(object):
         return cls.engine['input'].keyboard_key_down(key_code)
 
 
-    @classmethod        
+    @classmethod
     def keyboard_key_released(cls, key_code):
         """
         Ask if a key has just been released last frame.
@@ -516,10 +516,10 @@ class Game(object):
         """Gives access to an Entity object that represents the mouse.
         """
         return cls.engine['input'].mouse
-    
+
 
     ##############################################
-    # MEDIA 
+    # MEDIA
     ##############################################
     @classmethod
     def load_image(cls, image = None, sequence = False, width = None, height = None, **kwargs):
@@ -568,16 +568,16 @@ class Game(object):
           (default None)
         """
         return cls.engine['audio'].Audio(audio)
-    
-    
+
+
     ##############################################
     # TEXT HANDLING
     ##############################################
-    @classmethod    
+    @classmethod
     def write_text(cls, x, y, font, alignment = 0, text = "", antialias = True):
         return cls.engine['gfx'].Text(font, x, y, alignment, text, antialias = True)
 
-    @classmethod    
+    @classmethod
     def delete_text(cls, text):
         if text in Game.entity_list:
             cls.destroy_entities(text)
@@ -586,20 +586,20 @@ class Game(object):
     ##############################################
     # HELPFUL MATH
     ##############################################
-    @classmethod    
+    @classmethod
     def get_distance(cls, pointa, pointb):
         return math.sqrt((math.pow((pointb[1] - pointa[1]), 2) + math.pow((pointb[0] - pointa[0]), 2)))
 
-    @classmethod    
+    @classmethod
     def move_forward(cls, pos, distance, angle):
         pos2 = [0.0,0.0]
-        
+
         pos2[0] = pos[0] + distance * math.cos(math.radians(angle))
-        pos2[1] = pos[1] + distance * math.sin(math.radians(angle))             
+        pos2[1] = pos[1] + distance * math.sin(math.radians(angle))
 
         return pos2
 
-    @classmethod    
+    @classmethod
     def angle_between_points(cls, pointa, pointb):
         """
         Take two tuples each containing coordinates between two points and
@@ -607,7 +607,7 @@ class Game(object):
         """
         return math.degrees(math.atan2(pointb[1] - pointa[1], pointb[0] - pointa[0]))
 
-    @classmethod 
+    @classmethod
     def normalise_angle(cls, angle):
         """
         Returns an equivalent angle value between 0 and 360
@@ -620,7 +620,7 @@ class Game(object):
         return angle
         """
         return angle % 360.0
-    
+
     @classmethod
     def angle_difference(cls, start_angle, end_angle, skip_normalise = False):
         """
@@ -630,34 +630,34 @@ class Game(object):
         if not skip_normalise:
             start_angle = cls.normalise_angle(start_angle)
             end_angle = cls.normalise_angle(end_angle)
-        
+
         difference = end_angle - start_angle
         if difference > 180.0:
             difference -= 360.0
         if difference < -180.0:
             difference += 360.0
-            
+
         return difference
-    
+
     @classmethod
     def near_angle(cls, curr_angle, targ_angle, increment, leeway = 0):
-        """ 
-        Returns an angle which has been moved from 'curr_angle' closer to 
-        'targ_angle' by 'increment'. increment should always be positive, as 
-        angle will be rotated in the direction resulting in the shortest 
+        """
+        Returns an angle which has been moved from 'curr_angle' closer to
+        'targ_angle' by 'increment'. increment should always be positive, as
+        angle will be rotated in the direction resulting in the shortest
         distance to the target angle.
         leeway specifies an acceptable distance from the target to accept,
         allowing you to specify a cone rather than a specific point.
         """
         # Normalise curr_angle
         curr_angle = cls.normalise_angle(curr_angle)
-            
+
         # Normalise targ_angle
         targ_angle = cls.normalise_angle(targ_angle)
-            
+
         # calculate difference
         difference = cls.angle_difference(curr_angle, targ_angle, skip_normalise = True)
-            
+
         # do increment
         if math.fabs(difference) <= leeway:
             return curr_angle
@@ -715,7 +715,7 @@ class Game(object):
     # COLLISION ROUTINES
     ##############################################
 
-    
+
     @classmethod
     def collision_rectangle_to_rectangle(cls, rectangle_a, rectangle_b):
         """
@@ -734,13 +734,13 @@ class Game(object):
         # Step 1 is calculating the 4 axis of our two objects
         # we will use them check the collisions
         axis = [(0,0), (0,0), (0,0), (0,0)]
-            
+
         axis[0] = (check_object_a['ur'][0] - check_object_a['ul'][0],
                    check_object_a['ur'][1] - check_object_a['ul'][1])
 
         axis[1] = (check_object_a['ur'][0] - check_object_a['lr'][0],
                    check_object_a['ur'][1] - check_object_a['lr'][1])
-            
+
         axis[2] = (check_object_b['ul'][0] - check_object_b['ll'][0],
                    check_object_b['ul'][1] - check_object_b['ll'][1])
 
@@ -780,7 +780,7 @@ class Game(object):
             # If they don't then we can conclude that no collision has occured.
             if not (rectangle_bounds[rectangle_b]['min'] <= rectangle_bounds[rectangle_a]['max'] and rectangle_bounds[rectangle_b]['max'] >= rectangle_bounds[rectangle_a]['min']):
                 return False
-                
+
         # If we have got this far then we can assume that a collision has occured.
         return True
 
@@ -809,10 +809,10 @@ class Game(object):
             rectangle.x,
             rectangle.y
             )
-        
+
         # Check that point is within the rectangle
         return Game.point_in_rectangle(rotated_point, (rectangle.x, rectangle.y), check_object_b_size)
-    
+
 
     @classmethod
     def collision_circle_to_rectangle(cls, circle, rectangle):
@@ -830,7 +830,7 @@ class Game(object):
         check_object_a_radius = check_object_a.collision_circle_calculate_radius()
         check_object_b_corners = check_object_b.collision_rectangle_calculate_corners()
         check_object_b_size = check_object_b.collision_rectangle_size()
-        
+
         # rotate the cicle by -rectangle_angle around the centre of the rectangle
         rotated_ciricle = Game.rotate_point_about_point(
             check_object_a.x,
@@ -842,7 +842,7 @@ class Game(object):
 
         half_width = check_object_b_size[0] / 2
         half_height = check_object_b_size[1] / 2
-        
+
         circle_distance = (abs(rotated_ciricle[0] - check_object_b.x), abs(rotated_ciricle[1] - check_object_b.y))
 
         if circle_distance[0] > (half_width + check_object_a_radius) or \
@@ -855,7 +855,7 @@ class Game(object):
 
         corner_distance_sq = ((circle_distance[0] - half_width) ** 2) + ((circle_distance[1] - half_height) ** 2)
 
-        return (corner_distance_sq <= (check_object_a_radius**2))                            
+        return (corner_distance_sq <= (check_object_a_radius**2))
 
 
     @classmethod
@@ -895,7 +895,7 @@ class Game(object):
         check_object_b = circle
         check_object_a_point = check_object_a.collision_point_calculate_point()
         check_object_b_radius = check_object_b.collision_circle_calculate_radius()
-                    
+
         # Outside of each others radius
         if cls.get_distance(check_object_a_point, (check_object_b.x + check_object_b_radius, check_object_b.y + check_object_b_radius)) > check_object_b_radius:
             return False
@@ -908,12 +908,12 @@ class Game(object):
         """
         Checks collision between two Entities with their type as COLLISION_TYPE_POINT.
         Practically useless but here for completion.
-        Returns True/False on collision.        
+        Returns True/False on collision.
 
         Keyword arguments:
         -- point_a: The first Entity.
         -- point_b: The Entity we are checking against.
-        """        
+        """
         point_a = point_a.collision_point_calculate_point()
         point_b = point_b.collision_point_calculate_point()
         return True if point_a[0] == point_b[0] and point_a[1] == point_b[1] else False
@@ -979,7 +979,7 @@ class Game(object):
             pos = (0, 0)
         if size is None:
             size = cls.screen_resolution[0] * cls.device_scale, cls.screen_resolution[1] * cls.device_scale
-            
+
         from myrmidon.ScreenOverlay import ScreenOverlay
         cls.screen_overlay = ScreenOverlay(colour_from, colour_to, blocking, pos, size, z, callback)
         cls.screen_overlay.fade_from_to(fade_speed)
@@ -1017,8 +1017,8 @@ class Game(object):
         if cls.screen_overlay is None:
             return
         if fade_speed is None:
-            fade_speed = cls.timer_ticks(30)        
-        cls.screen_overlay.blocking = blocking        
+            fade_speed = cls.timer_ticks(30)
+        cls.screen_overlay.blocking = blocking
         cls.screen_overlay.callback = callback
         cls.screen_overlay.fade_to_from(fade_speed)
         if cls.screen_overlay.blocking:
@@ -1044,8 +1044,8 @@ class Game(object):
         is in the middle of a fade animation.
         """
         return not cls.screen_overlay is None
-    
-    
+
+
 
     ##############################################
     # MISCELANEOUS HELPERS
@@ -1097,9 +1097,9 @@ class Game(object):
     def lerp(cls, start, end, percentage):
         """Performs a linear interpolation by giving the value
         of percentage between the specified start and end values.
-        
+
         For instance:
-        lerp(0.0, 100.0, .5)        
+        lerp(0.0, 100.0, .5)
         Would return 50.0.
 
         Keyword arguments:
@@ -1134,7 +1134,7 @@ class Game(object):
         ticks.
         The generator returns how many times it's returned to that point and
         the total number of ticks, as floats in a two-part tuple.
-        
+
         Example usage:
 
         for frame, total in Game.timer_ticks(10):
@@ -1145,12 +1145,12 @@ class Game(object):
 
         Keyword arguments:
         -- ticks_to_wait: The number of times the generator should iterate.
-        """        
+        """
         ticks_waited = 0
         while ticks_waited < ticks_to_wait:
             ticks_waited += 1
             yield float(ticks_waited),float(ticks_to_wait)
-            
+
 
 
 # Define the collision function lookups so we entities know which one to call
@@ -1176,5 +1176,3 @@ class MyrmidonError(Exception):
         self.value = value
     def __str__(self):
         return repr(self.value)
-
-
