@@ -102,15 +102,15 @@ class Entity(BaseEntity):
     # recalculated once per frame if necessary but no more.
     _collision_rectangle_calculated_corners = {'ul' : (0.0, 0.0), 'ur' : (0.0, 0.0), 'll' : (0.0, 0.0), 'lr' : (0.0, 0.0)}
 
-
     # Internal private properties
+    _current_state = "execute"
+    _state_list = {}
+    _state_generators = {}
     _is_text = False
-    _generator = None
     _executing = True
     _drawing = True
 
-
-    def __init__(self, *args, **kargs):
+    def __init__(self, *args, **kwargs):
         if not Game.started:
             Game.first_registered_entity = self
             Game.start_game()
@@ -118,12 +118,15 @@ class Entity(BaseEntity):
             Game.entity_register(self)
 
         self._collision_rectangle_calculated_corners = {'ul' : (0.0, 0.0), 'ur' : (0.0, 0.0), 'll' : (0.0, 0.0), 'lr' : (0.0, 0.0)}
+        self._state_list = {}
+        self._state_generators = {}
+
+        self.add_state(self.execute, *args, **kwargs)
 
         Game.remember_current_entity_executing.append(Game.current_entity_executing)
         Game.current_entity_executing = self
         self._executing = True
         self._drawing = True
-        self._generator = self.execute(*args, **kargs)
         self._iterate_generator()
         Game.current_entity_executing = Game.remember_current_entity_executing.pop()
 
@@ -134,14 +137,12 @@ class Entity(BaseEntity):
             Game.started = True
             Game.run_game()
 
-
     def execute(self):
         """
-        This is where the main code for the entity lives
+        The default state method and where, typically, the main logic will sit.
         """
         while True:
             yield
-
 
     def on_exit(self):
         """
@@ -150,23 +151,46 @@ class Entity(BaseEntity):
         """
         pass
 
-
     def _iterate_generator(self):
         if not Game.started or not self._executing:
             return
+        return_val = None
         try:
-            next(self._generator)
+            return_val = next(self._state_generators[self._current_state])
         except StopIteration:
-            self.destroy()
-            return
+            if not return_val in self._state_generators:
+                self.destroy()
+                return
 
+    def add_state(self, state_method, *args, **kwargs):
+        """Adds a new generator method to the list of states the entity can have.
+        Pass in the method to register it. Any additional arguments or
+        keyword arguments are passed to the generator."""
+        self._state_list[state_method.__name__ ] = state_method
+        self._state_generators[state_method.__name__] = state_method(*args, **kwargs)
+
+    def switch_state(self, state_name, *args, **kwargs):
+        """Will switch to a different start, restarting it if previously
+        started and passing in arguments and keyword arguments.
+        It returns the started state generator. If you return a state from another state
+        then it will automatically started."""
+        self.resume_state(state_name)
+        self._state_generators[state_name] = self._state_list[state_name](*args, **kwargs)
+        return self._state_generators[state_name]
+
+    def resume_state(self, state_name):
+        """Starts executing a completely different state. If called from anywhere
+        other than the switch_state method it will not restart it.
+        It returns the started state generator. If you return a state from another state
+        then it will automatically resumed."""
+        self._current_state = state_name
+        return self._state_generators[state_name]
 
     def draw(self):
         """
         Override this to add custom drawing routines to your entity.
         """
         pass
-
 
     def get_screen_draw_position(self):
         """ At draw time this function is called to determine exactly where
