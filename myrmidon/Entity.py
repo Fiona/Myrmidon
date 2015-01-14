@@ -169,11 +169,18 @@ class Entity(BaseEntity):
         self._state_list[state_method.__name__ ] = state_method
         self._state_generators[state_method.__name__] = state_method(*args, **kwargs)
 
+    def check_state_started(self, state_name, *args, **kwargs):
+        """Used to switch and resume methods to initialise a state
+        generator. This is so we don't have to add them manually."""
+        if not state_name in self._state_list:
+            self.add_state(getattr(self, state_name), *args, **kwargs)
+
     def switch_state(self, state_name, *args, **kwargs):
         """Will switch to a different start, restarting it if previously
         started and passing in arguments and keyword arguments.
         It returns the started state generator. If you return a state from another state
         then it will automatically started."""
+        self.check_state_started(state_name, *args, **kwargs)
         self.resume_state(state_name)
         self._state_generators[state_name] = self._state_list[state_name](*args, **kwargs)
         return self._state_generators[state_name]
