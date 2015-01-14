@@ -1,7 +1,7 @@
 """
 Myrmidon
 Copyright (c) 2010 Fiona Burrows
- 
+
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
 files (the "Software"), to deal in the Software without
@@ -10,10 +10,10 @@ copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the
 Software is furnished to do so, subject to the following
 conditions:
- 
+
 The above copyright notice and this permission notice shall be
 included in all copies or substantial portions of the Software.
- 
+
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
 OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -22,9 +22,9 @@ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
- 
+
 ---------------------
- 
+
 An open source, actor based framework for fast game development for Python.
 
 This file contains the Entity object that represents displayable and interactable
@@ -44,7 +44,7 @@ class Entity(BaseEntity):
     # Basic entity properties
     _x = 0.0
     _y = 0.0
-    _z = 0.0
+    _z = 0
     _priority = 0
     _image = None
     _image_seq = 0
@@ -52,13 +52,14 @@ class Entity(BaseEntity):
     _alpha = 1.0
     _scale = 1.0
     _rotation = 0.0
+    _centre_point = [-1, -1]
 
     # Other properties (document)
     blend = False
     clip = None
     scale_point = [0.0, 0.0]
     normal_draw = True
-    
+
     # Entity relationships
     parent = None
     child = None
@@ -67,9 +68,9 @@ class Entity(BaseEntity):
 
     # Module list
     _module_list = []
-    
+
     # Collision related
-    
+
     # If set to False this Entity will never collide with
     # any other. It will silently fail to do so rather than error.
     collision_on = False
@@ -101,49 +102,47 @@ class Entity(BaseEntity):
     # recalculated once per frame if necessary but no more.
     _collision_rectangle_calculated_corners = {'ul' : (0.0, 0.0), 'ur' : (0.0, 0.0), 'll' : (0.0, 0.0), 'lr' : (0.0, 0.0)}
 
-
     # Internal private properties
+    _current_state = "execute"
+    _state_list = {}
+    _state_generators = {}
     _is_text = False
-    _generator = None
     _executing = True
     _drawing = True
-    
-    
-    def __init__(self, *args, **kargs):
+
+    def __init__(self, *args, **kwargs):
         if not Game.started:
+            Game.first_registered_entity = self
             Game.start_game()
+        else:
+            Game.entity_register(self)
 
-        Game.entity_register(self)
-
-        self.z = 0.0
-        self.x = 0.0
-        self.y = 0.0
-        self.priority = 0
         self._collision_rectangle_calculated_corners = {'ul' : (0.0, 0.0), 'ur' : (0.0, 0.0), 'll' : (0.0, 0.0), 'lr' : (0.0, 0.0)}
+        self._state_list = {}
+        self._state_generators = {}
+
+        self.add_state(self.execute, *args, **kwargs)
 
         Game.remember_current_entity_executing.append(Game.current_entity_executing)
         Game.current_entity_executing = self
         self._executing = True
-        self._drawing = True        
-        self._generator = self.execute(*args, **kargs)
+        self._drawing = True
         self._iterate_generator()
         Game.current_entity_executing = Game.remember_current_entity_executing.pop()
 
         for x in self._module_list:
             x._module_setup(self)
-            
+
         if not Game.started:
-            Game.started = True             
+            Game.started = True
             Game.run_game()
-            
 
     def execute(self):
         """
-        This is where the main code for the entity lives
+        The default state method and where, typically, the main logic will sit.
         """
         while True:
             yield
-            
 
     def on_exit(self):
         """
@@ -151,17 +150,41 @@ class Entity(BaseEntity):
         Is also called when a entity is killed using the destroy method.
         """
         pass
-    
-        
+
     def _iterate_generator(self):
         if not Game.started or not self._executing:
-            return        
-        try:
-            next(self._generator)
-        except StopIteration:
-            self.destroy()
             return
+        return_val = None
+        try:
+            return_val = next(self._state_generators[self._current_state])
+        except StopIteration:
+            if not return_val in self._state_generators:
+                self.destroy()
+                return
 
+    def add_state(self, state_method, *args, **kwargs):
+        """Adds a new generator method to the list of states the entity can have.
+        Pass in the method to register it. Any additional arguments or
+        keyword arguments are passed to the generator."""
+        self._state_list[state_method.__name__ ] = state_method
+        self._state_generators[state_method.__name__] = state_method(*args, **kwargs)
+
+    def switch_state(self, state_name, *args, **kwargs):
+        """Will switch to a different start, restarting it if previously
+        started and passing in arguments and keyword arguments.
+        It returns the started state generator. If you return a state from another state
+        then it will automatically started."""
+        self.resume_state(state_name)
+        self._state_generators[state_name] = self._state_list[state_name](*args, **kwargs)
+        return self._state_generators[state_name]
+
+    def resume_state(self, state_name):
+        """Starts executing a completely different state. If called from anywhere
+        other than the switch_state method it will not restart it.
+        It returns the started state generator. If you return a state from another state
+        then it will automatically resumed."""
+        self._current_state = state_name
+        return self._state_generators[state_name]
 
     def draw(self):
         """
@@ -169,13 +192,23 @@ class Entity(BaseEntity):
         """
         pass
 
-
     def get_screen_draw_position(self):
         """ At draw time this function is called to determine exactly where
         the entity will be drawn. Override this if you need to programatically
         constantly change the position of entity.
         Returns a tuple (x,y)"""
-        return self.x, self.y
+        if Game.centre_point_compatability_mode:
+            return self.x, self.y
+        centre = self.get_centre_point()
+        return self.x - (centre[0] * self.scale), self.y - (centre[1] * self.scale)
+
+    def get_centre_point(self):
+        """Returns the centre of the current image if the centre_point member
+        has not been explicitly set."""
+        if -1 in self.centre_point and not self.image is None:
+            return self.image.width / 2, self.image.height / 2
+        else:
+            return self.centre_point
 
 
     def destroy(self, tree = False):
@@ -254,14 +287,14 @@ class Entity(BaseEntity):
 
 
     ##############################################
-    # Collision model related methods 
+    # Collision model related methods
     ##############################################
 
 
     def collision_rectangle_calculate_corners(self):
         """This method is used as an optimisation for recangle collisions.
         We store the location of corners and only do it either once per frame
-        or if a relevant value has changed. (x/y/rotation/scale)
+        or if a relevant value has changed. (x/y/rotation/scale/centre_point)
 
         Returns a dictionary containing four tuples, 'ul', 'ur', 'll', 'lr'.
         The tuples are coordinates pointing to the four corners of the rotated and
@@ -272,22 +305,27 @@ class Entity(BaseEntity):
         # Determine the size of the rectangle to use
         width, height = self.collision_rectangle_size()
 
+        # Get the real x/y
+        centre = self.get_centre_point()
+        x = self.x - centre[0]
+        y = self.y - centre[1]
+
         # Rotate each point of the rectangle as the Entitiy is to calculate
         # it's true position.
         rot = Game.rotate_point(0, 0, self.rotation)
-        self._collision_rectangle_calculated_corners['ul'] = float(self.x + rot[0]), float(self.y + rot[1])
+        self._collision_rectangle_calculated_corners['ul'] = float(x + rot[0]), float(y + rot[1])
         rot = Game.rotate_point(width, 0, self.rotation)
-        self._collision_rectangle_calculated_corners['ur'] = float(self.x + rot[0]), float(self.y + rot[1])
+        self._collision_rectangle_calculated_corners['ur'] = float(x + rot[0]), float(y + rot[1])
         rot = Game.rotate_point(0, height, self.rotation)
-        self._collision_rectangle_calculated_corners['ll'] = float(self.x + rot[0]), float(self.y + rot[1])
+        self._collision_rectangle_calculated_corners['ll'] = float(x + rot[0]), float(y + rot[1])
         rot = Game.rotate_point(width, height, self.rotation)
-        self._collision_rectangle_calculated_corners['lr'] = float(self.x + rot[0]), float(self.y + rot[1])
+        self._collision_rectangle_calculated_corners['lr'] = float(x + rot[0]), float(y + rot[1])
 
         # Flag so we don't do this more than we need to.
         self._collision_rectangle_recalculate_corners = False
 
         return self._collision_rectangle_calculated_corners
-        
+
 
     def collision_rectangle_size(self):
         """Returns the width and height of the collision rectangle as a two-part tuple.
@@ -305,8 +343,8 @@ class Entity(BaseEntity):
         else:
             height = self.collision_rectangle_height
         return (float(width * self.scale), float(height * self.scale))
-        
-    
+
+
     def collision_circle_calculate_radius(self):
         """Returns the radius of the collision circle used in collision calucations.
         By default this uses the image width. Can be overriden by setting collision_circle_radius.
@@ -333,8 +371,8 @@ class Entity(BaseEntity):
 
     def collide_with(self, entities_colliding):
         """
-        Checks collisions with an arbitrary list of Entities using the relevant
-        algorithms depending on collision types specified.
+        Checks collisions with an arbitrary list of Entities (or a single Entity)
+        using the relevant algorithms depending on collision types specified.
         Returns a two-part tuple containing True/False and the first Entity we detected
         a collision with, if indeed we did.
 
@@ -342,7 +380,14 @@ class Entity(BaseEntity):
         -- entities_colliding: List of Entities to check collisons against."""
         if not self.collision_on:
             return (False, None)
-        
+
+        # If we haven't passed in an iterator we assume it's a single Entity object
+        # and turn it into a list
+        try:
+            iter(entities_colliding)
+        except TypeError:
+            entities_colliding = [entities_colliding]
+
         # Myrmidon needs to be told we're doing a collision for optimisation reasons
         Game.did_collision_check = True
 
@@ -360,7 +405,6 @@ class Entity(BaseEntity):
                 params = {self.collision_type + '_a' : self, check_object.collision_type + '_b' : check_object}
             else:
                 params = {self.collision_type : self, check_object.collision_type : check_object}
-
             collision_result = Game.collision_methods[(self.collision_type, check_object.collision_type)](**params)
 
             if collision_result:
@@ -368,7 +412,7 @@ class Entity(BaseEntity):
 
         # No collision
         return (False, None)
-    
+
 
     def reset_collision_model(self):
         """ During checking of collisions we may set some temporary values to
@@ -376,7 +420,7 @@ class Entity(BaseEntity):
         checks to reset those."""
         self._collision_rectangle_recalculate_corners = True
 
-        
+
 
     ##############################################
     # Special properties
@@ -396,7 +440,7 @@ class Entity(BaseEntity):
     def x(self):
         self._x = 0.0
         _collision_rectangle_recalculate_corners = True
-        
+
     # Y
     @property
     def y(self):
@@ -426,7 +470,7 @@ class Entity(BaseEntity):
 
     @z.deleter
     def z(self):
-        self._z = 0.0
+        self._z = 0
 
     # priority
     @property
@@ -541,4 +585,17 @@ class Entity(BaseEntity):
         self._rotation = None
         _collision_rectangle_recalculate_corners = True
 
+    # Centre point of graphic
+    @property
+    def centre_point(self):
+        return self._centre_point
 
+    @centre_point.setter
+    def centre_point(self, value):
+        self._centre_point = value
+        _collision_rectangle_recalculate_corners = True
+
+    @centre_point.deleter
+    def centre_point(self):
+        self._centre_point = None
+        _collision_rectangle_recalculate_corners = True
