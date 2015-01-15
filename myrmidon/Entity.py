@@ -32,11 +32,13 @@ game objects.
 """
 
 import sys, os, math
+from collections import namedtuple
 from myrmidon.consts import *
 from myrmidon.Game import Game
 from myrmidon.BaseEntity import BaseEntity
 from myrmidon.ModuleLoader import ModuleLoader
 
+EntityCollisionResult = namedtuple('EntityCollisionResult', ['result', 'entity'])
 
 @ModuleLoader
 class Entity(BaseEntity):
@@ -380,13 +382,14 @@ class Entity(BaseEntity):
         """
         Checks collisions with an arbitrary list of Entities (or a single Entity)
         using the relevant algorithms depending on collision types specified.
-        Returns a two-part tuple containing True/False and the first Entity we detected
-        a collision with, if indeed we did.
+        Returns a EntityCollisionResult, a namedtuple containing 'result' as a bool
+        and 'entity' - If there was a found collision and which of the passed entities
+        was hit.
 
         Keyword arguments:
         -- entities_colliding: List of Entities to check collisons against."""
         if not self.collision_on:
-            return (False, None)
+            return EntityCollisionResult(result = False, entity = None)
 
         # If we haven't passed in an iterator we assume it's a single Entity object
         # and turn it into a list
@@ -415,10 +418,10 @@ class Entity(BaseEntity):
             collision_result = Game.collision_methods[(self.collision_type, check_object.collision_type)](**params)
 
             if collision_result:
-                return (True, check_object)
+                return EntityCollisionResult(result = True, entity = check_object)
 
         # No collision
-        return (False, None)
+        return EntityCollisionResult(result = False, entity = None)
 
 
     def reset_collision_model(self):
