@@ -219,6 +219,9 @@ class Entity(BaseEntity):
         else:
             return self.centre_point
 
+    def is_alive(self):
+        """Returns a boolean if the Entity is not destroyed yet."""
+        return self in Game.entity_list and self not in Game.entities_to_remove
 
     def destroy(self, tree = False):
         """Kills this Entity, stopping it from executing and displaying and
