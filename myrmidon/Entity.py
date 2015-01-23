@@ -196,6 +196,10 @@ class Entity(BaseEntity):
         self._current_state = state_name
         return self._state_generators[state_name]
 
+    def get_current_state(self):
+        """Returns the name of the state that is currently running on this entity as string"""
+        return self._current_state
+
     def draw(self):
         """
         Override this to add custom drawing routines to your entity.
