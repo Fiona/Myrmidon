@@ -192,6 +192,7 @@ class Entity(BaseEntity):
         other than the switch_state method it will not restart it.
         It returns the started state generator. If you return a state from another state
         then it will automatically resumed."""
+        self.check_state_started(state_name)
         self._current_state = state_name
         return self._state_generators[state_name]
 
@@ -447,12 +448,12 @@ class Entity(BaseEntity):
     def x(self, value):
         self._x = value
         Game.engine['gfx'].alter_x(self, self._x)
-        _collision_rectangle_recalculate_corners = True
+        self._collision_rectangle_recalculate_corners = True
 
     @x.deleter
     def x(self):
         self._x = 0.0
-        _collision_rectangle_recalculate_corners = True
+        self._collision_rectangle_recalculate_corners = True
 
     # Y
     @property
@@ -463,12 +464,12 @@ class Entity(BaseEntity):
     def y(self, value):
         self._y = value
         Game.engine['gfx'].alter_y(self, self._y)
-        _collision_rectangle_recalculate_corners = True
+        self._collision_rectangle_recalculate_corners = True
 
     @y.deleter
     def y(self):
         self._y = 0.0
-        _collision_rectangle_recalculate_corners = True
+        self._collision_rectangle_recalculate_corners = True
 
     # depth
     @property
@@ -511,12 +512,12 @@ class Entity(BaseEntity):
         #if not self._image == value:
         self._image = value
         Game.engine['gfx'].alter_image(self, self._image)
-        _collision_rectangle_recalculate_corners = True
+        self._collision_rectangle_recalculate_corners = True
 
     @image.deleter
     def image(self):
         self._image = None
-        _collision_rectangle_recalculate_corners = True
+        self._collision_rectangle_recalculate_corners = True
 
     # image sequence number
     @property
@@ -574,12 +575,12 @@ class Entity(BaseEntity):
         if not self._scale == value:
             self._scale = value
             Game.engine['gfx'].alter_scale(self, self._scale)
-            _collision_rectangle_recalculate_corners = True
+            self._collision_rectangle_recalculate_corners = True
 
     @scale.deleter
     def scale(self):
         self._scale = None
-        _collision_rectangle_recalculate_corners = True
+        self._collision_rectangle_recalculate_corners = True
 
     # Rotation
     @property
@@ -591,12 +592,12 @@ class Entity(BaseEntity):
         if not self._rotation == value:
             self._rotation = value
             Game.engine['gfx'].alter_rotation(self, self._rotation)
-            _collision_rectangle_recalculate_corners = True
+            self._collision_rectangle_recalculate_corners = True
 
     @rotation.deleter
     def rotation(self):
         self._rotation = None
-        _collision_rectangle_recalculate_corners = True
+        self._collision_rectangle_recalculate_corners = True
 
     # Centre point of graphic
     @property
@@ -606,9 +607,9 @@ class Entity(BaseEntity):
     @centre_point.setter
     def centre_point(self, value):
         self._centre_point = value
-        _collision_rectangle_recalculate_corners = True
+        self._collision_rectangle_recalculate_corners = True
 
     @centre_point.deleter
     def centre_point(self):
         self._centre_point = None
-        _collision_rectangle_recalculate_corners = True
+        self._collision_rectangle_recalculate_corners = True
