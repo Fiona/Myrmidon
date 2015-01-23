@@ -49,3 +49,17 @@ ALIGN_BOTTOM_RIGHT = 8
 COLLISION_TYPE_RECTANGLE = 'rectangle'
 COLLISION_TYPE_CIRCLE = 'circle'
 COLLISION_TYPE_POINT = 'point'
+
+# BEWARE - HERE BE HACKS
+# This used to do this all the time, but it breaks when you're
+# not using PyGame as the input. Unfortunately I liked only needing
+# one import line. So we check for it instead.
+# We're trying catch because it's the default value so it's likely
+# that you will import consts before even setting it. Which is bloody
+# marvelous.
+try:
+    from myrmidon.Game import Game
+    if Game.engine_def['input'] == "pygame":
+        from pygame.locals import *
+except ImportError:
+    pass
