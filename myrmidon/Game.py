@@ -106,6 +106,12 @@ class Game(object):
     # we're running on is a mobile device of some kind. (Will also be True for tablets.)
     is_phone = False
 
+    # The number of frames that have been executed, for counting reasons
+    current_frame = 0
+
+    # A dictionary of frame numbers to functions that need to be called when the game hits
+    # those frames. They're called after every entity has finished executing on the relevant frame.
+    scheduled_on_frame = {}
 
     @classmethod
     def define_engine(cls, window = None, gfx = None, input = None, audio = None):
@@ -254,6 +260,13 @@ class Game(object):
             if not cls.screen_overlay is None:
                 cls.current_entity_executing = cls.screen_overlay
                 cls.screen_overlay._iterate_generator()
+
+        # Handled scheduled timer functions
+        cls.current_frame += 1
+        if cls.current_frame in cls.scheduled_on_frame:
+            for function in cls.scheduled_on_frame[cls.current_frame]:
+                function()
+            del(cls.scheduled_on_frame[cls.current_frame])
 
         # If we have marked any entities for removal we do that here
         for x in cls.entities_to_remove:
@@ -1152,6 +1165,15 @@ class Game(object):
             ticks_waited += 1
             yield float(ticks_waited),float(ticks_to_wait)
 
+    @classmethod
+    def call_in_future(cls, function, frames_in_future):
+        """Will call the passed function the number of frames in the future
+        passed in. For instance, passing '30' for frames_in_future will cause Myrmidon
+        to automatically call the function after 30 frames of execution."""
+        time = cls.current_frame + frames_in_future
+        if not time in cls.scheduled_on_frame:
+            cls.scheduled_on_frame[time] = []
+        cls.scheduled_on_frame[time].append(function)
 
 
 # Define the collision function lookups so we entities know which one to call
