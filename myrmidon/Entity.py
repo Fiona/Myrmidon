@@ -61,6 +61,8 @@ class Entity(BaseEntity):
     clip = None
     scale_point = [0.0, 0.0]
     normal_draw = True
+    flip_vertical = False
+    flip_horizontal = False
 
     # Entity relationships
     parent = None

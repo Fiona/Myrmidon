@@ -113,6 +113,15 @@ class Myrmidon_Backend(Entity):
                 y = Game.screen_resolution[1] - (entity.image.height * entity.scale) - y
                 pos = ((x * Game.device_scale) - Game.global_x_pos_adjust, y * Game.device_scale)
 
+                # Figure out how the textures are drawn to accomodate for image flippery
+                tex_coords = (0, 1, 1, 1, 1, 0, 0, 0)
+                if entity.flip_vertical and entity.flip_horizontal:
+                    tex_coords = (1, 0, 0, 0, 0, 1, 1, 1)
+                elif entity.flip_vertical:
+                    tex_coords = (0, 0, 1, 0, 1, 1, 0, 1)
+                elif entity.flip_horizontal:
+                    tex_coords = (1, 1, 0, 1, 0, 0, 1, 0)
+
                 # If this entity hasn't yet been attached to the canvas then do so
                 if not entity in self.entity_draws:
                     self.entity_draws[entity] = dict()
@@ -126,7 +135,8 @@ class Myrmidon_Backend(Entity):
                         self.entity_draws[entity]['rotate'].set(entity.rotation, 0, 0, 1)
                         self.entity_draws[entity]['rect'] = Quad(
                             texture = entity.image.image.texture,
-                            points = (0.0, 0.0, size[0], 0.0, size[0], size[1], 0.0, size[1])
+                            points = (0.0, 0.0, size[0], 0.0, size[0], size[1], 0.0, size[1]),
+                            tex_coords = tex_coords,
                             )
                         self.entity_draws[entity]['translate'].xy = pos
                         PopMatrix()
@@ -139,6 +149,7 @@ class Myrmidon_Backend(Entity):
                     color.a = entity.alpha
                     self.entity_draws[entity]['rect'].texture = entity.image.image.texture
                     self.entity_draws[entity]['rect'].points = (0.0, 0.0, size[0], 0.0, size[0], size[1], 0.0, size[1])
+                    self.entity_draws[entity]['rect'].tex_coords = tex_coords
 
             entity.draw()
 
