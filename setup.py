@@ -11,6 +11,7 @@ setup(
     url = 'http://www.github.com/Fiona/Myrmidon',
     packages = [
         'myrmidon', 'myrmidon.engine',
+        'myrmidon.Modules', 'myrmidon.Modules.Entity_Helper',
         'myrmidon.engine.audio', 'myrmidon.engine.audio.pygame', 'myrmidon.engine.audio.kivy',
         'myrmidon.engine.window', 'myrmidon.engine.window.pygame', 'myrmidon.engine.window.kivy',
         'myrmidon.engine.input', 'myrmidon.engine.input.pygame', 'myrmidon.engine.input.kivy',
