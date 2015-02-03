@@ -84,6 +84,11 @@ class Entity(BaseEntity):
     # are currently the acceptable types.
     collision_type = COLLISION_TYPE_RECTANGLE
 
+    # This is the offset of where all collisions will be checked from.
+    # It is an optional offset from the x/y position of the Entity. Provided
+    # as a two part tuple.
+    collision_offset = None
+
     # Width and height of the collision rectangle if that type is used.
     # Specifying None will just take the size from the size of the image.
     collision_rectangle_width = None
@@ -92,11 +97,6 @@ class Entity(BaseEntity):
     # The size of the bounding circle when using that as the collision type.
     # Specifying None will just take the radius from the width of the image.
     collision_circle_radius = None
-
-    # This is the offset of the point when using that as the collision type.
-    # It is an optional offset from the x/y position of the Entity. Provided
-    # as a two part tuple.
-    collision_point_offset = None
 
     # We use this to know if it's worth recalculating the corners for this
     # Entity as this can be a fairly costly procedure.
@@ -329,6 +329,10 @@ class Entity(BaseEntity):
         x = self.x - centre[0]
         y = self.y - centre[1]
 
+        if not self.collision_offset is None:
+            x += self.collision_offset[0]
+            y += self.collision_offset[1]
+
         # Rotate each point of the rectangle as the Entitiy is to calculate
         # it's true position.
         rot = Game.rotate_point(0, 0, self.rotation)
@@ -382,8 +386,8 @@ class Entity(BaseEntity):
         any offset assigned to collision_point_offset.
         """
         point = (self.x, self.y)
-        if not self.collision_point_offset is None:
-            rot = Game.rotate_point(self.collision_point_offset[0], self.collision_point_offset[1], self.rotation)
+        if not self.collision_offset is None:
+            rot = Game.rotate_point(self.collision_offset[0], self.collision_offset[1], self.rotation)
             point = (point[0] + rot[0], point[1] + rot[1])
         return point
 
