@@ -448,13 +448,6 @@ class Myrmidon_Backend(object):
             return new_list
 
 
-        def __del__(self):
-            for list in self.surfaces_draw_lists:
-                glDeleteLists(list, 1)
-            #for surf in self.surfaces:
-            #    glDeleteTextures(surf)                                
-
-
     text_texture_cache = {}
         
 
