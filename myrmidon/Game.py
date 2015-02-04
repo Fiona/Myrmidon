@@ -207,7 +207,7 @@ class Game(object):
         Called by entities if a game is not yet started.
         Is responsible for the main loop.
         """
-        # No execution of anything if in test mode.
+        # No execution of anything if in tests mode.
         if cls.test_mode:
             return
 
@@ -626,13 +626,6 @@ class Game(object):
         """
         Returns an equivalent angle value between 0 and 360
         """
-        """
-        while angle < 0.0:
-            angle += 360.0
-        while angle >= 360.0:
-            angle -= 360.0
-        return angle
-        """
         return angle % 360.0
 
     @classmethod
@@ -661,7 +654,8 @@ class Game(object):
         angle will be rotated in the direction resulting in the shortest
         distance to the target angle.
         leeway specifies an acceptable distance from the target to accept,
-        allowing you to specify a cone rather than a specific point.
+        allowing you to specify a segment to reach rather than a specific angle.
+        The angle is returned unchanged if within the target segment.
         """
         # Normalise curr_angle
         curr_angle = cls.normalise_angle(curr_angle)
@@ -684,7 +678,7 @@ class Game(object):
 
     @classmethod
     def rotate_point(cls, x, y, rotation):
-        """Rotates a point in euclidian space using a rotation matrix.
+        """Rotates a point by the given number of degrees about the origin.
 
         Keyword arguments:
         -- x:  First coordinate part of the point.
@@ -716,13 +710,13 @@ class Game(object):
 
         Keyword arguments:
         -- point: Tuple containing the coordinates of the point.
-        -- rectangle_origin: Tuple containing the position of the rectangle.
+        -- rectangle_origin: Tuple containing the top left corner of the rectangle.
         -- rectangle_size: Tuple containing the width and height of the rectangle.
         """
-        return (point[0] > rectangle_origin[0] and \
-               point[0] < (rectangle_origin[0] + rectangle_size[0]) and \
-               point[1] > rectangle_origin[1] and \
-               point[1] < (rectangle_origin[1] + rectangle_size[1]))
+        return (point[0] > rectangle_origin[0] and
+                point[0] < (rectangle_origin[0] + rectangle_size[0]) and
+                point[1] > rectangle_origin[1] and
+                point[1] < (rectangle_origin[1] + rectangle_size[1]))
 
 
     ##############################################
@@ -1108,7 +1102,7 @@ class Game(object):
 
 
     @classmethod
-    def lerp(cls, start, end, percentage):
+    def lerp(cls, start, end, amount):
         """Performs a linear interpolation by giving the value
         of percentage between the specified start and end values.
 
@@ -1119,26 +1113,26 @@ class Game(object):
         Keyword arguments:
         -- start: The start value of the interpolation as a float.
         -- end: The end value of the interpolation as a float.
-        -- percentage: What position between the start and end points
+        -- amount: What position between the start and end points
          to return, given as a float value between 0 and 1.
          """
-        return (start + percentage * (end - start))
+        return (start + amount * (end - start))
 
 
     @classmethod
-    def slerp(cls, start, end, percentage):
+    def slerp(cls, start, end, amount):
         """Does the same as lerp except maps the value to a smooth curve
         as opposed to a straight line.
 
         Keyword arguments:
         -- start: The start value of the interpolation as a float.
         -- end: The end value of the interpolation as a float.
-        -- percentage: What position between the start and end points
+        -- amount: What position between the start and end points
          to return, given as a float value between 0 and 1.
         """
         # Perform the curve adjustment
-        percentage = ((percentage) * (percentage) * (3 - 2 * (percentage)))
-        return (start + percentage * (end - start))
+        amount = ((amount) * (amount) * (3 - 2 * (amount)))
+        return (start + amount * (end - start))
 
 
     @classmethod
