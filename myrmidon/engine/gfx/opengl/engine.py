@@ -129,21 +129,27 @@ class Myrmidon_Backend(object):
             # glrotate works by you translating to the point around which you wish to rotate
             # and applying the rotation you can translate back to apply the real translation
             # position
-            if not entity.rotation == 0.0:
+            # Flipping is also done here.
+            if not entity.rotation == 0.0 or entity.flip_vertical or entity.flip_horizontal:
                 x = draw_x + (entity.image.width/2) * entity.scale
                 y = draw_y + (entity.image.height/2) * entity.scale
                 glTranslatef(x, y, 0)
-                glRotatef(entity.rotation, 0, 0, 1)
+                if not entity.rotation == 0.0:
+                    glRotatef(entity.rotation, 0, 0, 1)
+                if entity.flip_vertical:
+                    glScalef(1.0, -1.0, 1.0)
+                if entity.flip_horizontal:
+                    glScalef(-1.0, 1.0, 1.0)
                 glTranslatef(-x, -y, 0)
                                 
             # move to correct draw pos
             glTranslatef(draw_x, draw_y, 0.0)
 
             # scale if necessary
+            glTranslatef(entity.scale_point[0], entity.scale_point[1], 0) 
             if not entity.scale == 1.0:
-                glTranslatef(entity.scale_point[0], entity.scale_point[1], 0) 
-                glScalef(entity.scale, entity.scale, 1.0)             
-                glTranslatef(-entity.scale_point[0], -entity.scale_point[1], 0)
+                glScalef(entity.scale, entity.scale, 1.0)
+            glTranslatef(-entity.scale_point[0], -entity.scale_point[1], 0)
                                         
             # bending function
             if entity.blend:
@@ -440,13 +446,6 @@ class Myrmidon_Backend(object):
             Game.engine['gfx'].draw_textured_quad(self.width, self.height)
             glEndList()
             return new_list
-
-
-        def __del__(self):
-            for list in self.surfaces_draw_lists:
-                glDeleteLists(list, 1)
-            for surf in self.surfaces:
-                glDeleteTextures(surf)                                
 
 
     text_texture_cache = {}
