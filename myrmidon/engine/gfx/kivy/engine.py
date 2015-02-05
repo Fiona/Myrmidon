@@ -32,6 +32,7 @@ Provides a Kviy-based graphics adaptor.
 """
 
 import copy
+import math
 
 from myrmidon import Game, Entity, BaseImage, MyrmidonError
 from myrmidon.consts import *
@@ -114,13 +115,14 @@ class Myrmidon_Backend(Entity):
                 pos = ((x * Game.device_scale) - Game.global_x_pos_adjust, y * Game.device_scale)
 
                 # Figure out how the textures are drawn to accomodate for image flippery
-                tex_coords = (0, 1, 1, 1, 1, 0, 0, 0)
+                w, h = self.get_dimensions_for_texture_coords(entity.image.width, entity.image.height)
+                tex_coords = (0, h, w, h, w, 0, 0, 0)
                 if entity.flip_vertical and entity.flip_horizontal:
-                    tex_coords = (1, 0, 0, 0, 0, 1, 1, 1)
+                    tex_coords = (w, 0, 0, 0, 0, h, w, h)
                 elif entity.flip_vertical:
-                    tex_coords = (0, 0, 1, 0, 1, 1, 0, 1)
+                    tex_coords = (0, 0, w, 0, w, h, 0, h)
                 elif entity.flip_horizontal:
-                    tex_coords = (1, 1, 0, 1, 0, 0, 1, 0)
+                    tex_coords = (w, h, 0, h, 0, 0, w, 0)
 
                 # If this entity hasn't yet been attached to the canvas then do so
                 if not entity in self.entity_draws:
@@ -153,6 +155,31 @@ class Myrmidon_Backend(Entity):
 
             entity.draw()
 
+    def get_dimensions_for_texture_coords(self, o_width, o_height):
+        """Returns two values between 0 and 1 representing the width and height of
+        an image ready to use for texture coords. It takes into account the padding
+        added by raising a texture to power of 2."""
+        # Get the real texture coords (we work this out as the value is hidden by kivy)
+        texture_dimensions = [0, 0]
+        for k,val in enumerate((o_width, o_height)):
+            if self.is_pot(val):
+                texture_dimensions[k] = val
+            else:
+                texture_dimensions[k] = self.raise_to_next_pot(val)
+        return (float(o_width) / texture_dimensions[0], float(o_height) / texture_dimensions[1])
+        
+    def is_pot(self, val):
+        """Returns a boolean indicating if the passed number of a power of two."""
+        is_pot = True;
+        while(val != 1 and val > 0):
+            if(val % 2):
+                return False
+            val = val / 2
+        return is_pot and (val > 0)
+
+    def raise_to_next_pot(self, val):
+        """Raises the past value to the next power of 2 in sequence."""
+        return int(math.pow(2, math.ceil(math.log(val, 2))))
 
     def draw_single_entity(self, entity):
         pass
