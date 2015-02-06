@@ -113,6 +113,7 @@ class Myrmidon_Backend(Entity):
                 x, y = entity.get_screen_draw_position()
                 y = Game.screen_resolution[1] - (entity.image.height * entity.scale) - y
                 pos = ((x * Game.device_scale) - Game.global_x_pos_adjust, y * Game.device_scale)
+                cen = entity.get_centre_point()
 
                 # Figure out how the textures are drawn to accomodate for image flippery
                 w, h = self.get_dimensions_for_texture_coords(entity.image.width, entity.image.height)
@@ -133,14 +134,16 @@ class Myrmidon_Backend(Entity):
                         color.a = entity.alpha
                         PushMatrix()
                         self.entity_draws[entity]['translate'] = Translate()
+                        self.entity_draws[entity]['translate'].xy = pos
                         self.entity_draws[entity]['rotate'] = Rotate()
-                        self.entity_draws[entity]['rotate'].set(entity.rotation, 0, 0, 1)
+                        self.entity_draws[entity]['rotate'].angle = entity.rotation
+                        self.entity_draws[entity]['rotate'].axis = (0, 0, -1)
+                        self.entity_draws[entity]['rotate'].origin = (cen[0] * entity.scale * Game.device_scale, size[1] - (cen[1] * entity.scale * Game.device_scale))
                         self.entity_draws[entity]['rect'] = Quad(
                             texture = entity.image.image.texture,
                             points = (0.0, 0.0, size[0], 0.0, size[0], size[1], 0.0, size[1]),
                             tex_coords = tex_coords,
                             )
-                        self.entity_draws[entity]['translate'].xy = pos
                         PopMatrix()
                     # Otherwise just update values
                 else:

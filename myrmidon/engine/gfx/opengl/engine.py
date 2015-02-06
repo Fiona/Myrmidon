@@ -131,8 +131,9 @@ class Myrmidon_Backend(object):
             # position
             # Flipping is also done here.
             if not entity.rotation == 0.0 or entity.flip_vertical or entity.flip_horizontal:
-                x = draw_x + (entity.image.width/2) * entity.scale
-                y = draw_y + (entity.image.height/2) * entity.scale
+                cen = entity.get_centre_point()
+                x = draw_x + (cen[0] * entity.scale)
+                y = draw_y + (cen[1] * entity.scale)
                 glTranslatef(x, y, 0)
                 if not entity.rotation == 0.0:
                     glRotatef(entity.rotation, 0, 0, 1)
@@ -146,10 +147,8 @@ class Myrmidon_Backend(object):
             glTranslatef(draw_x, draw_y, 0.0)
 
             # scale if necessary
-            glTranslatef(entity.scale_point[0], entity.scale_point[1], 0) 
             if not entity.scale == 1.0:
                 glScalef(entity.scale, entity.scale, 1.0)
-            glTranslatef(-entity.scale_point[0], -entity.scale_point[1], 0)
                                         
             # bending function
             if entity.blend:
