@@ -90,6 +90,12 @@ class MyrmidonGfxDummy(object):
     def alter_colour(self, entity, colour):
         pass
 
+    def alter_scale(self, entity, scale):
+        pass
+
+    def alter_rotation(self, entity, rotation):
+        pass
+
     def alter_alpha(self, entity, alpha):
         pass
 
@@ -143,6 +149,8 @@ class MyrmidonGfxDummy(object):
         def get_screen_draw_position(self):
             return self.x, self.y
 
+        def destroy(self):
+            return
 
 
 class MyrmidonInputDummy(object):
