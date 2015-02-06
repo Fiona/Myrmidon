@@ -106,7 +106,7 @@ class Myrmidon_Backend(Entity):
         # Now render for each entity
         for entity in self.entity_list_draw_order:
 
-            if entity.image and getattr(entity.image, "image", None):
+            if entity.image and getattr(entity.image, "image", None) and entity.image.width and entity.image.height:
                 platform.glBlendFunc()
                 # Work out the real width/height and screen position of the entity
                 size = ((entity.image.width) * (entity.scale * Game.device_scale), (entity.image.height) * (entity.scale * Game.device_scale))
