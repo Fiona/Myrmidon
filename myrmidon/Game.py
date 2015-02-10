@@ -89,6 +89,7 @@ class Game(object):
     # Entity related
     first_registered_entity = None
     entity_list = []
+    entity_draw_list = []
     entities_to_remove = []
     remember_current_entity_executing = []
     current_entity_executing = None
@@ -273,11 +274,12 @@ class Game(object):
             if x in cls.entity_list:
                 cls.engine['gfx'].remove_entity(x)
                 cls.entity_list.remove(x)
-        cls.entities_to_remove = []
+                cls.entity_draw_list.remove(x)
+        cls.entities_to_remove = [] 
 
         # Pass off to the gfx engine to display entities
         cls.engine['gfx'].update_screen_pre()
-        cls.engine['gfx'].draw_entities(cls.entity_list)
+        cls.engine['gfx'].draw_entities(cls.entity_draw_list)
         cls.engine['gfx'].update_screen_post()
 
         # Wait for next frame, hitting a particular fps
@@ -303,6 +305,7 @@ class Game(object):
         Registers an entity with Myrmidon so it will be executed.
         """
         cls.entity_list.append(entity)
+        cls.entity_draw_list.append(entity)
         cls.engine['gfx'].register_entity(entity)
         cls.entity_priority_dirty = True
 
