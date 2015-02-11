@@ -71,6 +71,7 @@ class Myrmidon_Backend(object):
         #self.mouse.rel = pygame.mouse.get_rel()
         self.mouse.x = self.mouse.pos[0]
         self.mouse.y = self.mouse.pos[1]
+        self.mouse.y -= abs(Game.global_y_pos_adjust) / Game.device_scale
 
         self.mouse.wheel_up = False
         self.mouse.wheel_down = False

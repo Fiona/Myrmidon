@@ -96,7 +96,8 @@ class Game(object):
     entity_priority_dirty = True
     did_collision_check = False
     centre_point_compatability_mode = False
-
+    screen_size_adjustment_compatability_mode = False
+    
     # Global flag disables all entity execution, does not apply to any screen overlay entities.
     disable_entity_execution = False
 
@@ -989,7 +990,7 @@ class Game(object):
         if pos is None:
             pos = (0, 0)
         if size is None:
-            size = cls.screen_resolution[0] * cls.device_scale, cls.screen_resolution[1] * cls.device_scale
+            size = cls.screen_resolution[0], cls.screen_resolution[1]
 
         from myrmidon.ScreenOverlay import ScreenOverlay
         cls.screen_overlay = ScreenOverlay(colour_from, colour_to, blocking, pos, size, z, callback)

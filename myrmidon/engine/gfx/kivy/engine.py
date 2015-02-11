@@ -49,9 +49,12 @@ from kivy.graphics.opengl import glBlendFunc, glBlendFuncSeparate, GL_SRC_ALPHA,
 
 class Myrmidon_Backend(Entity):
     clear_colour = (0.0, 0.0, 0.0, 1.0)
+    letter_box_border_colour = (0.0, 0.0, 0.0, 1.0)
     z_index_dirty = True
     entity_list_draw_order = []
-
+    letter_boxes = []
+    device_resolution = None
+    
     def __init__(self):
         # Try hiding soft keys on certain ondroid phones
         self.get_device_size_metrics()
@@ -60,11 +63,18 @@ class Myrmidon_Backend(Entity):
 
     def get_device_size_metrics(self):
         self.device_resolution = Window.width, Window.height
-        Game.device_scale = float(Window.height) / Game.screen_resolution[1]
-        # If any x position adjustment is necessary cos aspect ratio is lower than ideal
+        if Game.screen_size_adjustment_compatability_mode:
+            Game.device_scale = float(Window.height) / Game.screen_resolution[1]
+        else:
+            Game.device_scale = float(Window.width) / Game.screen_resolution[0]
+        # If any y position adjustment is necessary cos aspect ratio is lower than ideal
         Game.global_x_pos_adjust = 0.0
+        Game.global_y_pos_adjust = 0.0
         if float(self.device_resolution[0]) / self.device_resolution[1] < float(Game.screen_resolution[0]) / Game.screen_resolution[1]:
-            Game.global_x_pos_adjust = float((Game.screen_resolution[0] * Game.device_scale) - self.device_resolution[0]) / 2
+            if Game.screen_size_adjustment_compatability_mode:
+                Game.global_x_pos_adjust = float((Game.screen_resolution[0] * Game.device_scale) - self.device_resolution[0]) / 2
+            else:
+                Game.global_y_pos_adjust = float((Game.screen_resolution[1] * Game.device_scale) - self.device_resolution[1]) / 2
 
     def change_resolution(self, resolution):
         pass
@@ -93,6 +103,7 @@ class Myrmidon_Backend(Entity):
         if self.z_index_dirty:
             self.widget.canvas.clear()
             self.entity_draws = {}
+            self.letter_boxes = []
 
             #self.entity_list_draw_order = copy.copy(entity_list)
             self.entity_list_draw_order = entity_list
@@ -112,7 +123,10 @@ class Myrmidon_Backend(Entity):
                 size = ((entity.image.width) * (entity.scale * Game.device_scale), (entity.image.height) * (entity.scale * Game.device_scale))
                 x, y = entity.get_screen_draw_position()
                 y = Game.screen_resolution[1] - (entity.image.height * entity.scale) - y
-                pos = ((x * Game.device_scale) - Game.global_x_pos_adjust, y * Game.device_scale)
+                if Game.screen_size_adjustment_compatability_mode:
+                    pos = ((x * Game.device_scale) - Game.global_x_pos_adjust, y * Game.device_scale)
+                else:
+                    pos = ((x * Game.device_scale) - Game.global_x_pos_adjust, (y* Game.device_scale) - Game.global_y_pos_adjust)
                 cen = entity.get_centre_point()
 
                 # Figure out how the textures are drawn to accomodate for image flippery
@@ -157,6 +171,26 @@ class Myrmidon_Backend(Entity):
                     self.entity_draws[entity]['rect'].tex_coords = tex_coords
 
             entity.draw()
+
+        # Draw letterbox squares over the top and bottom
+        if not len(self.letter_boxes):
+            for i in range(2):
+                if Game.screen_size_adjustment_compatability_mode:
+                    continue
+                self.letter_boxes.append(dict())
+                with Game.engine['gfx'].widget.canvas:
+                    self.letter_boxes[i]['color'] = Color()
+                    self.letter_boxes[i]['color'].rgba = self.letter_box_border_colour
+                    PushMatrix()
+                    self.letter_boxes[i]['translate'] = Translate()
+                    if i:
+                        self.letter_boxes[i]['translate'].xy = (0, self.device_resolution[1] - abs(Game.global_y_pos_adjust))
+                    else:
+                        self.letter_boxes[i]['translate'].xy = (0, 0)                        
+                    self.letter_boxes[i]['rect'] = Quad(
+                        points = (0.0, 0.0, self.device_resolution[0], 0.0, self.device_resolution[0], abs(Game.global_y_pos_adjust), 0.0, abs(Game.global_y_pos_adjust))
+                        )
+                    PopMatrix()                
 
     def get_dimensions_for_texture_coords(self, o_width, o_height):
         """Returns two values between 0 and 1 representing the width and height of
