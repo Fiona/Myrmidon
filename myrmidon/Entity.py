@@ -62,7 +62,8 @@ class Entity(BaseEntity):
     normal_draw = True
     flip_vertical = False
     flip_horizontal = False
-
+    sleep_counter = 0
+    
     # Entity relationships
     parent = None
     child = None
@@ -157,9 +158,14 @@ class Entity(BaseEntity):
     def _iterate_generator(self):
         if not Game.started or not self._executing:
             return
+        if self.sleep_counter:
+            self.sleep_counter -= 1
+            return
         return_val = None
         try:
             return_val = next(self._state_generators[self._current_state])
+            if isinstance(return_val, int):
+                self.sleep_counter = return_val
         except StopIteration:
             if not return_val in self._state_generators:
                 self.destroy()
@@ -303,6 +309,12 @@ class Entity(BaseEntity):
         """
         Game.toggle_entities_display(self, tree = tree)
 
+
+    def sleep(self, num_frames):
+        """yield from this to sleep for a certain number of frames.
+        Sleeping entities will still execute."""
+        return int(num_frames)
+    
 
     ##############################################
     # Collision model related methods
