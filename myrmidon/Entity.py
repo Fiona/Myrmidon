@@ -108,6 +108,7 @@ class Entity(BaseEntity):
 
     # Internal private properties
     _current_state = "execute"
+    _previous_state = None
     _state_list = {}
     _state_generators = {}
     _is_text = False
@@ -189,6 +190,7 @@ class Entity(BaseEntity):
         started and passing in arguments and keyword arguments.
         It returns the started state generator. If you return a state from another state
         then it will automatically started."""
+        self._previous_state = self._current_state
         self.check_state_started(state_name, *args, **kwargs)
         self.resume_state(state_name)
         self._state_generators[state_name] = self._state_list[state_name](*args, **kwargs)
@@ -199,6 +201,7 @@ class Entity(BaseEntity):
         other than the switch_state method it will not restart it.
         It returns the started state generator. If you return a state from another state
         then it will automatically resumed."""
+        self._previous_state = self._current_state
         self.check_state_started(state_name)
         self._current_state = state_name
         return self._state_generators[state_name]
@@ -206,6 +209,17 @@ class Entity(BaseEntity):
     def get_current_state(self):
         """Returns the name of the state that is currently running on this entity as string"""
         return self._current_state
+
+    def resume_previous_state(self):
+        """The state immediately preceeding the current one is remembered
+        and you can hop-back to it with this. This allows for one-level easy
+        sub-states."""
+        return self.resume_state(self._previous_state)
+
+    def switch_previous_state(self):
+        """Same as resume_previous_state but for the odd situations where you want
+        the return state to be restarted."""
+        return self.switch_state(self._previous_state)
 
     def draw(self):
         """
