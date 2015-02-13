@@ -34,10 +34,10 @@ class Window(Entity):
             )
         while True:            
             if Game.keyboard_key_down(K_ESCAPE):
-                sys.exit()                
+                sys.exit()
             self.pattern_vortex(300.0, 300.0, 1)
             self.pattern_vortex(700.0, 300.0)
-            self.fps_text.text = "FPS " + str(Game.fps)
+            self.fps_text.text = "FPS " + str(Game.current_fps)
             self.entity_text.text = str(len(Game.entity_list)) + " entities"            
             yield
            
@@ -57,7 +57,7 @@ class Window(Entity):
                     self.cur2 = 0.0
             else:
                 if self.cur > 360.0:
-                    self.cur = 0.0                
+                    self.cur = 0.0
             Shot(self, x, y, self.cur2 if type else self.cur)
             
             

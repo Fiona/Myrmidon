@@ -40,7 +40,7 @@ from myrmidon.consts import *
 @ModuleLoader
 class Game(object):
 
-    # Enabling debugging will allow invaking of PUDB with the F11 key
+    # Enabling debugging will allow invoking of PUDB with the F11 key
     debug = False
 
     # Engine related
@@ -49,7 +49,7 @@ class Game(object):
     # Set to true at run-time and Myrmidon will not create a screen,
     # nor will it accept input or execute any entities in a loop.
     # No backend engines are initialised.
-    # Any entity objects you create will not interate their generator
+    # Any entity objects you create will not integrate their generator
     # unless you run Entity._iterate_generator manually.
     test_mode = False
 
@@ -77,8 +77,8 @@ class Game(object):
     modules_enabled = ()
     modules_loaded_for = []
 
-    current_fps = 30
-    fps = 0
+    current_fps = 0
+    target_fps = 30
 
     # Display related
     screen_resolution = 1024,768
@@ -217,7 +217,7 @@ class Game(object):
         for x in cls._module_list:
             x._module_setup(cls)
 
-        cls.engine['window'].set_window_loop(cls.app_loop_callback, cls.current_fps)
+        cls.engine['window'].set_window_loop(cls.app_loop_callback, cls.target_fps)
         cls.engine['window'].open_window()
 
 
@@ -284,8 +284,8 @@ class Game(object):
         cls.engine['gfx'].update_screen_post()
 
         # Wait for next frame, hitting a particular fps
-        cls.fps = int(cls.clock.get_fps())
-        cls.clock.tick(cls.current_fps)
+        cls.current_fps = int(cls.clock.get_fps())
+        cls.clock.tick(cls.target_fps)
 
 
     @classmethod
