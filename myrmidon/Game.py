@@ -990,7 +990,7 @@ class Game(object):
         if pos is None:
             pos = (0, 0)
         if size is None:
-            size = cls.screen_resolution[0], cls.screen_resolution[1]
+            size = cls.screen_resolution[0] * cls.device_scale, cls.screen_resolution[1] * cls.device_scale
 
         from myrmidon.ScreenOverlay import ScreenOverlay
         cls.screen_overlay = ScreenOverlay(colour_from, colour_to, blocking, pos, size, z, callback)
