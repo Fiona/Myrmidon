@@ -623,7 +623,7 @@ class Game(object):
         Take two tuples each containing coordinates between two points and
         returns the angle between those in degrees
         """
-        return math.degrees(math.atan2(pointb[1] - pointa[1], pointb[0] - pointa[0]))
+        return cls.normalise_angle(math.degrees(math.atan2(pointb[1] - pointa[1], pointb[0] - pointa[0])))
 
     @classmethod
     def normalise_angle(cls, angle):

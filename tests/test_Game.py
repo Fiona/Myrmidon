@@ -71,10 +71,10 @@ class AngleBetweenPointsTest(unittest.TestCase):
         self.assertAlmostEquals(135.000, Game.angle_between_points((1, 2), (-2, 5)), 3)
 
     def test_returns_correct_value_for_quadrant_3(self):
-        self.assertAlmostEquals(-113.199, Game.angle_between_points((1, 2), (-2, -5)), 3)
+        self.assertAlmostEquals(246.801, Game.angle_between_points((1, 2), (-2, -5)), 3)
 
     def test_returns_correct_value_for_quadrant_4(self):
-        self.assertAlmostEquals(-81.870, Game.angle_between_points((1, 2), (2, -5)), 3)
+        self.assertAlmostEquals(278.13, Game.angle_between_points((1, 2), (2, -5)), 3)
 
     def test_returns_zero_for_identical_points(self):
         self.assertEquals(0, Game.angle_between_points((1, 2), (1, 2)))
@@ -89,7 +89,7 @@ class AngleBetweenPointsTest(unittest.TestCase):
         self.assertEquals(90, Game.angle_between_points((1, 2), (1, 4)))
 
     def test_returns_correct_value_when_second_directly_above_first(self):
-        self.assertEquals(-90, Game.angle_between_points((1, 2), (1, -2)))
+        self.assertEquals(270, Game.angle_between_points((1, 2), (1, -2)))
 
 
 class NormaliseAngleTest(unittest.TestCase):
