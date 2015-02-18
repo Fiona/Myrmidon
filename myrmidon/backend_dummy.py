@@ -50,6 +50,7 @@ class MyrmidonGfxDummy(object):
     clear_colour = (0.0, 0.0, 0.0, 1.0)
     prev_blend = False
     entities_z_order_list = []
+    device_resolution = (0, 0)
 
     def change_resolution(self, resolution):
         pass
