@@ -989,6 +989,7 @@ class Game(object):
             fade_speed = cls.timer_ticks(30)
         if pos is None:
             pos = (0, 0)
+        pos = (pos[0] - Game.global_x_pos_adjust, pos[1] - Game.global_y_pos_adjust)
         if size is None:
             size = cls.screen_resolution[0] * cls.device_scale, cls.screen_resolution[1] * cls.device_scale
 
