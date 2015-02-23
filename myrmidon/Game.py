@@ -1,4 +1,4 @@
-"""
+""" 
 Myrmidon
 Copyright (c) 2010 Fiona Burrows
 
@@ -894,7 +894,7 @@ class Game(object):
 
     @classmethod
     def collision_point_to_circle(cls, point, circle):
-        """
+        """ 
         Checks the collision between an Entity with it's type as COLLISION_TYPE_POINT
         against one set as COLLISION_TYPE_CIRCLE
         Returns True/False on collision.
@@ -909,7 +909,7 @@ class Game(object):
         check_object_b_radius = check_object_b.collision_circle_calculate_radius()
 
         # Outside of each others radius
-        if cls.get_distance(check_object_a_point, (check_object_b.x + check_object_b_radius, check_object_b.y + check_object_b_radius)) > check_object_b_radius:
+        if cls.get_distance(check_object_a_point, (check_object_b.x,check_object_b.y)) > check_object_b_radius:
             return False
 
         return True
@@ -917,7 +917,7 @@ class Game(object):
 
     @classmethod
     def collision_point_to_point(cls, point_a, point_b):
-        """
+        """ 
         Checks collision between two Entities with their type as COLLISION_TYPE_POINT.
         Practically useless but here for completion.
         Returns True/False on collision.

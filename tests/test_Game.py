@@ -405,3 +405,116 @@ class CollisionPointToRectangleTest(unittest.TestCase):
         p.x, p.y = -3, 5
         r = self._unrotated_rect()
         self.assertFalse(Game.collision_point_to_rectangle(p, r))
+
+
+class CollisionPointToCircleTest(unittest.TestCase):
+
+    class TestPoint(object):
+        x, y = 0, 0
+        def collision_point_calculate_point(self):
+            return self.x,self.y
+            
+    class TestCircle(object):
+        x, y = 0, 0
+        rad = 0
+        def collision_circle_calculate_radius(self):
+            return self.rad
+            
+    def test_returns_true_when_at_same_position(self):
+        p = CollisionPointToCircleTest.TestPoint()
+        p.x, p.y = 3.0, 4.0
+        c = CollisionPointToCircleTest.TestCircle()
+        c.x, c.y, c.rad = 3.0, 4.0, 1.0
+        self.assertTrue(Game.collision_point_to_circle(p, c))
+        
+    def test_returns_true_when_in_radius_quadrant_1(self):
+        p = CollisionPointToCircleTest.TestPoint()
+        p.x, p.y = 3.6, 4.6
+        c = CollisionPointToCircleTest.TestCircle()
+        c.x, c.y, c.rad = 3.0, 4.0, 1.0
+        self.assertTrue(Game.collision_point_to_circle(p, c))
+        
+    def test_returns_true_when_in_radius_quadrant_2(self):
+        p = CollisionPointToCircleTest.TestPoint()
+        p.x, p.y = 2.4, 4.6
+        c = CollisionPointToCircleTest.TestCircle()
+        c.x, c.y, c.rad = 3.0, 4.0, 1.0
+        self.assertTrue(Game.collision_point_to_circle(p, c))
+    
+    def test_returns_true_when_in_radius_quadrant_3(self):
+        p = CollisionPointToCircleTest.TestPoint()
+        p.x, p.y = 2.4, 3.4
+        c = CollisionPointToCircleTest.TestCircle()
+        c.x, c.y, c.rad = 3.0, 4.0, 1.0
+        self.assertTrue(Game.collision_point_to_circle(p, c))
+
+    def test_returns_true_when_in_radius_quadrant_4(self):
+        p = CollisionPointToCircleTest.TestPoint()
+        p.x, p.y = 3.6, 3.4
+        c = CollisionPointToCircleTest.TestCircle()
+        c.x, c.y, c.rad = 3.0, 4.0, 1.0
+        self.assertTrue(Game.collision_point_to_circle(p, c))
+
+    def test_returns_false_when_outside_radius_quadrant_1(self):
+        p = CollisionPointToCircleTest.TestPoint()
+        p.x, p.y = 3.8, 4.8
+        c = CollisionPointToCircleTest.TestCircle()
+        c.x, c.y, c.rad = 3.0, 4.0, 1.0
+        self.assertFalse(Game.collision_point_to_circle(p, c))
+        
+    def test_returns_false_when_outside_radius_quadrant_2(self):
+        p = CollisionPointToCircleTest.TestPoint()
+        p.x, p.y = 2.2, 4.8
+        c = CollisionPointToCircleTest.TestCircle()
+        c.x, c.y, c.rad = 3.0, 4.0, 1.0
+        self.assertFalse(Game.collision_point_to_circle(p, c))
+
+    def test_returns_false_when_outside_radius_quadrant_3(self):
+        p = CollisionPointToCircleTest.TestPoint()
+        p.x, p.y = 2.2, 3.2
+        c = CollisionPointToCircleTest.TestCircle()
+        c.x, c.y, c.rad = 3.0, 4.0, 1.0
+        self.assertFalse(Game.collision_point_to_circle(p, c))
+        
+    def test_returns_false_when_outside_radius_quadrant_4(self):
+        p = CollisionPointToCircleTest.TestPoint()
+        p.x, p.y = 3.8, 3.2
+        c = CollisionPointToCircleTest.TestCircle()
+        c.x, c.y, c.rad = 3.0, 4.0, 1.0
+        self.assertFalse(Game.collision_point_to_circle(p, c))
+
+
+class CollisionPointToPointTest(unittest.TestCase):
+
+    class TestPoint(object):
+        x, y = 0, 0
+        def collision_point_calculate_point(self):
+            return self.x,self.y
+    
+    def test_returns_false_when_points_are_not_the_same(self):
+        p1 = CollisionPointToPointTest.TestPoint()
+        p1.x, p1.y = 3.0, 4.0
+        p2 = CollisionPointToPointTest.TestPoint()
+        p2.x, p2.y = 3.5, 4.5
+        self.assertFalse(Game.collision_point_to_point(p1, p2))
+        
+    def test_returns_false_when_points_are_different_but_same_x_val(self):
+        p1 = CollisionPointToPointTest.TestPoint()
+        p1.x, p1.y = 3.0, 4.0
+        p2 = CollisionPointToPointTest.TestPoint()
+        p2.x, p2.y = 3.0, 4.5
+        self.assertFalse(Game.collision_point_to_point(p1, p2))
+
+    def test_returns_false_when_points_are_different_but_same_y_val(self):
+        p1 = CollisionPointToPointTest.TestPoint()
+        p1.x, p1.y = 3.0, 4.0
+        p2 = CollisionPointToPointTest.TestPoint()
+        p2.x, p2.y = 3.5, 4.0
+        self.assertFalse(Game.collision_point_to_point(p1, p2))
+
+    def test_returns_true_when_points_are_the_same(self):
+        p1 = CollisionPointToPointTest.TestPoint()
+        p1.x, p1.y = 3.0, 4.0
+        p2 = CollisionPointToPointTest.TestPoint()
+        p2.x, p2.y = 3.0, 4.0
+        self.assertTrue(Game.collision_point_to_point(p1, p2))
