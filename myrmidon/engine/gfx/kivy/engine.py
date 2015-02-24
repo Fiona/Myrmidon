@@ -126,7 +126,7 @@ class Myrmidon_Backend(Entity):
                 if Game.screen_size_adjustment_compatability_mode:
                     pos = ((x * Game.device_scale) - Game.global_x_pos_adjust, y * Game.device_scale)
                 else:
-                    pos = ((x * Game.device_scale) - Game.global_x_pos_adjust, (y* Game.device_scale) - Game.global_y_pos_adjust)
+                    pos = ((x * Game.device_scale) - Game.global_x_pos_adjust, (y * Game.device_scale) - Game.global_y_pos_adjust)
                 cen = entity.get_centre_point()
 
                 # Figure out how the textures are drawn to accomodate for image flippery
@@ -162,6 +162,7 @@ class Myrmidon_Backend(Entity):
                     # Otherwise just update values
                 else:
                     self.entity_draws[entity]['rotate'].angle = entity.rotation
+                    self.entity_draws[entity]['rotate'].origin = (cen[0] * entity.scale * Game.device_scale, size[1] - (cen[1] * entity.scale * Game.device_scale))                    
                     self.entity_draws[entity]['translate'].xy = pos
                     color = self.entity_draws[entity]['color']
                     platform.apply_rgb(entity, color)

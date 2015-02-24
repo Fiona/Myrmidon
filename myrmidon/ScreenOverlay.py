@@ -64,8 +64,7 @@ class ScreenOverlay(Entity):
                         Game.lerp(self.current_colour_from[3], self.current_colour_to[3], frame / total)
                         )
                     yield
-                if self.blocking:
-                    Game.disable_entity_execution = False
+                Game.disable_entity_execution = False
                 if not self.callback is None:
                     self.callback()
                     self.callback = None
