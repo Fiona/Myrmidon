@@ -1,4 +1,4 @@
-"""
+""" 
 Myrmidon
 Copyright (c) 2010 Fiona Burrows
 
@@ -40,7 +40,7 @@ from myrmidon.consts import *
 @ModuleLoader
 class Game(object):
 
-    # Enabling debugging will allow invaking of PUDB with the F11 key
+    # Enabling debugging will allow invoking of PUDB with the F11 key
     debug = False
 
     # Engine related
@@ -49,7 +49,7 @@ class Game(object):
     # Set to true at run-time and Myrmidon will not create a screen,
     # nor will it accept input or execute any entities in a loop.
     # No backend engines are initialised.
-    # Any entity objects you create will not interate their generator
+    # Any entity objects you create will not integrate their generator
     # unless you run Entity._iterate_generator manually.
     test_mode = False
 
@@ -77,8 +77,8 @@ class Game(object):
     modules_enabled = ()
     modules_loaded_for = []
 
-    current_fps = 30
-    fps = 0
+    current_fps = 0
+    target_fps = 30
 
     # Display related
     screen_resolution = 1024,768
@@ -217,7 +217,7 @@ class Game(object):
         for x in cls._module_list:
             x._module_setup(cls)
 
-        cls.engine['window'].set_window_loop(cls.app_loop_callback, cls.current_fps)
+        cls.engine['window'].set_window_loop(cls.app_loop_callback, cls.target_fps)
         cls.engine['window'].open_window()
 
 
@@ -284,8 +284,8 @@ class Game(object):
         cls.engine['gfx'].update_screen_post()
 
         # Wait for next frame, hitting a particular fps
-        cls.fps = int(cls.clock.get_fps())
-        cls.clock.tick(cls.current_fps)
+        cls.current_fps = int(cls.clock.get_fps())
+        cls.clock.tick(cls.target_fps)
 
 
     @classmethod
@@ -623,7 +623,7 @@ class Game(object):
         Take two tuples each containing coordinates between two points and
         returns the angle between those in degrees
         """
-        return math.degrees(math.atan2(pointb[1] - pointa[1], pointb[0] - pointa[0]))
+        return cls.normalise_angle(math.degrees(math.atan2(pointb[1] - pointa[1], pointb[0] - pointa[0])))
 
     @classmethod
     def normalise_angle(cls, angle):
@@ -894,7 +894,7 @@ class Game(object):
 
     @classmethod
     def collision_point_to_circle(cls, point, circle):
-        """
+        """ 
         Checks the collision between an Entity with it's type as COLLISION_TYPE_POINT
         against one set as COLLISION_TYPE_CIRCLE
         Returns True/False on collision.
@@ -909,7 +909,7 @@ class Game(object):
         check_object_b_radius = check_object_b.collision_circle_calculate_radius()
 
         # Outside of each others radius
-        if cls.get_distance(check_object_a_point, (check_object_b.x + check_object_b_radius, check_object_b.y + check_object_b_radius)) > check_object_b_radius:
+        if cls.get_distance(check_object_a_point, (check_object_b.x,check_object_b.y)) > check_object_b_radius:
             return False
 
         return True
@@ -917,7 +917,7 @@ class Game(object):
 
     @classmethod
     def collision_point_to_point(cls, point_a, point_b):
-        """
+        """ 
         Checks collision between two Entities with their type as COLLISION_TYPE_POINT.
         Practically useless but here for completion.
         Returns True/False on collision.
