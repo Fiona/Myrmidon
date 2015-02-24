@@ -283,10 +283,13 @@ class Game(object):
         cls.engine['gfx'].draw_entities(cls.entity_draw_list)
         cls.engine['gfx'].update_screen_post()
 
-        # Wait for next frame, hitting a particular fps
-        cls.current_fps = int(cls.clock.get_fps())
-        cls.clock.tick(cls.target_fps)
+        # Hack - we assume a window backend will *either* return a non-zero fps value from the clock object
+        # *or* have provided a non-zero time delta value, depending on how the main loop is handled
+        clock_fps = int(cls.clock.get_fps())
+        cls.current_fps = clock_fps if dt == 0 else 1.0/dt
 
+        # Wait for next frame, hitting a particular fps
+        cls.clock.tick(cls.target_fps)
 
     @classmethod
     def change_resolution(cls, resolution):
