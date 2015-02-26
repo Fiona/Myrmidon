@@ -106,7 +106,7 @@ class Myrmidon_Backend(object):
                 
 
     def draw_single_entity(self, entity):
-        if not entity._drawing:
+        if not entity.drawing:
             return
                         
         dont_draw = False
@@ -253,6 +253,10 @@ class Myrmidon_Backend(object):
     def alter_rotation(self, entity, rotation):
         pass
 
+
+    def alter_display(self, entity, display):
+        pass
+    
 
     def new_image(self, width, height, colour = None):
         # We need to work out the nearest power of 2

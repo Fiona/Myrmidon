@@ -116,6 +116,8 @@ class Myrmidon_Backend(Entity):
 
         # Now render for each entity
         for entity in self.entity_list_draw_order:
+            if not entity.drawing:
+                continue
 
             if entity.image and getattr(entity.image, "image", None) and entity.image.width and entity.image.height:
                 platform.glBlendFunc()
@@ -269,6 +271,10 @@ class Myrmidon_Backend(Entity):
 
     def alter_rotation(self, entity, rotation):
         pass
+
+
+    def alter_display(self, entity, display):
+        self.z_index_dirty = True
 
 
     def new_image(self, width, height, colour = None):

@@ -413,7 +413,7 @@ class Game(object):
         """
         entity_list = cls.get_entities(target, tree = tree)
         for entity in entity_list:
-            entity._drawing = False
+            entity.drawing = False
 
 
     @classmethod
@@ -430,7 +430,7 @@ class Game(object):
         """
         entity_list = cls.get_entities(target, tree = tree)
         for entity in entity_list:
-            entity._drawing = True
+            entity.drawing = True
 
 
     @classmethod
@@ -448,7 +448,7 @@ class Game(object):
         """
         entity_list = cls.get_entities(target, tree = tree)
         for entity in entity_list:
-            entity._drawing = not entity._drawing
+            entity.drawing = not entity.drawing
 
 
     @classmethod

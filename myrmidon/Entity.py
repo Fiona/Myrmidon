@@ -55,6 +55,7 @@ class Entity(BaseEntity):
     _scale = 1.0
     _rotation = 0.0
     _centre_point = [-1, -1]
+    _drawing = True
 
     # Other properties (document)
     blend = False
@@ -113,7 +114,6 @@ class Entity(BaseEntity):
     _state_generators = {}
     _is_text = False
     _executing = True
-    _drawing = True
 
     def __init__(self, *args, **kwargs):
         if not Game.started:
@@ -131,7 +131,6 @@ class Entity(BaseEntity):
         Game.remember_current_entity_executing.append(Game.current_entity_executing)
         Game.current_entity_executing = self
         self._executing = True
-        self._drawing = True
         self._iterate_generator()
         Game.current_entity_executing = Game.remember_current_entity_executing.pop()
 
@@ -648,3 +647,13 @@ class Entity(BaseEntity):
     def centre_point(self):
         self._centre_point = None
         self._collision_rectangle_recalculate_corners = True
+
+    # Drawing internal thing
+    @property
+    def drawing(self):
+        return self._drawing
+
+    @drawing.setter
+    def drawing(self, value):
+        self._drawing = value
+        Game.engine['gfx'].alter_display(self, self._drawing)
