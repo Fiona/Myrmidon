@@ -605,7 +605,56 @@ class Game(object):
 
 
     ##############################################
-    # HELPFUL MATH
+    # PRIMITIVES
+    ##############################################
+    @classmethod
+    def create_rectangle(cls, x, y, width, height, colour=(1.0, 1.0, 1.0), line_width=0):
+        """
+        Creates and returns a rectangle entity at the given position, with the given width and height.
+        :param x: Initial x coordinate
+        :param y: Initial y coordinate
+        :param width: The width of the rectangle in pixels
+        :param height: The height of the rectangle in pixels
+        :param colour: Optional 3-tuple specifying the RGB colour. Defaults to white.
+        :param line_width: If zero, rectangle is filled, if positive rectangle is unfilled using this line thickness.
+                           Defaults to zero.
+        :return: A rectangle object
+        """
+        return cls.engine['gfx'].Rectangle(x, y, width, height, colour, line_width)
+
+    @classmethod
+    def create_ellipse(cls, x, y, width, height, colour=(1.0, 1.0, 1.0), line_width=0, start_angle=0, end_angle=360):
+        """
+        Creates and returns an ellipse entity at the given position and with the given width and height
+        :param x: Initial x coordinate
+        :param y: Initial y coordinate
+        :param width: The width of the bounding box that the ellipse should fit
+        :param height: The height of the bounding box that the ellipse should fit
+        :param colour: Optional 3-tuple specifying the RGB colour. Defaults to white
+        :param line_width: If zero, ellipse is filled. If positive, ellipse is unfilled using this line thickness.
+        :param start_angle: The angle at which to start in order to draw only a segment of the ellipse. Defaults to 0
+        :param end_angle: The angle at which to end in order to draw only a segment of the ellipse. Defaults to 360
+        :return: An ellipse object
+        """
+        return cls.engine['gfx'].Ellipse(x, y, width, height, colour, line_width, start_angle, end_angle)
+
+    @classmethod
+    def create_line(cls, x, y, points, colour=(1.0, 1.0, 1.0), line_width=1.0, closed=False):
+        """
+        Creates and returns a line entity at the given position and with the given points
+        :param x: Initial x coordinate
+        :param y: Initial y coordinate
+        :param points: List of coordinate 2-tuples defining a line or polyline. Coordinates are relative to what will be
+                       the top-left corner of the entity
+        :param colour: Optional 3-tuple specifying the RGB colour. Defaults to white.
+        :param line_width: The thickness of line to use. Defaults to 1.0
+        :param closed: If True, the last line will be connected to the first in a loop
+        :return: A line object
+        """
+        return cls.engine['gfx'].Line(x, y, points, colour, line_width, closed)
+
+    ##############################################
+    # HELPFUL MATHS
     ##############################################
     @classmethod
     def get_distance(cls, pointa, pointb):

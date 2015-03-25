@@ -42,6 +42,7 @@ from pygame.locals import *
 from myrmidon import Game, Entity, BaseImage, MyrmidonError
 from myrmidon.consts import *
 
+
 class Myrmidon_Backend(object):
 
     clear_colour = (0.0, 0.0, 0.0, 1.0)
@@ -70,19 +71,15 @@ class Myrmidon_Backend(object):
         glEnable(GL_LINE_SMOOTH)
 
         #pygame.display.flip()
-        
 
     def change_resolution(self, resolution):
         self.__init__()
-        
 
     def update_screen_pre(self):
         glClear(GL_COLOR_BUFFER_BIT)
-        
-        
+
     def update_screen_post(self):
         pygame.display.flip()
-                
 
     def draw_entities(self, entity_list):
         if self.z_order_dirty == True:
@@ -103,7 +100,6 @@ class Myrmidon_Backend(object):
 
         glDisableClientState(GL_TEXTURE_COORD_ARRAY)
         glDisableClientState(GL_VERTEX_ARRAY)
-                
 
     def draw_single_entity(self, entity):
         if not entity.drawing:
@@ -176,7 +172,6 @@ class Myrmidon_Backend(object):
 
         entity.draw()
 
-        
     def draw_textured_quad(self, width, height, repeat = None, tex_offset = None):
         if repeat == None:
             tex_coords = (1.0, 1.0)
@@ -208,55 +203,43 @@ class Myrmidon_Backend(object):
                 
         glEnd()
 
-
     def register_entity(self, entity):
         self.entities_z_order_list.append(entity)
         self.z_order_dirty = True
         if not entity.image:
             return
 
-
     def remove_entity(self, entity):
         self.entities_z_order_list.remove(entity)             
-                
 
     def alter_x(self, entity, x):
         pass
-        
 
     def alter_y(self, entity, y):
         pass
-        
 
     def alter_z(self, entity, z):
         self.z_order_dirty = True
-                
 
     def alter_image(self, entity, image):
         if not entity.image:
             return
         entity.image.surface = entity.image.surfaces[entity.image_seq]
-                
 
     def alter_colour(self, entity, colour):
         pass
-        
 
     def alter_alpha(self, entity, alpha):
         pass
 
-
     def alter_scale(self, entity, scale):
         pass
-
 
     def alter_rotation(self, entity, rotation):
         pass
 
-
     def alter_display(self, entity, display):
         pass
-    
 
     def new_image(self, width, height, colour = None):
         # We need to work out the nearest power of 2
@@ -274,7 +257,6 @@ class Myrmidon_Backend(object):
         # Create an image from it
         return MyrmidonGfxOpengl.Image(new_surface)
 
-                        
     def draw_line(self, start, finish, colour = (1.0,1.0,1.0,1.0), width = 5.0, noloadidentity = False):
         gradient = True if hasattr(colour[0], "__iter__") else False
 
@@ -295,7 +277,6 @@ class Myrmidon_Backend(object):
 
         if not noloadidentity:
             glPopMatrix()
-
 
     def draw_circle(self, position, radius, colour = (1.0,1.0,1.0,1.0), width = 5.0, filled = False, accuracy = 24, noloadidentity = False):
         if not noloadidentity:
@@ -319,7 +300,6 @@ class Myrmidon_Backend(object):
 
         if not noloadidentity:
             glPopMatrix()
-
 
     def draw_rectangle(self, top_left, bottom_right, colour = (1.0,1.0,1.0,1.0), filled = True, width = 2.0, noloadidentity = False):
         four_colours = True if hasattr(colour[0], "__iter__") else False
@@ -358,13 +338,11 @@ class Myrmidon_Backend(object):
         if not noloadidentity:
             glPopMatrix()
 
-
     def rgb_to_colour(self, colour):
         col = []
         for a in colour:
             col.append(a/255.0)
         return tuple(col)
-        
 
     class Image(BaseImage):
                 
@@ -416,7 +394,6 @@ class Myrmidon_Backend(object):
             for surf in self.surfaces:
                 self.surfaces_draw_lists.append(self.create_draw_list(surf))
 
-
         def generate_vertex_data(self):
             self.vertex_data = numpy.array([float(self.width), float(self.height), 0.0,
                                             0.0, float(self.height), 0.0,
@@ -442,7 +419,6 @@ class Myrmidon_Backend(object):
                                 
             return tex
 
-
         def create_draw_list(self, surface):
             new_list = glGenLists(1)
             glNewList(new_list, GL_COMPILE)
@@ -450,9 +426,231 @@ class Myrmidon_Backend(object):
             glEndList()
             return new_list
 
-
     text_texture_cache = {}
-        
+
+
+    class _Polygon(Entity):
+        """ This class encapsulates a primitive shape entity """
+
+        def __init__(self, x, y, points, closed=True, line_width=0):
+            """
+            :param x: starting x coordinate
+            :param y: starting y coordinate
+            :param points: list of 2-tuples containing vertex coordinates of a convex polygon.
+                           0,0 is the top-left of the shape. Points should wind clockwise.
+            :param closed: if False, and line_width is set, the last line is not connected to the first.
+            :param line_width: if greater than 0, polygon is drawn un-filled with the given line width, otherwise
+                               polygon is filled. Defaults to 0 (filled)
+            """
+            Entity.__init__(self)
+            self.x = x
+            self.y = y
+            self._points = points
+            self._closed = closed
+            self.line_width = line_width
+            self.status = S_FREEZE
+            self._update_points(points)
+
+        def _update_points(self, points):
+            self._points = points
+            min_x = min([p[0] for p in points])
+            min_y = min([p[1] for p in points])
+            max_x = max([p[0] for p in points])
+            max_y = max([p[1] for p in points])
+            self._width = max_x - min_x
+            self._height = max_y - min_y
+
+        def draw(self):
+
+            glPushMatrix()
+
+            # get actual place to draw
+            draw_x, draw_y = self.get_screen_draw_position()
+
+            # Clip the entity if necessary
+            if not self.clip is None:
+                glEnable(GL_SCISSOR_TEST)
+                glScissor(int(self.clip[0][0]), Game.screen_resolution[1] - int(self.clip[0][1]) - int(self.clip[1][1]),
+                          int(self.clip[1][0]), int(self.clip[1][1]))
+
+            if not self.rotation == 0.0 or self.flip_vertical or self.flip_horizontal:
+                cen = self.get_centre_point()
+                x = draw_x + (cen[0] * self.scale)
+                y = draw_y + (cen[1] * self.scale)
+                glTranslatef(x, y, 0)
+                if not self.rotation == 0.0:
+                    glRotatef(self.rotation, 0, 0, 1)
+                if self.flip_vertical:
+                    glScalef(1.0, -1.0, 1.0)
+                if self.flip_horizontal:
+                    glScalef(-1.0, 1.0, 1.0)
+                glTranslatef(-x, -y, 0)
+
+            # move to correct draw pos
+            glTranslatef(draw_x, draw_y, 0.0)
+
+            # scale if necessary
+            if not self.scale == 1.0:
+                glScalef(self.scale, self.scale, 1.0)
+
+            # blending function
+            if self.blend:
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE)
+
+            glDisable(GL_TEXTURE_2D)
+            glColor4f(*(list(self.colour)+[self.alpha]))
+
+            if self.line_width <= 0:
+                glBegin(GL_TRIANGLE_FAN)
+            else:
+                glLineWidth(self.line_width)
+                glBegin(GL_LINE_LOOP if self._closed else GL_LINE_STRIP)
+
+            for p in self._points:
+                glVertex2f(p[0], p[1])
+
+            glEnd()
+
+            glEnable(GL_TEXTURE_2D)
+
+            # Set blending back to default
+            if self.blend:
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
+            # Stop clipping
+            if self.clip is not None:
+                glDisable(GL_SCISSOR_TEST)
+
+            glPopMatrix()
+
+        def get_centre_point(self):
+            """overridden to return centre of polygon if not set"""
+            if -1 in self.centre_point:
+                return self._width / 2, self._height / 2
+            else:
+                return self.centre_point
+
+    class Rectangle(_Polygon):
+
+        @property
+        def width(self):
+            return self._width
+
+        @width.setter
+        def width(self, width):
+            self._update_points(self._calculate_points(width, self._height))
+
+        @property
+        def height(self):
+            return self._height
+
+        @height.setter
+        def height(self, height):
+            self._update_points(self._calculate_points(self._width, height))
+
+        def __init__(self, x, y, width, height, colour=(1.0, 1.0, 1.0), line_width=0):
+            Myrmidon_Backend._Polygon.__init__(self, x, y, self._calculate_points(width, height), True, line_width)
+            self.colour = colour
+
+        def _calculate_points(self, width, height):
+            return [(0, 0), (width, 0), (width, height), (0, height)]
+
+    class Ellipse(_Polygon):
+
+        @property
+        def width(self):
+            return self._width
+
+        @width.setter
+        def width(self, width):
+            points, closed = self._calculate_points_and_closed(width, self._height, self._start_angle, self._end_angle,
+                                                               self.line_width <= 0)
+            self._update_points(points)
+            self._closed = closed
+            self._width = width
+
+        @property
+        def height(self):
+            return self._height
+
+        @height.setter
+        def height(self, height):
+            points, closed = self._calculate_points_and_closed(self._width, height, self._start_angle, self._end_angle,
+                                                               self.line_width <= 0)
+            self._update_points(points)
+            self._closed = closed
+            self._height = height
+
+        @property
+        def start_angle(self):
+            return self._start_angle
+
+        @start_angle.setter
+        def start_angle(self, start_angle):
+            self._start_angle = start_angle
+            points, closed = self._calculate_points_and_closed(self._width, self._height, start_angle, self._end_angle,
+                                                               self.line_width <= 0)
+            self._update_points(points)
+            self._closed = closed
+
+        @property
+        def end_angle(self):
+            return self._end_angle
+
+        @end_angle.setter
+        def end_angle(self, end_angle):
+            self._end_angle = end_angle
+            points, closed = self._calculate_points_and_closed(self._width, self._height, self._start_angle, end_angle,
+                                                               self.line_width <= 0)
+            self._update_points(points)
+            self._closed = closed
+
+        def __init__(self, x, y, width, height, colour=(1.0, 1.0, 1.0), line_width=0, start_angle=0, end_angle=360):
+            self._start_angle = start_angle
+            self._end_angle = end_angle
+            self._width = width
+            self._height = height
+            points, closed = self._calculate_points_and_closed(width, height, start_angle, end_angle, line_width <= 0)
+            Myrmidon_Backend._Polygon.__init__(self, x, y, points, closed, line_width)
+            self.colour = colour
+
+        def _calculate_points_and_closed(self, width, height, start_angle, end_angle, filled):
+            points = []
+            closed = abs(end_angle - start_angle) >= 360
+            if filled and not closed:
+                points.append((width/2, height/2))
+            angle = start_angle
+            while angle >= end_angle and angle < 360:
+                points.append((width/2 + math.cos(math.radians(angle)) * width/2,
+                               height/2 + math.sin(math.radians(angle)) * height/2))
+                angle += 360/32.0
+            if angle >= 360:
+                angle = 0.0
+            while angle < end_angle and angle < 360:
+                points.append((width/2 + math.cos(math.radians(angle)) * width/2,
+                               height/2 + math.sin(math.radians(angle)) * height/2))
+                angle += 360/32.0
+            if not closed:
+                points.append((width/2 + math.cos(math.radians(end_angle)) * width/2,
+                               height/2 + math.sin(math.radians(end_angle)) * height/2))
+            return points, closed
+
+        def _update_points(self, points):
+            self._points = points
+
+    class Line(_Polygon):
+
+        @property
+        def points(self):
+            return self._points
+
+        @points.setter
+        def points(self, points):
+            self._update_points(points)
+
+        def __init__(self, x, y, points, colour=(1.0, 1.0, 1.0), line_width=1.0, closed=False):
+            Myrmidon_Backend._Polygon.__init__(self, x, y, points, closed, line_width)
+            self.colour = colour
 
     class Text(Entity):
         """ this is the class for all text handling """
@@ -479,7 +677,6 @@ class Myrmidon_Backend(object):
             self.normal_draw = False
             self.status = S_FREEZE
 
-
         def draw(self):
             if self.image is None:
                 return
@@ -492,7 +689,8 @@ class Myrmidon_Backend(object):
             # Clip the entity if necessary
             if not self.clip is None:
                 glEnable(GL_SCISSOR_TEST)
-                glScissor(int(self.clip[0][0]), Game.screen_resolution[1] - int(self.clip[0][1]) - int(self.clip[1][1]), int(self.clip[1][0]), int(self.clip[1][1]))
+                glScissor(int(self.clip[0][0]), Game.screen_resolution[1] - int(self.clip[0][1]) - int(self.clip[1][1]),
+                          int(self.clip[1][0]), int(self.clip[1][1]))
 
             # Rotate
             if self.rotation != 0.0:
@@ -511,7 +709,7 @@ class Myrmidon_Backend(object):
                 glScalef(self.scale, self.scale, 1.0)             
                 glTranslatef(-self.scale_point[0], -self.scale_point[1], 0)
                                         
-            # bending function
+            # blending function
             if self.blend:
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE)
                                 
@@ -542,11 +740,9 @@ class Myrmidon_Backend(object):
                                 
             glPopMatrix()
 
-                                
         def generate_text_image(self):
             self.image = self.make_texture()
-                        
-                        
+
         def make_texture(self):
             if self.text == "" or self.font == None:
                 self.image = None
@@ -588,7 +784,6 @@ class Myrmidon_Backend(object):
             self.image = Game.engine['gfx'].text_texture_cache[self.font][self.text][1]
             self.image.text_image_size = self.text_image_size
             return Game.engine['gfx'].text_texture_cache[self.font][self.text][1]
-                        
 
         def get_screen_draw_position(self):
             """ Overriding entity method to account for text alignment. """
@@ -617,7 +812,6 @@ class Myrmidon_Backend(object):
 
             return draw_x, draw_y
 
-
         def un_assign_text(self, text):
             if self.font in Game.engine['gfx'].text_texture_cache and text in Game.engine['gfx'].text_texture_cache[self.font]:
                 Game.engine['gfx'].text_texture_cache[self.font][text][0] -= 1
@@ -625,7 +819,6 @@ class Myrmidon_Backend(object):
                     del(Game.engine['gfx'].text_texture_cache[self.font][text][1])
                     del(Game.engine['gfx'].text_texture_cache[self.font][text])
 
-                        
         # text
         @property
         def text(self):
@@ -637,8 +830,7 @@ class Myrmidon_Backend(object):
                 self.un_assign_text(self._text)
                 self._text = str(value)
                 self.generate_text_image()
-                                
-                                
+
         @text.deleter
         def text(self):
             self.un_assign_text(self._text)
@@ -691,7 +883,6 @@ class Myrmidon_Backend(object):
         @shadow.deleter
         def shadow(self):
             self._shadow = None
-
 
         # Deleting
         def on_exit(self):

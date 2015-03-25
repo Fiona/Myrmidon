@@ -41,22 +41,23 @@ import kivy
 from kivy.core.image import Image as Kivy_Image
 from kivy.uix.label import Label
 from kivy.uix.widget import Widget
-from kivy.graphics import Rectangle, Color, Scale, Rotate, PushMatrix, PopMatrix, Translate, Quad
+from kivy.graphics import Rectangle, Color, Scale, Rotate, PushMatrix, PopMatrix, Translate, Quad, Ellipse, Line
 from kivy.graphics.texture import Texture
 from kivy.core.window import Window
 from kivy.graphics.opengl import glBlendFunc, glBlendFuncSeparate, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE
 
 
 class Myrmidon_Backend(Entity):
+
     clear_colour = (0.0, 0.0, 0.0, 1.0)
     letter_box_border_colour = (0.0, 0.0, 0.0, 1.0)
-    z_index_dirty = True
+    draw_list_dirty = True
     entity_list_draw_order = []
     letter_boxes = []
     device_resolution = None
     
     def __init__(self):
-        # Try hiding soft keys on certain ondroid phones
+        # Try hiding soft keys on certain android phones
         self.get_device_size_metrics()
         self.entity_draws = {}
         self.widget = None
@@ -79,14 +80,11 @@ class Myrmidon_Backend(Entity):
     def change_resolution(self, resolution):
         pass
 
-
     def update_screen_pre(self):
         pass
 
-
     def update_screen_post(self):
         pass
-
 
     def draw_entities(self, entity_list):
         self.get_device_size_metrics()
@@ -100,7 +98,7 @@ class Myrmidon_Backend(Entity):
 
         # If our z order is potentially dirty then we need to completely redraw
         # everything, se we clear the canvas and draw list, then get the proper order.
-        if self.z_index_dirty:
+        if self.draw_list_dirty:
             self.widget.canvas.clear()
             self.entity_draws = {}
             self.letter_boxes = []
@@ -112,7 +110,7 @@ class Myrmidon_Backend(Entity):
                 object.z if hasattr(object, "z") else 0,
                 reverse = True
                 )
-            self.z_index_dirty = False
+            self.draw_list_dirty = False
 
         # Now render for each entity
         for entity in self.entity_list_draw_order:
@@ -131,7 +129,7 @@ class Myrmidon_Backend(Entity):
                     pos = ((x * Game.device_scale) - Game.global_x_pos_adjust, (y * Game.device_scale) - Game.global_y_pos_adjust)
                 cen = entity.get_centre_point()
 
-                # Figure out how the textures are drawn to accomodate for image flippery
+                # Figure out how the textures are drawn to accommodate for image flippery
                 w, h = self.get_dimensions_for_texture_coords(entity.image.width, entity.image.height)
                 tex_coords = (0, h, w, h, w, 0, 0, 0)
                 if entity.flip_vertical and entity.flip_horizontal:
@@ -142,7 +140,7 @@ class Myrmidon_Backend(Entity):
                     tex_coords = (w, h, 0, h, 0, 0, w, 0)
 
                 # If this entity hasn't yet been attached to the canvas then do so
-                if not entity in self.entity_draws:
+                if entity not in self.entity_draws:
                     self.entity_draws[entity] = dict()
                     with self.widget.canvas:
                         self.entity_draws[entity]['color'] = color = Color()
@@ -210,7 +208,7 @@ class Myrmidon_Backend(Entity):
         
     def is_pot(self, val):
         """Returns a boolean indicating if the passed number of a power of two."""
-        is_pot = True;
+        is_pot = True
         while(val != 1 and val > 0):
             if(val % 2):
                 return False
@@ -224,74 +222,56 @@ class Myrmidon_Backend(Entity):
     def draw_single_entity(self, entity):
         pass
 
-
     def create_texture_list(self, entity, image):
         return None
-
 
     def draw_textured_quad(self, width, height, repeat = None):
         pass
 
-
     def register_entity(self, entity):
-        self.z_index_dirty = True
-
+        self.draw_list_dirty = True
 
     def remove_entity(self, entity):
-        self.z_index_dirty = True
-
+        self.draw_list_dirty = True
 
     def alter_x(self, entity, x):
         pass
 
-
     def alter_y(self, entity, y):
         pass
 
-
     def alter_z(self, entity, z):
-        self.z_index_dirty = True
-
+        self.draw_list_dirty = True
 
     def alter_image(self, entity, image):
         pass
 
-
     def alter_alpha(self, entity, alpha):
         pass
-
 
     def alter_colour(self, entity, colour):
         pass
 
-
     def alter_scale(self, entity, scale):
         pass
-
 
     def alter_rotation(self, entity, rotation):
         pass
 
-
     def alter_display(self, entity, display):
-        self.z_index_dirty = True
-
+        self.draw_list_dirty = True
 
     def new_image(self, width, height, colour = None):
         return Myrmidon_Backend.Image()
 
-
     def draw_line(self, start, finish, colour = (1.0,1.0,1.0,1.0), width = 5.0, noloadidentity = False):
         pass
-
 
     def draw_circle(self, position, radius, colour = (1.0,1.0,1.0,1.0), width = 5.0, filled = False, accuracy = 24, noloadidentity = False):
         pass
 
-
     def draw_rectangle(self, top_left, bottom_right, colour = (1.0,1.0,1.0,1.0), filled = True, width = 2.0, noloadidentity = False):
         pass
-
 
     def rgb_to_colour(self, colour):
         colour = list(colour)
@@ -302,7 +282,6 @@ class Myrmidon_Backend(Entity):
         for k,a in enumerate(colour):
             colour[k] = ((a/255.0) * (pre_multiply if k < 3 else 1.0))
         return colour
-
 
     class Image(object):
         EMPTY_IMAGE = Kivy_Image(Texture.create(size=(0, 0)))
@@ -364,6 +343,241 @@ class Myrmidon_Backend(Entity):
             # Stop this image from being used as a texture now
             self.image = None
 
+    class _Polygon(Entity):
+        """ This class encapsulates a primitive shape entity """
+
+        @property
+        def line_width(self):
+            return self._line_width
+
+        @line_width.setter
+        def line_width(self, line_width):
+            # if shape switches from filled to non-filled or vice-versa, the shape object must be replaced in the draw
+            # list, so mark it for clearing
+            if (line_width <= 0) != (self._line_width <= 0):
+                Game.engine['gfx'].draw_list_dirty = True
+            self._line_width = line_width
+
+        def __init__(self, x, y, line_width=0):
+            Entity.__init__(self)
+            self.x = x
+            self.y = y
+            self._line_width = line_width
+            self.status = S_FREEZE
+            self._width = 0
+            self._height = 0
+
+        def draw(self):
+
+            engine = Game.engine['gfx']
+
+            platform.glBlendFunc()
+            # Work out the real width/height and screen position of the entity
+            size = (self._width * (self.scale * Game.device_scale),
+                    self._height * (self.scale * Game.device_scale))
+            x, y = self.get_screen_draw_position()
+            y = Game.screen_resolution[1] - (self._height * self.scale) - y
+            if Game.screen_size_adjustment_compatability_mode:
+                pos = ((x * Game.device_scale) - Game.global_x_pos_adjust,
+                        y * Game.device_scale)
+            else:
+                pos = ((x * Game.device_scale) - Game.global_x_pos_adjust,
+                       (y * Game.device_scale) - Game.global_y_pos_adjust)
+            cen = self.get_centre_point()
+
+            # If this entity hasn't yet been attached to the canvas then do so
+            if self not in engine.entity_draws:
+                engine.entity_draws[self] = dict()
+                with engine.widget.canvas:
+                    engine.entity_draws[self]['color'] = color = Color()
+                    PushMatrix()
+                    engine.entity_draws[self]['translate'] = Translate()
+                    engine.entity_draws[self]['rotate'] = Rotate()
+                    engine.entity_draws[self]['rotate'].axis = (0, 0, -1)
+                    engine.entity_draws[self]['scale'] = Scale()
+                    engine.entity_draws[self]['rect'] = self._create_shape()
+                    PopMatrix()
+
+            # update values
+            color = engine.entity_draws[self]['color']
+            platform.apply_rgb(self, color)
+            color.a = self.alpha
+            engine.entity_draws[self]['translate'].xy = pos
+            engine.entity_draws[self]['rotate'].angle = self.rotation
+            engine.entity_draws[self]['rotate'].origin = (cen[0] * self.scale * Game.device_scale,
+                                                          size[1] - (cen[1] * self.scale * Game.device_scale))
+            engine.entity_draws[self]['scale'].xyz = (self.scale * (-1 if self.flip_horizontal else 1),
+                                                      self.scale * (-1 if self.flip_vertical else 1),
+                                                      1.0)
+            self._update_shape(engine.entity_draws[self]['rect'], cen, size)
+
+        def _create_shape(self):
+            pass
+
+        def _update_shape(self, shape, cen, size):
+            pass
+
+        def get_centre_point(self):
+            """overridden to return centre of polygon if not set"""
+            if -1 in self.centre_point:
+                return self._width / 2, self._height / 2
+            else:
+                return self.centre_point
+
+    class Rectangle(_Polygon):
+
+        @property
+        def width(self):
+            return self._width
+
+        @width.setter
+        def width(self, width):
+            self._width = width
+            self._points_dirty = True
+
+        @property
+        def height(self):
+            return self._height
+
+        @height.setter
+        def height(self, height):
+            self._height = height
+            self._points_dirty = True
+
+        def __init__(self, x, y, width, height, colour=(1.0, 1.0, 1.0), line_width=0):
+            self._points_dirty = True
+            Myrmidon_Backend._Polygon.__init__(self, x, y, line_width)
+            self._width = width
+            self._height = height
+            self.colour = colour
+
+        def _create_shape(self):
+            if self._line_width <= 0:
+                return Rectangle()
+            else:
+                self._points_dirty = True
+                return Line()
+
+        def _update_shape(self, shape, cen, size):
+            if self._line_width <= 0:
+                # rectangle object for filled shape
+                shape.size = self._width*Game.device_scale, self._height*Game.device_scale
+            else:
+                # line obejct for non-filled shape
+                if self._points_dirty:
+                    shape.rectangle = (0, 0, self._width*Game.device_scale, self._height*Game.device_scale)
+                    self._points_dirty = False
+                shape.width = self.line_width
+
+    class Ellipse(_Polygon):
+
+        @property
+        def width(self):
+            return self._width
+
+        @width.setter
+        def width(self, width):
+            self._width = width
+            self._points_dirty = True
+
+        @property
+        def height(self):
+            return self._height
+
+        @height.setter
+        def height(self, height):
+            self._height = height
+            self._points_dirty = True
+
+        @property
+        def start_angle(self):
+            return self._start_angle
+
+        @start_angle.setter
+        def start_angle(self, start_angle):
+            self._start_angle = start_angle
+            self._points_dirty = True
+
+        @property
+        def end_angle(self):
+            return self._end_angle
+
+        @end_angle.setter
+        def end_angle(self, end_angle):
+            self._end_angle = end_angle
+            self._points_dirty = True
+
+        def __init__(self, x, y, width, height, colour=(1.0, 1.0, 1.0), line_width=0, start_angle=0, end_angle=360):
+            self._points_dirty = True
+            self._start_angle = start_angle
+            self._end_angle = end_angle
+            Myrmidon_Backend._Polygon.__init__(self, x, y, line_width)
+            self._width = width
+            self._height = height
+            self.colour = colour
+
+        def _create_shape(self):
+            if self._line_width <= 0:
+                return Ellipse(segments=32)
+            else:
+                self._points_dirty = True
+                return Line()
+
+        def _update_shape(self, shape, cen, size):
+            # kivy's ellipse angles appear to start at the top of the ellipse rather than to the right, so add 90
+            # degrees. Also it doesn't seem to work unless the end angle is greater than the start, so add 360 to end
+            # angle if necessary
+            ang_start = self._start_angle + 90
+            ang_end = self._end_angle + 90 + (360 if self._end_angle+90 < self._start_angle+90 else 0)
+            if self._line_width <= 0:
+                # ellipse object for filled shape
+                shape.size = self._width*Game.device_scale, self._height*Game.device_scale
+                shape.angle_start = ang_start
+                shape.angle_end = ang_end
+            else:
+                # line object for non-filled shape
+                if self._points_dirty:
+                    shape.ellipse = (0, 0, self._width*Game.device_scale, self._height*Game.device_scale,
+                                     ang_start, ang_end, 32)
+                    self._points_dirty = False
+                shape.width = self.line_width
+
+    class Line(_Polygon):
+
+        @property
+        def points(self):
+            return self._points
+
+        @points.setter
+        def points(self, points):
+            self._points = points
+            min_x = min([p[0] for p in points])
+            max_x = max([p[0] for p in points])
+            min_y = min([p[1] for p in points])
+            max_y = max([p[1] for p in points])
+            self._width = max_x - min_x
+            self._height = max_y - min_y
+            self._points_dirty = True
+
+        def __init__(self, x, y, points, colour=(1.0, 1.0, 1.0), line_width=1, closed=False):
+            self._points_dirty = True
+            self.closed = closed
+            Myrmidon_Backend._Polygon.__init__(self, x, y, line_width)
+            self.points = points
+            self.colour = colour
+
+        def _create_shape(self):
+            self._points_dirty = True
+            return Line()
+
+        def _update_shape(self, shape, cen, size):
+            if self._points_dirty:
+                # only reassign the points list if it has changed
+                shape.points = sum([[p[0]*Game.device_scale,
+                                     (self._height-p[1])*Game.device_scale] for p in self._points], [])
+                self._points_dirty = False
+            shape.close = self.closed
+            shape.width = self.line_width
 
     class _Text(Entity):
         alignment = ALIGN_CENTER
@@ -451,7 +665,6 @@ class Myrmidon_Backend(Entity):
                 self.image.destroy()
                 self.image = None
 
-
     class DefaultText(_Text):
         def generate_text_image(self):
             label = self.generate_label()
@@ -464,7 +677,6 @@ class Myrmidon_Backend(Entity):
 
             self.text_image_size = label.texture_size
             self.image = Myrmidon_Backend.Image(label.texture)
-
 
     class AppleText(_Text):
         def generate_text_image(self):
