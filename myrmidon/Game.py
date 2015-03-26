@@ -1116,9 +1116,8 @@ class Game(object):
     # MISCELANEOUS HELPERS
     ##############################################
 
-
     @classmethod
-    def rgba_to_colour(cls, r = 255, g = 255, b = 255, a = 255):
+    def rgba_to_colour(cls, r=255, g=255, b=255, a=255):
         """Converts an RGBA colour value to a float based colour value that
         myrmidon understands.
         Returns a tuple containing RGBA colour values between 0 and 1.
@@ -1132,7 +1131,7 @@ class Game(object):
         return cls.engine['gfx'].rgb_to_colour((r, g, b, a))
 
     @classmethod
-    def rgb_to_colour(cls, r = 255, g = 255, b = 255):
+    def rgb_to_colour(cls, r=255, g=255, b=255):
         """Converts an RGB colour value to a float based colour value that
         myrmidon understands.
         Returns a tuple containing RGB colour values between 0 and 1.
@@ -1143,20 +1142,57 @@ class Game(object):
         -- b: Blue component value (default 255)
         """
         vals = cls.rgba_to_colour(r, g, b)
-        return (vals[0], vals[1], vals[2])
-
-
-    @classmethod
-    def rgba_to_color(cls, r = 255, g = 255, b = 255, a = 255):
-        """American spelling alias to rgba_to_colour"""
-        return cls.rgb_to_colour(r, g, b, a)
-
+        return vals[0], vals[1], vals[2]
 
     @classmethod
-    def rgb_to_color(cls, r = 255, g = 255, b = 255):
-        """American spelling alias to rgb_to_colour"""
-        return cls.rgb_to_colour(r, g, b)
+    def hsva_to_colour(cls, hue=0, sat=1.0, val=1.0, alpha=255):
+        """Converts an HSVA colour value to a float-based RGBA colour value that
+        myrmidon understands.
+        Returns a 4-tuple containing RGBA colour values between 0 and 1
+        :param hue: The hue value in degrees between 0 and 360
+        :param sat: The saturation between 0 and 1
+        :param val: The brightness value between 0 and 1
+        :param alpha: The alpha value between 0 and 255
+        :returns The colour as a 4-tuple"""
+        chroma = val * sat
+        sixth = (hue % 360) / 60.0
+        othcomp = chroma * (1.0 - abs((sixth % 2) - 1.0))
+        if 0 <= sixth < 1:
+            r, g, b = chroma, othcomp, 0
+        elif 1 <= sixth < 2:
+            r, g, b = othcomp, chroma, 0
+        elif 2 <= sixth < 3:
+            r, g, b = 0, chroma, othcomp
+        elif 3 <= sixth < 4:
+            r, g, b = 0, othcomp, chroma
+        elif 4 <= sixth < 5:
+            r, g, b = othcomp, 0, chroma
+        elif 5 <= sixth < 6:
+            r, g, b = chroma, 0, othcomp
+        else:
+            r, g, b = 0, 0, 0
+        r += val - chroma
+        g += val - chroma
+        b += val - chroma
+        return cls.rgba_to_colour(int(r*255), int(g*255), int(b*255), alpha)
 
+    @classmethod
+    def hsv_to_colour(cls, hue=0, sat=1.0, val=1.0):
+        """Converts an HSV colour value to a float-based RGB colour value that
+        myrmidon understands.
+        Returns a 3-tuple containing RGB colour values between 0 and 1
+        :param hue: The hue value in degrees between 0 and 360
+        :param sat: The saturation between 0 and 1
+        :param val: The brightness value between 0 and 1
+        :returns The colour as a 3-tuple"""
+        vals = cls.hsva_to_colour(hue, sat, val)
+        return vals[0], vals[1], vals[2]
+
+    # American spelling aliases
+    rgba_to_color = rgba_to_colour
+    rgb_to_color = rgb_to_colour
+    hsva_to_color = hsva_to_colour
+    hsv_to_color = hsv_to_colour
 
     @classmethod
     def lerp(cls, start, end, amount):
