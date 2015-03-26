@@ -518,3 +518,72 @@ class CollisionPointToPointTest(unittest.TestCase):
         p2 = CollisionPointToPointTest.TestPoint()
         p2.x, p2.y = 3.0, 4.0
         self.assertTrue(Game.collision_point_to_point(p1, p2))
+
+
+class HSVAToColourTest(unittest.TestCase):
+
+    def _stub_colour(self, (r, g, b, a)):
+        return r/255.0, g/255.0, b/255.0, a/255.0
+
+    @mock.patch("myrmidon.Game.engine")
+    def test_returns_white_for_no_sat_and_full_val(self, engines):
+        engines['gfx'].rgb_to_colour = self._stub_colour
+        self.assertEqual((1.0, 1.0, 1.0, 1.0), Game.hsva_to_colour(0, 0.0, 1.0, 255))
+
+    @mock.patch("myrmidon.Game.engine")
+    def test_returns_black_for_no_val(self, engines):
+        engines['gfx'].rgb_to_colour = self._stub_colour
+        self.assertEqual((0.0, 0.0, 0.0, 1.0), Game.hsva_to_colour(0, 1.0, 0.0, 255))
+
+    @mock.patch("myrmidon.Game.engine")
+    def test_returns_red_for_hue_0(self, engines):
+        engines['gfx'].rgb_to_colour = self._stub_colour
+        self.assertEqual((1.0, 0.0, 0.0, 1.0), Game.hsva_to_colour(0, 1.0, 1.0, 255))
+
+    @mock.patch("myrmidon.Game.engine")
+    def test_returns_green_for_hue_120(self, engines):
+        engines['gfx'].rgb_to_colour = self._stub_colour
+        self.assertEqual((0.0, 1.0, 0.0, 1.0), Game.hsva_to_colour(120, 1.0, 1.0, 255))
+
+    @mock.patch("myrmidon.Game.engine")
+    def test_returns_blue_for_hue_240(self, engines):
+        engines['gfx'].rgb_to_colour = self._stub_colour
+        self.assertEqual((0.0, 0.0, 1.0, 1.0), Game.hsva_to_colour(240, 1.0, 1.0, 255))
+
+    @mock.patch("myrmidon.Game.engine")
+    def test_returns_yellow_for_hue_60(self, engines):
+        engines['gfx'].rgb_to_colour = self._stub_colour
+        self.assertEqual((1.0, 1.0, 0.0, 1.0), Game.hsva_to_colour(60, 1.0, 1.0, 255))
+
+    @mock.patch("myrmidon.Game.engine")
+    def test_returns_cyan_for_hue_180(self, engines):
+        engines['gfx'].rgb_to_colour = self._stub_colour
+        self.assertEqual((0.0, 1.0, 1.0, 1.0), Game.hsva_to_colour(180, 1.0, 1.0, 255))
+
+    @mock.patch("myrmidon.Game.engine")
+    def test_returns_magenta_for_hue_300(self, engines):
+        engines['gfx'].rgb_to_colour = self._stub_colour
+        self.assertEqual((1.0, 0.0, 1.0, 1.0), Game.hsva_to_colour(300, 1.0, 1.0, 255))
+
+    @mock.patch("myrmidon.Game.engine")
+    def test_lowering_val_lowers_appropriate_rgb_channels_uniformally(self, engines):
+        engines['gfx'].rgb_to_colour = self._stub_colour
+        result = Game.hsva_to_colour(60, 1.0, 0.25, 255)
+        self.assertAlmostEqual(0.25, result[0], 2)
+        self.assertAlmostEqual(0.25, result[1], 2)
+        self.assertAlmostEqual(0.0,  result[2], 2)
+        self.assertEqual(1.0, result[3])
+
+    @mock.patch("myrmidon.Game.engine")
+    def test_lowering_saturation_increases_appropriate_rgb_channels_uniformally(self, engines):
+        engines['gfx'].rgb_to_colour = self._stub_colour
+        result = Game.hsva_to_colour(60, 0.25, 1.0, 255)
+        self.assertAlmostEqual(1.0,  result[0], 2)
+        self.assertAlmostEqual(1.0,  result[1], 2)
+        self.assertAlmostEqual(0.75, result[2], 2)
+        self.assertEqual(1.0, result[3])
+
+    @mock.patch("myrmidon.Game.engine")
+    def test_returns_correct_alpha_value(self, engines):
+        engines['gfx'].rgb_to_colour = self._stub_colour
+        self.assertAlmostEqual(0.25, Game.hsva_to_colour(0, 1.0, 1.0, 64)[3], 2)
