@@ -43,6 +43,7 @@ class Myrmidon_Backend(object):
     mouse = None
     disable_input = False
     map_touch_to_mouse = True
+    mouse_left_state = [False, False]
 
     def __init__(self):
         pass
@@ -63,8 +64,8 @@ class Myrmidon_Backend(object):
         self.mouse.y -= abs(Game.global_y_pos_adjust) / Game.device_scale
         self.mouse.wheel_up = False
         self.mouse.wheel_down = False
-        if self.mouse.left_up:
-            self.mouse.left_up = False
+        self.mouse.left, self.mouse.left_up = self.mouse_left_state
+        self.mouse_left_state = [False, False]
 
     def keyboard_key_down(self, key_code):
         if self.keys_pressed[key_code]:
