@@ -38,17 +38,11 @@ from myrmidon.consts import *
 from kivy.core.window import Window
 
 class Myrmidon_Backend(object):
-
     keys_pressed = []
     last_keys_pressed = []
-
     mouse = None
-
     disable_input = False
-
     map_touch_to_mouse = True
-
-    last_left = False
 
     def __init__(self):
         pass
@@ -59,62 +53,28 @@ class Myrmidon_Backend(object):
             self.mouse.z = -512
             self.mouse.visible = True
             self.initialise_mouse_state()
-
         if self.disable_input:
             self.initialise_mouse_state()
             return
 
-        self.last_keys_pressed  = self.keys_pressed
-        #self.keys_pressed  = pygame.key.get_pressed()
-
-        #self.mouse.pos = (Window.mouse_pos[0], Game.screen_resolution[1] - Window.mouse_pos[1])
-        #self.mouse.rel = pygame.mouse.get_rel()
+        self.last_keys_pressed  = self.keys_pressed        
         self.mouse.x = self.mouse.pos[0]
         self.mouse.y = self.mouse.pos[1]
         self.mouse.y -= abs(Game.global_y_pos_adjust) / Game.device_scale
-
         self.mouse.wheel_up = False
         self.mouse.wheel_down = False
-
-        self.mouse.left_up = True if self.last_left and not Game.engine['input'].mouse.left else False
-        self.last_left = Game.engine['input'].mouse.left
-
-        """
-        self.event_store = []
-
-        for event in pygame.event.get(MOUSEBUTTONDOWN):
-            self.event_store.append(event)
-            if event.type == MOUSEBUTTONDOWN:
-                if event.button == 4:
-                    self.mouse.wheel_up = True
-                if event.button == 5:
-                    self.mouse.wheel_down = True
-
-        self.last_mouse_buttons_pressed  = self.mouse_buttons_pressed
-        self.mouse_buttons_pressed = pygame.mouse.get_pressed()
-
-        self.mouse.left = True if self.mouse_buttons_pressed[0] else False
-        self.mouse.left_up = True if self.last_mouse_buttons_pressed[0] and not self.mouse_buttons_pressed[0] else False
-
-        self.mouse.middle = True if self.mouse_buttons_pressed[1] else False
-        self.mouse.middle_up = True if self.last_mouse_buttons_pressed[1] and not self.mouse_buttons_pressed[1] else False
-
-        self.mouse.right = True if self.mouse_buttons_pressed[2] else False
-        self.mouse.right_up = True if self.last_mouse_buttons_pressed[2] and not self.mouse_buttons_pressed[2] else False
-        """
-
+        if self.mouse.left_up:
+            self.mouse.left_up = False
 
     def keyboard_key_down(self, key_code):
         if self.keys_pressed[key_code]:
             return True
         return False
 
-
     def keyboard_key_released(self, key_code):
          if self.last_keys_pressed[key_code] and not self.keys_pressed[key_code]:
               return True
          return False
-
 
     def initialise_mouse_state(self):
         self.mouse.pos = (0, 0)
@@ -128,7 +88,6 @@ class Myrmidon_Backend(object):
         self.mouse.wheel_up = False
         self.mouse.wheel_down = False
 
-
     class Mouse(Entity):
         """ Record for holding mouse info """
         collision_type = COLLISION_TYPE_POINT
@@ -141,7 +100,6 @@ class Myrmidon_Backend(object):
         @visible.setter
         def visible(self, value):
             self._visible = value
-            #pygame.mouse.set_visible(value)
 
         @visible.deleter
         def visible(self):
@@ -154,4 +112,3 @@ class Myrmidon_Backend(object):
             """
             self.pos = new_pos
             self.x, self.y = self.pos
-            #pygame.mouse.set_pos(new_pos)

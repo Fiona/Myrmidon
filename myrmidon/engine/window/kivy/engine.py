@@ -105,6 +105,7 @@ class KivyApp(App):
             if not Game.engine['input'].map_touch_to_mouse:
                 return
             Game.engine['input'].mouse.left = False
+            Game.engine['input'].mouse.left_up = True
 
 
 
