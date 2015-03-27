@@ -84,6 +84,7 @@ class KivyApp(App):
             if not Game.engine['input'].map_touch_to_mouse:
                 return
             Game.engine['input'].mouse_left_state[0] = True
+            Game.engine['input'].mouse.left = True
             Game.engine['input'].mouse.pos = (
                 ((touch.pos[0] + Game.global_x_pos_adjust) / Game.device_scale),
                 (Game.engine['gfx'].device_resolution[1]  - touch.pos[1]) / Game.device_scale
@@ -104,6 +105,7 @@ class KivyApp(App):
         def on_touch_up(self, touch):
             if not Game.engine['input'].map_touch_to_mouse:
                 return
+            Game.engine['input'].mouse.left = False       
             Game.engine['input'].mouse_left_state[1] = True
 
 

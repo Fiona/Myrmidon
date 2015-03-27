@@ -43,13 +43,8 @@ class Myrmidon_Backend(object):
 
     keys_pressed = []
     last_keys_pressed = []
-
     event_store = []
-    mouse_buttons_pressed = [False, False, False]
-    last_mouse_buttons_pressed = [False, False, False]
-
     mouse = None
-    
     clear_events = True
     disable_input = False
         
@@ -72,6 +67,15 @@ class Myrmidon_Backend(object):
             self.initialise_mouse_state()
             return
                 
+        self.mouse.wheel_down = False
+        self.mouse.wheel_up = False
+        self.mouse.left_down = False
+        self.mouse.left_up = False
+        self.mouse.middle_down = False
+        self.mouse.middle_up = False
+        self.mouse.right_down = False
+        self.mouse.right_up = False
+
         self.last_keys_pressed  = self.keys_pressed
         pygame.event.pump()
         self.keys_pressed  = pygame.key.get_pressed()
@@ -80,47 +84,47 @@ class Myrmidon_Backend(object):
         self.mouse.rel = pygame.mouse.get_rel()
         self.mouse.x = self.mouse.pos[0]
         self.mouse.y = self.mouse.pos[1]
-                
-        self.mouse.wheel_up = False
-        self.mouse.wheel_down = False
 
         self.event_store = []
-                
-        for event in pygame.event.get(MOUSEBUTTONDOWN):
+        for event in pygame.event.get((MOUSEBUTTONDOWN, MOUSEBUTTONUP)):
             self.event_store.append(event)
             if event.type == MOUSEBUTTONDOWN:
                 if event.button == 4:
                     self.mouse.wheel_up = True
-                if event.button == 5:
+                elif event.button == 5:
                     self.mouse.wheel_down = True
-                                        
-        self.last_mouse_buttons_pressed  = self.mouse_buttons_pressed
-        self.mouse_buttons_pressed = pygame.mouse.get_pressed()
-
-        self.mouse.left = True if self.mouse_buttons_pressed[0] else False
-        self.mouse.left_up = True if self.last_mouse_buttons_pressed[0] and not self.mouse_buttons_pressed[0] else False
-                
-        self.mouse.middle = True if self.mouse_buttons_pressed[1] else False
-        self.mouse.middle_up = True if self.last_mouse_buttons_pressed[1] and not self.mouse_buttons_pressed[1] else False
-                
-        self.mouse.right = True if self.mouse_buttons_pressed[2] else False
-        self.mouse.right_up = True if self.last_mouse_buttons_pressed[2] and not self.mouse_buttons_pressed[2] else False
+                elif event.button == 1:
+                    self.mouse.left = True
+                    self.mouse.left_down = True
+                elif event.button == 2:
+                    self.mouse.middle = True
+                    self.mouse.middle_down = True
+                elif event.button == 3:
+                    self.mouse.right = True
+                    self.mouse.right_down = True
+            elif event.type == MOUSEBUTTONUP:
+                if event.button == 1:
+                    self.mouse.left = False
+                    self.mouse.left_up = True
+                if event.button == 2:
+                    self.mouse.middle = False
+                    self.mouse.middle_up = True
+                if event.button == 3:
+                    self.mouse.right = False
+                    self.mouse.right_up = True
 
         if self.clear_events:
             pygame.event.clear()
-
 
     def keyboard_key_down(self, key_code):
         if self.keys_pressed[key_code]:
             return True
         return False
         
-
     def keyboard_key_released(self, key_code):
          if self.last_keys_pressed[key_code] and not self.keys_pressed[key_code]:
               return True
          return False
-
 
     def initialise_mouse_state(self):
         self.mouse.pos = (0, 0)
@@ -128,12 +132,14 @@ class Myrmidon_Backend(object):
         self.mouse.left = False
         self.mouse.middle = False
         self.mouse.right = False
+        self.mouse.left_down = False
         self.mouse.left_up = False
+        self.mouse.middle_down = False
         self.mouse.middle_up = False
+        self.mouse.right_down = False
         self.mouse.right_up = False
         self.mouse.wheel_up = False
-        self.mouse.wheel_down = False      
-
+        self.mouse.wheel_down = False
                 
     class Mouse(Entity):
         """ Record for holding mouse info """

@@ -502,6 +502,71 @@ class TestTextClip(TextTest):
         self.text.clip = ((self.x-22, self.y-10), (40, 24))
 
 
+class TestMousePos(Test):
+
+    description = "Mouse Position"
+
+    def _setup(self):
+        self.image = None
+        self.x_text = Game.write_text(self.x, self.y - 15, Application.F_MID, ALIGN_CENTER, "")
+        self.y_text = Game.write_text(self.x, self.y + 15, Application.F_MID, ALIGN_CENTER, "")
+
+    def _update(self):
+        self.x_text.text = "X: " + str(int(Game.mouse().x))
+        self.y_text.text = "Y: " + str(int(Game.mouse().y))
+
+
+class TestMouseButton(Test):
+
+    description = "Mouse Buttons"
+
+    def _setup(self):
+        self.image = None
+        self.left_text = Game.write_text(self.x, self.y - 30, Application.F_MID, ALIGN_CENTER, "")
+        self.middle_text = Game.write_text(self.x, self.y, Application.F_MID, ALIGN_CENTER, "")
+        self.right_text = Game.write_text(self.x, self.y + 30, Application.F_MID, ALIGN_CENTER, "")        
+
+    def _update(self):
+        self.left_text.text = "Left: "
+        self.middle_text.text = "Middle: "
+        self.right_text.text = "Right: "
+        if Game.mouse().left:
+            self.left_text.text = "Left: Pressed"
+        if Game.mouse().left_down:
+            self.left_text.text = "Left: Down"
+        if Game.mouse().left_up:
+            self.left_text.text += "Left: Up"
+        if Game.mouse().middle:
+            self.middle_text.text = "Middle: Pressed"
+        if Game.mouse().middle_down:
+            self.middle_text.text = "Middle: Down"
+        if Game.mouse().middle_up:
+            self.middle_text.text = "Middle: Up"
+        if Game.mouse().right:
+            self.right_text.text = "Right: Pressed"
+        if Game.mouse().right_down:
+            self.right_text.text = "Right: Down"
+        if Game.mouse().right_up:
+            self.right_text.text += "Right: Up"
+            
+
+class TestMouseWheel(Test):
+
+    description = "Mouse Wheel"
+
+    def _setup(self):
+        self.image = None
+        self.text = Game.write_text(self.x, self.y, Application.F_BIG, ALIGN_CENTER, "")
+
+    def _update(self):
+        if Game.mouse().wheel_up:
+            self.text.text = "UP"
+        elif Game.mouse().wheel_down:
+            self.text.text = "DOWN"
+        else:
+            self.text.text = ""
+
+
 class Application(Entity):
 
     G_WORD = None
@@ -517,7 +582,8 @@ class Application(Entity):
                            TestClip, TestColourAndAlpha, TestTextPosition, TestTextRotation, TestTextScaling,
                            TestTextXFlip, TestTextYFlip,
                            TestTextXAndYFlip, TestTextAlpha, TestTextYellow, TestTextCyan, TestTextMagenta,
-                           TestTextBlend, TestTextShowAndHide, TestTextCentrePoint, TestTextClip)
+                           TestTextBlend, TestTextShowAndHide, TestTextCentrePoint, TestTextClip,
+                           TestMousePos, TestMouseButton, TestMouseWheel)
         while True:
             if Game.keyboard_key_down(K_ESCAPE):
                 sys.exit()
@@ -525,6 +591,7 @@ class Application(Entity):
 
     def _load_media(self):
         Application.F_MAIN = Game.load_font(os.path.join("media", "comick_book_caps.ttf"), 8)
+        Application.F_MID = Game.load_font(os.path.join("media", "comick_book_caps.ttf"), 16)
         Application.F_BIG = Game.load_font(os.path.join("media", "comick_book_caps.ttf"), 32)
         Application.G_WORD = Game.load_image(os.path.join("media", "word.png"))
         Application.G_J = Game.load_image(os.path.join("media", "j.png"), sequence=True, width=32)
@@ -535,4 +602,6 @@ class Application(Entity):
             cls((64+128*x, 64+128*y))
 
 Game.screen_resolution = (1024, 768)
+Game.full_screen = False
+#Game.define_engine(*(["kivy"] * 4))
 Application()
