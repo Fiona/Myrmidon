@@ -641,11 +641,14 @@ class Game(object):
     @classmethod
     def create_line(cls, x, y, points, colour=(1.0, 1.0, 1.0), line_width=1.0, closed=False):
         """
-        Creates and returns a line entity at the given position and with the given points
-        :param x: Initial x coordinate
-        :param y: Initial y coordinate
+        Creates and returns a line entity at the given position and with the given points. A line entity consists of one
+        or more lines connected together to form a single shape. This shape is centred at the specified x and y
+        coordinates
+        :param x: Initial x position of the shape
+        :param y: Initial y position of the shape
         :param points: List of coordinate 2-tuples defining a line or polyline. Coordinates are relative to what will be
-                       the top-left corner of the entity
+                       the top-left corner of the entity, and should be >= 0. The width and height of the shape will be
+                       defined by the bounding box around all the points in the shape.
         :param colour: Optional 3-tuple specifying the RGB colour. Defaults to white.
         :param line_width: The thickness of line to use. Defaults to 1.0
         :param closed: If True, the last line will be connected to the first in a loop
