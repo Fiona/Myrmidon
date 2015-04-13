@@ -362,8 +362,8 @@ class TestTextRotation(TextTest):
 
 
 class TestTextScaling(TextTest):
-
-    """description = "Text scaling (0.5-2.0)"
+    """ 
+    description = "Text scaling (0.5-2.0)"
 
     def _setup(self):
         TextTest._setup(self)
@@ -493,6 +493,22 @@ class TestTextCentrePoint(TextTest):
             self.text.centre_point = (100, 100)
 
 
+class TestTextAlignment(TextTest):
+
+    description = "Text align (TL-BR)"
+
+    def _setup(self):
+        TextTest._setup(self)
+        self.time = 0.0
+
+    def _update(self):
+        self.time = (self.time+1) % 30
+        if self.time < 15 and self.text.alignment != ALIGN_TOP_LEFT:
+            self.text.alignment = ALIGN_TOP_LEFT
+        if self.time >= 15 and self.text.alignment != ALIGN_BOTTOM_RIGHT:
+            self.text.alignment = ALIGN_BOTTOM_RIGHT
+
+
 class TestTextClip(TextTest):
 
     description = "Text clipping ('es')"
@@ -500,6 +516,14 @@ class TestTextClip(TextTest):
     def _setup(self):
         TextTest._setup(self)
         self.text.clip = ((self.x-22, self.y-10), (40, 24))
+
+class TestTextShadow(TextTest):
+    
+    description = "Text shadow (purple)"
+    
+    def _setup(self):
+        TextTest._setup(self)
+        self.text.shadow = (0.75, 0.25, 0.75)
 
 
 class TestMousePos(Test):
@@ -582,11 +606,12 @@ class Application(Entity):
                            TestClip, TestColourAndAlpha, TestTextPosition, TestTextRotation, TestTextScaling,
                            TestTextXFlip, TestTextYFlip,
                            TestTextXAndYFlip, TestTextAlpha, TestTextYellow, TestTextCyan, TestTextMagenta,
-                           TestTextBlend, TestTextShowAndHide, TestTextCentrePoint, TestTextClip,
+                           TestTextBlend, TestTextShowAndHide, TestTextCentrePoint, TestTextAlignment,
+                           TestTextClip, TestTextShadow,
                            TestMousePos, TestMouseButton, TestMouseWheel)
         while True:
-            if Game.keyboard_key_down(K_ESCAPE):
-                sys.exit()
+            #if Game.keyboard_key_down(K_ESCAPE):
+            #    sys.exit()
             yield
 
     def _load_media(self):
