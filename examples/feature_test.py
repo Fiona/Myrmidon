@@ -355,14 +355,14 @@ class TestTextPosition(TextTest):
 
 class TestTextRotation(TextTest):
 
-    """description = "Text rotation (clkws)"
+    description = "Text rotation (clkws)"
 
     def _update(self):
-        self.text.rotation += 0.1"""
+        self.text.rotation += 5
 
 
 class TestTextScaling(TextTest):
-    """ 
+
     description = "Text scaling (0.5-2.0)"
 
     def _setup(self):
@@ -372,7 +372,7 @@ class TestTextScaling(TextTest):
     def _update(self):
         self.text.scale += 0.1
         if self.text.scale > 2.0:
-            self.text.scale = 0.5"""
+            self.text.scale = 0.5
 
 
 class TestTextXFlip(TextTest):
@@ -603,15 +603,17 @@ class Application(Entity):
                            TestAlpha, TestYellow, TestCyan, TestMagenta, TestZSort, TestPosition, TestBlend,
                            TestHideShow, TestPriority, TestImageSequence, TestDrawCentrePoint, TestRotateCentrePoint,
                            TestScaleCentrePoint, TestFlipCentrePoint, TestStopExecuting,
-                           TestClip, TestColourAndAlpha, TestTextPosition, TestTextRotation, TestTextScaling,
+                           TestClip, TestColourAndAlpha, TestTextPosition, TestTextRotation,
+                           TestTextScaling,
                            TestTextXFlip, TestTextYFlip,
                            TestTextXAndYFlip, TestTextAlpha, TestTextYellow, TestTextCyan, TestTextMagenta,
                            TestTextBlend, TestTextShowAndHide, TestTextCentrePoint, TestTextAlignment,
                            TestTextClip, TestTextShadow,
-                           TestMousePos, TestMouseButton, TestMouseWheel)
+                           TestMousePos, TestMouseButton, TestMouseWheel
+                           )
         while True:
-            #if Game.keyboard_key_down(K_ESCAPE):
-            #    sys.exit()
+            if Game.keyboard_key_down(K_ESCAPE):
+                sys.exit()
             yield
 
     def _load_media(self):

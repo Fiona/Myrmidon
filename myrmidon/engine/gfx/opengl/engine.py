@@ -172,37 +172,6 @@ class Myrmidon_Backend(object):
 
         entity.draw()
 
-    def draw_textured_quad(self, width, height, repeat = None, tex_offset = None):
-        if repeat == None:
-            tex_coords = (1.0, 1.0)
-            tex_offset = (0.0, 0.0)
-        else:
-            tex_coords = (width / repeat.width, height / repeat.height)
-            if not tex_offset == None:
-                tex_offset = ((tex_offset[0] / repeat.width) * .1, (tex_offset[1] / repeat.height) * .1)
-            else:
-                tex_offset = (0.0, 0.0)
-                                
-        glBegin(GL_TRIANGLE_STRIP)
-
-        # top right
-        glTexCoord2f(tex_coords[0] + tex_offset[0], tex_coords[1] + tex_offset[1])
-        glVertex3f(width, height, 0.0)
-
-        # top left
-        glTexCoord2f(0.0 + tex_offset[0], tex_coords[1] + tex_offset[1])
-        glVertex3f(0.0, height, 0.0)
-
-        # bottom right
-        glTexCoord2f(tex_coords[0] + tex_offset[0], 0.0 + tex_offset[1])
-        glVertex3f(width, 0.0, 0.0)             
-
-        # bottom left
-        glTexCoord2f(0.0 + tex_offset[0], 0.0 + tex_offset[1])
-        glVertex3f(0.0, 0.0, 0.0)
-                
-        glEnd()
-
     def register_entity(self, entity):
         self.entities_z_order_list.append(entity)
         self.z_order_dirty = True
@@ -257,87 +226,6 @@ class Myrmidon_Backend(object):
         # Create an image from it
         return MyrmidonGfxOpengl.Image(new_surface)
 
-    def draw_line(self, start, finish, colour = (1.0,1.0,1.0,1.0), width = 5.0, noloadidentity = False):
-        gradient = True if hasattr(colour[0], "__iter__") else False
-
-        if not noloadidentity:
-            glPushMatrix()
-                        
-        glLineWidth(width)
-                
-        glDisable(GL_TEXTURE_2D)
-                
-        glBegin(GL_LINES)
-        glColor4f(*(colour if not gradient else colour[0]))
-        glVertex2f(start[0], start[1])
-        if gradient:
-            glColor4f(*colour[1])
-        glVertex2f(finish[0], finish[1])
-        glEnd()
-
-        if not noloadidentity:
-            glPopMatrix()
-
-    def draw_circle(self, position, radius, colour = (1.0,1.0,1.0,1.0), width = 5.0, filled = False, accuracy = 24, noloadidentity = False):
-        if not noloadidentity:
-            glPushMatrix()
-                        
-        glDisable(GL_TEXTURE_2D)
-
-        glColor4f(*colour)
-
-        if filled:
-            glBegin(GL_TRIANGLE_FAN)
-        else:
-            glLineWidth(width)
-            glBegin(GL_LINE_LOOP)
-
-        for angle in frange(0, math.pi*2, (math.pi*2)/accuracy):
-            glVertex2f(position[0] + radius * math.sin(angle), position[1] + radius * math.cos(angle))
-        glEnd()
-                                          
-        glEnable(GL_TEXTURE_2D)
-
-        if not noloadidentity:
-            glPopMatrix()
-
-    def draw_rectangle(self, top_left, bottom_right, colour = (1.0,1.0,1.0,1.0), filled = True, width = 2.0, noloadidentity = False):
-        four_colours = True if hasattr(colour[0], "__iter__") else False
-                
-        if not noloadidentity:
-            glPushMatrix()
-                
-        glDisable(GL_TEXTURE_2D)
-                
-        if filled:
-            glBegin(GL_QUADS)
-        else:
-            glLineWidth(width)
-            glBegin(GL_LINE_LOOP)
-                        
-        glColor4f(*(colour[0] if four_colours else colour))
-        glVertex2f(top_left[0], top_left[1])
-
-        if four_colours:                
-            glColor4f(*colour[1])
-                        
-        glVertex2f(bottom_right[0], top_left[1])
-
-        if four_colours:                
-            glColor4f(*colour[2])
-        glVertex2f(bottom_right[0], bottom_right[1])
-
-        if four_colours:                
-            glColor4f(*colour[3])
-                        
-        glVertex2f(top_left[0], bottom_right[1])
-        glEnd()
-                                          
-        glEnable(GL_TEXTURE_2D)
-
-        if not noloadidentity:
-            glPopMatrix()
-
     def rgb_to_colour(self, colour):
         col = []
         for a in colour:
@@ -390,9 +278,6 @@ class Myrmidon_Backend(object):
                 self.surfaces.append(self.surface)
 
             self.generate_vertex_data()
-                        
-            for surf in self.surfaces:
-                self.surfaces_draw_lists.append(self.create_draw_list(surf))
 
         def generate_vertex_data(self):
             self.vertex_data = numpy.array([float(self.width), float(self.height), 0.0,
@@ -418,13 +303,6 @@ class Myrmidon_Backend(object):
             gluBuild2DMipmaps(GL_TEXTURE_2D, 4, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data)             
                                 
             return tex
-
-        def create_draw_list(self, surface):
-            new_list = glGenLists(1)
-            glNewList(new_list, GL_COMPILE)
-            Game.engine['gfx'].draw_textured_quad(self.width, self.height)
-            glEndList()
-            return new_list
 
     text_texture_cache = {}
 
@@ -658,12 +536,13 @@ class Myrmidon_Backend(object):
         _text = ""
         _font = None
         _antialias = True
+        _alignment = ALIGN_CENTRE
 
-        text_image_size = (0,0)
+        text_image_size = (0, 0)
 
         _shadow = None
         
-        def __init__(self, font, x, y, alignment, text, antialias = True):
+        def __init__(self, font, x, y, alignment, text, antialias=True):
             Entity.__init__(self)
             self.font = font
             self.x = x
@@ -684,7 +563,13 @@ class Myrmidon_Backend(object):
             glPushMatrix()
 
             # get actual place to draw
+            # get_screen_draw_position returns coordinate where top left corner of quad is intended to go, before
+            # rotation but after scaling. Compensate for all this so draw_x and draw_y are were entity's centre should
+            # go
             draw_x, draw_y = self.get_screen_draw_position()
+            cp_x, cp_y = self.get_centre_point()  # the centre_point property doesnt apply the same logic as the getter
+            draw_x += cp_x * self.scale
+            draw_y += cp_y * self.scale
 
             # Clip the entity if necessary
             if not self.clip is None:
@@ -692,23 +577,22 @@ class Myrmidon_Backend(object):
                 glScissor(int(self.clip[0][0]), Game.screen_resolution[1] - int(self.clip[0][1]) - int(self.clip[1][1]),
                           int(self.clip[1][0]), int(self.clip[1][1]))
 
-            # Rotate
-            if self.rotation != 0.0:
-                x = draw_x + (self.image.width/2) * self.scale
-                y = draw_y + (entity.image.height/2) * self.scale
-                glTranslatef(x, y, 0)
-                glRotatef(self.rotation, 0, 0, 1)
-                glTranslatef(-x, -y, 0)
-                                
-            # move to correct draw pos
+            # move to correct pos
             glTranslatef(draw_x, draw_y, 0.0)
 
-            # scale if necessary
-            if not self.scale == 1.0:
-                glTranslatef(self.scale_point[0], self.scale_point[1], 0) 
-                glScalef(self.scale, self.scale, 1.0)             
-                glTranslatef(-self.scale_point[0], -self.scale_point[1], 0)
-                                        
+            # Rotate
+            if self.rotation != 0.0:
+                glRotatef(self.rotation, 0, 0, 1)
+
+            # scale
+            if self.scale != 1.0 or self.flip_horizontal or self.flip_vertical:
+                glScalef(self.scale * (-1.0 if self.flip_horizontal else 1.0),
+                         self.scale * (-1.0 if self.flip_vertical else 1.0), 1.0)
+
+            # quad vertices are such that top-left corner is at origin, and centre_point is relative to top-left corner
+            # also. translate by -centre_point to put quad's origin in the right place
+            glTranslate(-cp_x, -cp_y, 0.0)
+
             # blending function
             if self.blend:
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE)
@@ -720,7 +604,7 @@ class Myrmidon_Backend(object):
                 Game.engine['gfx'].last_image = self.image.surfaces[self.image_seq]
                 glVertexPointer(3, GL_FLOAT, 0, self.image.vertex_data)
                        
-            if not self.shadow is None:
+            if self.shadow is not None:
                 glTranslatef(2, 2, 0.0)
                 glColor4f(self.shadow[0], self.shadow[1], self.shadow[2], self.alpha)
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, 4)
@@ -735,16 +619,17 @@ class Myrmidon_Backend(object):
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
             # Stop clipping
-            if not self.clip == None:
+            if self.clip is not None:
                 glDisable(GL_SCISSOR_TEST)
                                 
             glPopMatrix()
 
         def generate_text_image(self):
             self.image = self.make_texture()
+            self._update_centre_point(self.alignment)
 
         def make_texture(self):
-            if self.text == "" or self.font == None:
+            if self.text == "" or self.font is None:
                 self.image = None
                 return                        
 
@@ -771,11 +656,11 @@ class Myrmidon_Backend(object):
             self.text_image_size = (width, height)
                         
             h = 16
-            while(h < height):
-                h = h * 2
+            while h < height:
+                h *= 2
             w = 16
-            while(w < width):
-                w = w * 2
+            while w < width:
+                w *= 2
                                 
             new_surface = pygame.Surface((w, h), SRCALPHA, 32)
             new_surface.blit(font_image, (0, 0))
@@ -785,39 +670,43 @@ class Myrmidon_Backend(object):
             self.image.text_image_size = self.text_image_size
             return Game.engine['gfx'].text_texture_cache[self.font][self.text][1]
 
-        def get_screen_draw_position(self):
-            """ Overriding entity method to account for text alignment. """
-            draw_x, draw_y = self.x, self.y
-                        
-            if self.alignment == ALIGN_TOP:
-                draw_x -= (self.text_image_size[0]/2)
-            elif self.alignment == ALIGN_TOP_RIGHT:
-                draw_x -= self.text_image_size[0]
-            elif self.alignment == ALIGN_CENTER_LEFT:
-                draw_y -= (self.text_image_size[1]/2)
-            elif self.alignment == ALIGN_CENTER:
-                draw_x -= (self.text_image_size[0]/2)
-                draw_y -= (self.text_image_size[1]/2)
-            elif self.alignment == ALIGN_CENTER_RIGHT:
-                draw_x -= self.text_image_size[0]
-                draw_y -= (self.text_image_size[1]/2)
-            elif self.alignment == ALIGN_BOTTOM_LEFT:
-                draw_y -= self.text_image_size[1]
-            elif self.alignment == ALIGN_BOTTOM:
-                draw_x -= (self.text_image_size[0]/2)
-                draw_y -= self.text_image_size[1]
-            elif self.alignment == ALIGN_BOTTOM_RIGHT:
-                draw_x -= self.text_image_size[0]
-                draw_y -= self.text_image_size[1]
-
-            return draw_x, draw_y
-
         def un_assign_text(self, text):
             if self.font in Game.engine['gfx'].text_texture_cache and text in Game.engine['gfx'].text_texture_cache[self.font]:
                 Game.engine['gfx'].text_texture_cache[self.font][text][0] -= 1
                 if Game.engine['gfx'].text_texture_cache[self.font][text][0] == 0:
                     del(Game.engine['gfx'].text_texture_cache[self.font][text][1])
                     del(Game.engine['gfx'].text_texture_cache[self.font][text])
+
+        def _update_centre_point(self, alignment):
+            w, h = self.text_image_size
+            if alignment == ALIGN_TOP_LEFT:
+                self.centre_point = 0, 0
+            elif alignment == ALIGN_TOP:
+                self.centre_point = w/2, 0
+            elif alignment == ALIGN_TOP_RIGHT:
+                self.centre_point = w, 0
+            elif alignment == ALIGN_CENTRE_LEFT:
+                self.centre_point = 0, h/2
+            elif alignment == ALIGN_CENTRE:
+                self.centre_point = w/2, h/2
+            elif alignment == ALIGN_CENTRE_RIGHT:
+                self.centre_point = w, h/2
+            elif alignment == ALIGN_BOTTOM_LEFT:
+                self.centre_point = 0, h
+            elif alignment == ALIGN_BOTTOM:
+                self.centre_point = w/2, h
+            elif alignment == ALIGN_BOTTOM_RIGHT:
+                self.centre_point = w, h
+
+        # alignment
+        @property
+        def alignment(self):
+            return self._alignment
+
+        @alignment.setter
+        def alignment(self, alignment):
+            self._alignment = alignment
+            self._update_centre_point(alignment)
 
         # text
         @property
@@ -888,10 +777,9 @@ class Myrmidon_Backend(object):
         def on_exit(self):
             self.un_assign_text(self._text)
                         
-                        
 
 def frange(start, end=None, inc=None):
-    "A range function, that does accept float increments..."
+    """A range function, that does accept float increments..."""
 
     if end == None:
         end = start + 0.0

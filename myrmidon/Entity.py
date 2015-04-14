@@ -239,7 +239,7 @@ class Entity(BaseEntity):
     def get_centre_point(self):
         """Returns the centre of the current image if the centre_point member
         has not been explicitly set."""
-        if -1 in self.centre_point and not self.image is None:
+        if -1 in self.centre_point and self.image is not None:
             return self.image.width / 2, self.image.height / 2
         else:
             return self.centre_point
