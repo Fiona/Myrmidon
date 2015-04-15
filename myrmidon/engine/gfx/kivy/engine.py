@@ -580,7 +580,7 @@ class Myrmidon_Backend(Entity):
             shape.width = self.line_width
 
     class _Text(Entity):
-        alignment = ALIGN_CENTER
+        _alignment = ALIGN_CENTER
         label = None
         _text = ""
         _font = None
@@ -592,12 +592,12 @@ class Myrmidon_Backend(Entity):
 
         def generate_label(self):
             if self.font is not None:
-                label = Label(font_name = self.font.filename, font_size = self.font.size, mipmap = True)
+                label = Label(font_name=self.font.filename, font_size=self.font.size, mipmap=True)
             else:
-                label = Label(font_size = "30", mipmap = True)
+                label = Label(font_size="30", mipmap=True)
             return label
 
-        def __init__(self, font, x, y, alignment, text, antialias = True):
+        def __init__(self, font, x, y, alignment, text, antialias=True):
             Entity.__init__(self)
             self.font = font
             self.x = x
@@ -610,32 +610,35 @@ class Myrmidon_Backend(Entity):
             self.rotation = 0.0
             self.normal_draw = False
 
-        def get_screen_draw_position(self):
-            """ Overriding entity method to account for text alignment. """
-            draw_x, draw_y = self.x, self.y
+        def _update_centre_point(self, alignment):
+            w, h = self.text_image_size
+            if alignment == ALIGN_TOP_LEFT:
+                self.centre_point = 0, 0
+            elif alignment == ALIGN_TOP:
+                self.centre_point = w/2, 0
+            elif alignment == ALIGN_TOP_RIGHT:
+                self.centre_point = w, 0
+            elif alignment == ALIGN_CENTRE_LEFT:
+                self.centre_point = 0, h/2
+            elif alignment == ALIGN_CENTRE:
+                self.centre_point = w/2, h/2
+            elif alignment == ALIGN_CENTRE_RIGHT:
+                self.centre_point = w, h/2
+            elif alignment == ALIGN_BOTTOM_LEFT:
+                self.centre_point = 0, h
+            elif alignment == ALIGN_BOTTOM:
+                self.centre_point = w/2, h
+            elif alignment == ALIGN_BOTTOM_RIGHT:
+                self.centre_point = w, h
 
-            if self.alignment == ALIGN_TOP:
-                draw_x -= (self.text_image_size[0]/2)
-            elif self.alignment == ALIGN_TOP_RIGHT:
-                draw_x -= self.text_image_size[0]
-            elif self.alignment == ALIGN_CENTER_LEFT:
-                draw_y -= (self.text_image_size[1]/2)
-            elif self.alignment == ALIGN_CENTER:
-                draw_x -= (self.text_image_size[0]/2)
-                draw_y -= (self.text_image_size[1]/2)
-            elif self.alignment == ALIGN_CENTER_RIGHT:
-                draw_x -= self.text_image_size[0]
-                draw_y -= (self.text_image_size[1]/2)
-            elif self.alignment == ALIGN_BOTTOM_LEFT:
-                draw_y -= self.text_image_size[1]
-            elif self.alignment == ALIGN_BOTTOM:
-                draw_x -= (self.text_image_size[0]/2)
-                draw_y -= self.text_image_size[1]
-            elif self.alignment == ALIGN_BOTTOM_RIGHT:
-                draw_x -= self.text_image_size[0]
-                draw_y -= self.text_image_size[1]
+        @property
+        def alignment(self):
+            return self._alignment
 
-            return draw_x, draw_y
+        @alignment.setter
+        def alignment(self, alignment):
+            self._alignment = alignment
+            self._update_centre_point(alignment)
 
         # text
         @property
@@ -677,6 +680,7 @@ class Myrmidon_Backend(Entity):
 
             self.text_image_size = label.texture_size
             self.image = Myrmidon_Backend.Image(label.texture)
+            self._update_centre_point(self.alignment)
 
     class AppleText(_Text):
         def generate_text_image(self):
@@ -694,6 +698,7 @@ class Myrmidon_Backend(Entity):
             tex.blit_buffer(label.texture.pixels, colorfmt='rgba', bufferfmt='ubyte')
             tex.flip_vertical()
             self.image = Myrmidon_Backend.Image(tex)
+            self._update_centre_point(self.alignment)
 
     Text = {
         'ios': AppleText,

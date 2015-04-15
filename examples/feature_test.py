@@ -355,15 +355,15 @@ class TestTextPosition(TextTest):
 
 class TestTextRotation(TextTest):
 
-    """description = "Text rotation (clkws)"
+    description = "Text rotation (clkws)"
 
     def _update(self):
-        self.text.rotation += 0.1"""
+        self.text.rotation += 5
 
 
 class TestTextScaling(TextTest):
 
-    """description = "Text scaling (0.5-2.0)"
+    description = "Text scaling (0.5-2.0)"
 
     def _setup(self):
         TextTest._setup(self)
@@ -372,7 +372,7 @@ class TestTextScaling(TextTest):
     def _update(self):
         self.text.scale += 0.1
         if self.text.scale > 2.0:
-            self.text.scale = 0.5"""
+            self.text.scale = 0.5
 
 
 class TestTextXFlip(TextTest):
@@ -493,6 +493,22 @@ class TestTextCentrePoint(TextTest):
             self.text.centre_point = (100, 100)
 
 
+class TestTextAlignment(TextTest):
+
+    description = "Text align (TL-BR)"
+
+    def _setup(self):
+        TextTest._setup(self)
+        self.time = 0.0
+
+    def _update(self):
+        self.time = (self.time+1) % 30
+        if self.time < 15 and self.text.alignment != ALIGN_TOP_LEFT:
+            self.text.alignment = ALIGN_TOP_LEFT
+        if self.time >= 15 and self.text.alignment != ALIGN_BOTTOM_RIGHT:
+            self.text.alignment = ALIGN_BOTTOM_RIGHT
+
+
 class TestTextClip(TextTest):
 
     description = "Text clipping ('es')"
@@ -500,6 +516,14 @@ class TestTextClip(TextTest):
     def _setup(self):
         TextTest._setup(self)
         self.text.clip = ((self.x-22, self.y-10), (40, 24))
+
+class TestTextShadow(TextTest):
+    
+    description = "Text shadow (purple)"
+    
+    def _setup(self):
+        TextTest._setup(self)
+        self.text.shadow = (0.75, 0.25, 0.75)
 
 
 class TestMousePos(Test):
@@ -579,11 +603,14 @@ class Application(Entity):
                            TestAlpha, TestYellow, TestCyan, TestMagenta, TestZSort, TestPosition, TestBlend,
                            TestHideShow, TestPriority, TestImageSequence, TestDrawCentrePoint, TestRotateCentrePoint,
                            TestScaleCentrePoint, TestFlipCentrePoint, TestStopExecuting,
-                           TestClip, TestColourAndAlpha, TestTextPosition, TestTextRotation, TestTextScaling,
+                           TestClip, TestColourAndAlpha, TestTextPosition, TestTextRotation,
+                           TestTextScaling,
                            TestTextXFlip, TestTextYFlip,
                            TestTextXAndYFlip, TestTextAlpha, TestTextYellow, TestTextCyan, TestTextMagenta,
-                           TestTextBlend, TestTextShowAndHide, TestTextCentrePoint, TestTextClip,
-                           TestMousePos, TestMouseButton, TestMouseWheel)
+                           TestTextBlend, TestTextShowAndHide, TestTextCentrePoint, TestTextAlignment,
+                           TestTextClip, TestTextShadow,
+                           TestMousePos, TestMouseButton, TestMouseWheel
+                           )
         while True:
             if Game.keyboard_key_down(K_ESCAPE):
                 sys.exit()
