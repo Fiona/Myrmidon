@@ -31,7 +31,7 @@ This contains the primary Game object from where you manipulate
 and interact with the application.
 """
 
-import sys, os, math, copy, inspect
+import sys, os, math, copy, inspect, time
 from myrmidon.BaseEntity import BaseEntity
 from myrmidon.ModuleLoader import ModuleLoader
 from myrmidon.consts import *
@@ -115,6 +115,11 @@ class Game(object):
     # those frames. They're called after every entity has finished executing on the relevant frame.
     scheduled_on_frame = {}
 
+    # Floats that represent how long it took for the previous frame to execute the
+    # process logic and to render respectivly in seconds
+    frame_execution_time = 0.0
+    frame_render_time = 0.0
+    
     @classmethod
     def define_engine(cls, window = None, gfx = None, input = None, audio = None):
         """
@@ -223,6 +228,9 @@ class Game(object):
 
     @classmethod
     def app_loop_callback(cls, dt):
+        # Start frame timer
+        frame_timer = time.time()
+        
         cls.engine['window'].app_loop_tick()
 
         # If we need to register something
@@ -278,10 +286,16 @@ class Game(object):
                 cls.entity_draw_list.remove(x)
         cls.entities_to_remove = [] 
 
+        # Save how long it took to execute
+        cls.frame_execution_time = time.time() - frame_timer
+
         # Pass off to the gfx engine to display entities
         cls.engine['gfx'].update_screen_pre()
         cls.engine['gfx'].draw_entities(cls.entity_draw_list)
         cls.engine['gfx'].update_screen_post()
+
+        # Save how long it took to render
+        cls.frame_render_time = time.time() - cls.frame_execution_time - frame_timer
 
         # Hack - we assume a window backend will *either* return a non-zero fps value from the clock object
         # *or* have provided a non-zero time delta value, depending on how the main loop is handled
