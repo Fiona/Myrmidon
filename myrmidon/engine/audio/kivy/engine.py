@@ -67,13 +67,16 @@ class Myrmidon_Backend(object):
             return self.sound.state == 'play'
 
         def play(self):
-            self.sound.stop()            
+            if self.sound.state == "play":
+                self.sound.stop()
             self.sound.play()
             self.sound.loop = False
             if not self in Myrmidon_Backend.current_playing_sounds:
                 Myrmidon_Backend.current_playing_sounds.append(self)
 
         def play_and_loop(self):
+            if self.sound.state == "play":
+                self.sound.stop()
             self.sound.play()
             self.sound.loop = True
             if not self in Myrmidon_Backend.current_playing_sounds:
