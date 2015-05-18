@@ -298,7 +298,7 @@ class Myrmidon_Backend(Entity):
 
 
     class Image(object):
-        EMPTY_IMAGE = Kivy_Image(Texture.create(size=(0, 0)))
+        EMPTY_IMAGE = Kivy_Image(Texture.create(size=(0, 0)), nocache=True)
 
         width = 0
         height = 0
@@ -318,7 +318,7 @@ class Myrmidon_Backend(Entity):
                 except:
                     raise MyrmidonError("Couldn't load image from " + image)
             else:
-                self.image = Kivy_Image(image)
+                self.image = Kivy_Image(image, nocache=True)
             self.width = self.image.width
             self.height = self.image.height
 
@@ -332,14 +332,14 @@ class Myrmidon_Backend(Entity):
             if self.image is None or self.image is self.EMPTY_IMAGE:
                 return
 
-            from kivy.cache import Cache
             from kivy.graphics.opengl import glBindTexture, glDeleteTextures
             from kivy.logger import Logger
 
             Logger.debug("MyrmidonGFX: Destroying {0}".format(self.filename if self.filename else self.image))
 
             # Remove from cache
-            self.image.remove_from_cache()
+            if not self.image.nocache:
+                self.image.remove_from_cache()
 
             # Convert the ID to the right byte format for the GL method
             a1 = (self.image.texture.id >>  0) & 0xFF
