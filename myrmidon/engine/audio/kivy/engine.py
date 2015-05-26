@@ -32,8 +32,9 @@ A Kivy driven backend for handling and playing audio.
 
 """
 
+import kivy
+
 from myrmidon import BaseAudio
-from kivy.core.audio import SoundLoader
 
 
 class Myrmidon_Backend(object):
@@ -58,8 +59,15 @@ class Myrmidon_Backend(object):
         def __init__(self, audio = None):
             if audio is None:
                 return
+
             if isinstance(audio, str):
-                self.sound = SoundLoader.load(audio)
+                # TODO: SoundLoader is currently broken for SDL2. Revert to SoundLoader when fixed.
+                if kivy.platform in ['ios', 'macosx']:
+                    from kivy.core.audio.audio_sdl2 import SoundSDL2
+                    self.sound = SoundSDL2(source=audio)
+                else:
+                    from kivy.core.audio import SoundLoader
+                    self.sound = SoundLoader.load(audio)
             else:
                 self.sound = audio
 
