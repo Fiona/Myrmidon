@@ -476,10 +476,11 @@ class Myrmidon_Backend(Entity):
             tex.flip_vertical()
             self.image = Myrmidon_Backend.Image(tex)
 
-    Text = {
-        'ios': AppleText,
-        'macosx': AppleText,
-    }.get(kivy.platform, DefaultText)
+    Text = DefaultText
+    #Text = {
+    #    'ios': AppleText,
+    #    'macosx': AppleText,
+    #}.get(kivy.platform, DefaultText)
 
 
 # Platform specific functions
@@ -505,7 +506,8 @@ class ApplePlatform(object):
         color.rgb = entity.alpha, entity.alpha, entity.alpha
 
 
-platform = {
-    'ios': ApplePlatform,
-    'macosx': ApplePlatform,
-}.get(kivy.platform, DefaultPlatform)
+platform = DefaultPlatform
+#platform = {
+#    'ios': ApplePlatform,
+#    'macosx': ApplePlatform,
+#}.get(kivy.platform, DefaultPlatform)
