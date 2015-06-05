@@ -370,11 +370,12 @@ class Myrmidon_Backend(Entity):
         _shadow = None
 
         def generate_label(self):
-            if self.font is not None:
-                label = Label(font_name = self.font.filename, font_size = self.font.size, mipmap = True)
-            else:
-                label = Label(font_size = "30", mipmap = True)
-            return label
+            if not self.label:
+                if self.font is not None:
+                    self.label = Label(font_name=self.font.filename, font_size=self.font.size, mipmap=True)
+                else:
+                    self.label = Label(font_size="30", mipmap=True)
+            return self.label
 
         def __init__(self, font, x, y, alignment, text, antialias = True):
             Entity.__init__(self)
@@ -448,7 +449,7 @@ class Myrmidon_Backend(Entity):
     class DefaultText(_Text):
         def generate_text_image(self):
             label = self.generate_label()
-            label.text = self._text
+            label.text = " " if self._text == "" else self._text
             label.texture_update()
             if not label.texture:
                 self.text_image_size = (0, 0)
@@ -463,7 +464,7 @@ class Myrmidon_Backend(Entity):
         def generate_text_image(self):
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
             label = self.generate_label()
-            label.text = self._text
+            label.text = " " if self._text == "" else self._text
             label.texture_update()
             if not label.texture:
                 self.text_image_size = (0, 0)
