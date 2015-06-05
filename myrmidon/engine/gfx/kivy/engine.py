@@ -291,16 +291,18 @@ class Myrmidon_Backend(Entity):
         filename = None
         is_sequence_image = False
 
-        def __init__(self, image = None, sequence = False, width = None, height = None, mipmap = True):
+        def __init__(self, image=None, sequence=False, width=None, height=None, mipmap=True):
             if image is None:
                 self.image = self.EMPTY_IMAGE
                 self.width = 0
                 self.height = 0
                 return
+            # create the kivy image object. Don't bother caching, as we don't need it and it just makes it more
+            # difficult to free up the memory when we've finished using a large image
             if isinstance(image, str):
                 self.filename = image
                 try:
-                    self.image = Kivy_Image(image, mipmap = mipmap)
+                    self.image = Kivy_Image(image, mipmap=mipmap, nocache=True)
                 except:
                     raise MyrmidonError("Couldn't load image from " + image)
             else:
@@ -310,8 +312,7 @@ class Myrmidon_Backend(Entity):
 
         def destroy(self):
             """
-            Explicitly removes this image from the video memory and
-            Kivy's cache.
+            Explicitly removes this image from the video memory
             This functionality requires the custom kivy version at
             http://github.com/arcticshores/kivy
             """
@@ -323,15 +324,14 @@ class Myrmidon_Backend(Entity):
 
             Logger.debug("MyrmidonGFX: Destroying {0}".format(self.filename if self.filename else self.image))
 
-            # Remove from cache
-            if not self.image.nocache:
-                self.image.remove_from_cache()
-
             # Convert the ID to the right byte format for the GL method
             a1 = (self.image.texture.id >>  0) & 0xFF
             a2 = (self.image.texture.id >>  8) & 0xFF
             a3 = (self.image.texture.id >> 16) & 0xFF
             a4 = (self.image.texture.id >> 24) & 0xFF
+
+            from kivy.cache import Cache
+            print("in cache?", 'media/gfx/fruit_bad.png' in Cache._objects['kv.texture'])
 
             # Remove texture completely
             glBindTexture(self.image.texture.target, 0)
