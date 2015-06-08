@@ -344,9 +344,6 @@ class Myrmidon_Backend(Entity):
             a3 = (self.image.texture.id >> 16) & 0xFF
             a4 = (self.image.texture.id >> 24) & 0xFF
 
-            from kivy.cache import Cache
-            print("in cache?", 'media/gfx/fruit_bad.png' in Cache._objects['kv.texture'])
-
             # Remove texture completely
             glBindTexture(self.image.texture.target, 0)
             glDeleteTextures(1, bytes(bytearray([a1, a2, a3, a4])))
