@@ -1271,10 +1271,11 @@ class Game(object):
 
 
     @classmethod
-    def timer_unit(cls, ticks_to_wait):
-        """Returns a generator that iterates as many ticks as passed. It
-        yields float values between the interval 0 and 1. Including 1 but
-        not including 0.
+    def timer_ticks_unit(cls, ticks_to_wait):
+        """Returns a generator that iterates as many times as the value given, similar
+        to 'timer_ticks'.
+        The generator returns float values increasing from 0.0 to 1.0, including 1.0 but
+        not 0.0.
         """
         for frame, total in cls.timer_ticks(ticks_to_wait):
             yield frame / total
