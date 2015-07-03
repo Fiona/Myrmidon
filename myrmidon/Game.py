@@ -1246,7 +1246,7 @@ class Game(object):
 
 
     @classmethod
-    def timer_ticks(self, ticks_to_wait):
+    def timer_ticks(cls, ticks_to_wait):
         """Returns a generator that iterates as many times as the value
         given, is designed to be used in Entity code as a timer that counts
         ticks.
@@ -1268,6 +1268,17 @@ class Game(object):
         while ticks_waited < ticks_to_wait:
             ticks_waited += 1
             yield float(ticks_waited),float(ticks_to_wait)
+
+
+    @classmethod
+    def timer_unit(cls, ticks_to_wait):
+        """Returns a generator that iterates as many ticks as passed. It
+        yields float values between the interval 0 and 1. Including 1 but
+        not including 0.
+        """
+        for frame, total in cls.timer_ticks(ticks_to_wait):
+            yield frame / total
+
 
     @classmethod
     def call_in_future(cls, function, frames_in_future):
