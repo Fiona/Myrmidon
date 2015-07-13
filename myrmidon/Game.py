@@ -227,7 +227,7 @@ class Game(object):
 
 
     @classmethod
-    def app_loop_callback(cls, dt):
+    def app_loop_callback(cls, dt = 0):
         # Start frame timer
         frame_timer = time.time()
         
@@ -299,8 +299,8 @@ class Game(object):
 
         # Hack - we assume a window backend will *either* return a non-zero fps value from the clock object
         # *or* have provided a non-zero time delta value, depending on how the main loop is handled
-        clock_fps = int(cls.clock.get_fps())
-        cls.current_fps = clock_fps if dt == 0 else 1.0/dt
+        #clock_fps = int(cls.clock.get_fps())
+        #cls.current_fps = clock_fps if dt == 0 else 1.0/dt
 
         # Wait for next frame, hitting a particular fps
         cls.clock.tick(cls.target_fps)

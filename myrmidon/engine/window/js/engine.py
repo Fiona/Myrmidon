@@ -32,8 +32,31 @@ A pypyjs-based window creation and handling backend.
 
 """
 
+import js
+
 class Myrmidon_Backend(object):
+
+    callback_wrapper = None
+    target_fps = 30
+
+    def set_window_loop(self, callback, target_fps = 30):
+        # When you use browser callbacks you have to tell pypyjs specifically
+        # to keep references to things around or they are cleaned up
+        # by the garbage collector. So we wrap the callback in this decorator.
+        self.callback = js.Method(callback)
+        self.target_fps = target_fps
+
+    def open_window(self):
+        js.globals.setInterval(self.callback, 1000/self.target_fps)
+
+    def app_loop_tick(self):
+        """Runs once every frame before any entity code or rendering."""
+        pass
+        
     class Clock(object):
+        def get_fps(self):
+            return 0
+        
         def tick(self, fps_rate):
             pass
 
