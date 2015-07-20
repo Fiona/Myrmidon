@@ -45,6 +45,7 @@ from kivy.graphics import Rectangle, Color, Scale, Rotate, PushMatrix, PopMatrix
 from kivy.graphics.texture import Texture
 from kivy.core.window import Window
 from kivy.graphics.opengl import glBlendFunc, glBlendFuncSeparate, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE
+from kivy.graphics.scissor_instructions import ScissorPush, ScissorPop
 
 
 class Myrmidon_Backend(Entity):
@@ -147,6 +148,12 @@ class Myrmidon_Backend(Entity):
                         platform.apply_rgb(entity, color)
                         color.a = entity.alpha
                         PushMatrix()
+                        if self.clip is not None:
+                            self.entity_draws[entity]['scissor'] = ScissorPush(
+                                int(self.clip[0][0]*Game.device_scale - Game.global_x_pos_adjust),
+                                int(self.clip[0][1]*Game.device_scale - Game.global_y_pos_adjust),
+                                int(self.clip[1][0]*Game.device_scale),
+                                int(self.clip[1][1]*Game.device_scale))
                         self.entity_draws[entity]['translate'] = Translate()
                         self.entity_draws[entity]['translate'].xy = pos
                         self.entity_draws[entity]['rotate'] = Rotate()
@@ -158,6 +165,8 @@ class Myrmidon_Backend(Entity):
                             points = (0.0, 0.0, size[0], 0.0, size[0], size[1], 0.0, size[1]),
                             tex_coords = tex_coords,
                             )
+                        if self.clip is not None:
+                            ScissorPop()
                         PopMatrix()
                     # Otherwise just update values
                 else:
@@ -259,6 +268,9 @@ class Myrmidon_Backend(Entity):
         pass
 
     def alter_display(self, entity, display):
+        self.draw_list_dirty = True
+
+    def alter_clip(self, entity, clip):
         self.draw_list_dirty = True
 
     def new_image(self, width, height, colour = None):

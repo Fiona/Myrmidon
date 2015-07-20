@@ -56,10 +56,10 @@ class Entity(BaseEntity):
     _rotation = 0.0
     _centre_point = [-1, -1]
     _drawing = True
+    _clip = None
 
     # Other properties (document)
     blend = False
-    clip = None
     normal_draw = True
     flip_vertical = False
     flip_horizontal = False
@@ -657,3 +657,19 @@ class Entity(BaseEntity):
     def drawing(self, value):
         self._drawing = value
         Game.engine['gfx'].alter_display(self, self._drawing)
+
+    # Clipping region
+    @property
+    def clip(self):
+        return self._clip
+
+    @clip.setter
+    def clip(self, clip):
+        if self._clip != clip:
+            self._clip = clip
+            Game.engine['gfx'].alter_clip(self, self._clip)
+
+    @clip.deleter
+    def clip(self):
+        self._clip = None
+

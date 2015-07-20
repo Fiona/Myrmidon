@@ -210,6 +210,9 @@ class Myrmidon_Backend(object):
     def alter_display(self, entity, display):
         pass
 
+    def alter_clip(self, entity, clip):
+        pass
+
     def new_image(self, width, height, colour = None):
         # We need to work out the nearest power of 2
         h = 16

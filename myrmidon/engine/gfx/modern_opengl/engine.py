@@ -357,6 +357,10 @@ class Myrmidon_Backend(object):
         pass
 
 
+    def alter_clip(self, entity, clip):
+        pass
+
+
     def new_image(self, width, height, colour = None):
         return Myrmidon_Backend.Image()
 
