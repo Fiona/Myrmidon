@@ -95,7 +95,6 @@ class Game(object):
     current_entity_executing = None
     entity_priority_dirty = True
     did_collision_check = False
-    centre_point_compatability_mode = False
     screen_size_adjustment_compatability_mode = False
     
     # Global flag disables all entity execution, does not apply to any screen overlay entities.

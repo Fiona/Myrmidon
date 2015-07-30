@@ -231,8 +231,6 @@ class Entity(BaseEntity):
         the entity will be drawn. Override this if you need to programatically
         constantly change the position of entity.
         Returns a tuple (x,y)"""
-        if Game.centre_point_compatability_mode:
-            return self.x, self.y
         centre = self.get_centre_point()
         return self.x - (centre[0] * self.scale), self.y - (centre[1] * self.scale)
 
