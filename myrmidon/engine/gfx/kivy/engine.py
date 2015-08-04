@@ -42,6 +42,7 @@ from kivy.core.image import Image as Kivy_Image
 from kivy.uix.label import Label
 from kivy.uix.widget import Widget
 from kivy.graphics import Rectangle, Color, Scale, Rotate, PushMatrix, PopMatrix, Translate, Quad, Ellipse, Line
+from kivy.graphics import Callback
 from kivy.graphics.texture import Texture
 from kivy.core.window import Window
 from kivy.graphics.opengl import glBlendFunc, glBlendFuncSeparate, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE
@@ -103,7 +104,6 @@ class Myrmidon_Backend(Entity):
             self.entity_draws = {}
             self.letter_boxes = []
 
-            #self.entity_list_draw_order = copy.copy(entity_list)
             self.entity_list_draw_order = entity_list
             self.entity_list_draw_order.sort(
                 key=lambda object:
@@ -118,7 +118,7 @@ class Myrmidon_Backend(Entity):
                 continue
 
             if entity.image and getattr(entity.image, "image", None) and entity.image.width and entity.image.height:
-                platform.glBlendFunc()
+
                 # Work out the real width/height and screen position of the entity
                 size = ((entity.image.width) * (entity.scale * Game.device_scale), (entity.image.height) * (entity.scale * Game.device_scale))
                 x, y = entity.get_screen_draw_position()
@@ -143,9 +143,8 @@ class Myrmidon_Backend(Entity):
                 if entity not in self.entity_draws:
                     self.entity_draws[entity] = dict()
                     with self.widget.canvas:
-                        self.entity_draws[entity]['color'] = color = Color()
-                        platform.apply_rgb(entity, color)
-                        color.a = entity.alpha
+                        self.entity_draws[entity]['blend'] = platform.create_blend_instruction(entity)
+                        self.entity_draws[entity]['colour'] = platform.create_colour_instruction(entity)
                         PushMatrix()
                         self.entity_draws[entity]['translate'] = Translate()
                         self.entity_draws[entity]['translate'].xy = pos
@@ -164,9 +163,7 @@ class Myrmidon_Backend(Entity):
                     self.entity_draws[entity]['rotate'].angle = entity.rotation
                     self.entity_draws[entity]['rotate'].origin = (cen[0] * entity.scale * Game.device_scale, size[1] - (cen[1] * entity.scale * Game.device_scale))                    
                     self.entity_draws[entity]['translate'].xy = pos
-                    color = self.entity_draws[entity]['color']
-                    platform.apply_rgb(entity, color)
-                    color.a = entity.alpha
+                    platform.update_colour_instruction(entity, self.entity_draws[entity]['colour'])
                     self.entity_draws[entity]['rect'].texture = entity.image.image.texture
                     self.entity_draws[entity]['rect'].points = (0.0, 0.0, size[0], 0.0, size[0], size[1], 0.0, size[1])
                     self.entity_draws[entity]['rect'].tex_coords = tex_coords
@@ -274,14 +271,7 @@ class Myrmidon_Backend(Entity):
         pass
 
     def rgb_to_colour(self, colour):
-        colour = list(colour)
-        if kivy.platform in ['ios', 'macosx'] and len(colour) > 3:
-            pre_multiply = colour[3] / 255.0
-        else:
-            pre_multiply = 1.0
-        for k,a in enumerate(colour):
-            colour[k] = ((a/255.0) * (pre_multiply if k < 3 else 1.0))
-        return colour
+        return tuple([c/255.0 for c in colour])
 
     class Image(object):
         EMPTY_IMAGE = Kivy_Image(Texture.create(size=(0, 0)), nocache=True)
@@ -680,56 +670,66 @@ class Myrmidon_Backend(Entity):
             self.image = Myrmidon_Backend.Image(label.texture)
             self._update_centre_point(self.alignment)
 
-    class AppleText(_Text):
-        def generate_text_image(self):
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-            label = self.generate_label()
-            label.text = " " if self._text == "" else self._text
-            label.texture_update()
-            if not label.texture:
-                self.text_image_size = (0, 0)
-                self.image = Myrmidon_Backend.Image()
-                return
-
-            self.text_image_size = label.texture_size
-            tex = Texture.create(size=label.texture.size, mipmap=True)
-            tex.blit_buffer(label.texture.pixels, colorfmt='rgba', bufferfmt='ubyte')
-            tex.flip_vertical()
-            self.image = Myrmidon_Backend.Image(tex)
-            self._update_centre_point(self.alignment)
-
     Text = DefaultText
-    #Text = {
-    #    'ios': AppleText,
-    #    'macosx': AppleText,
-    #}.get(kivy.platform, DefaultText)
 
 
 # Platform specific functions
 class DefaultPlatform(object):
-    @staticmethod
-    def glBlendFunc():
-        """Blend function for blending images onscreen."""
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
     @staticmethod
-    def apply_rgb(entity, color):
-        """Apply an entity's colour and alpha to a Kivy Colour object."""
-        color.rgb = entity.colour
+    def create_blend_instruction(entity):
+        """Create and return an instruction for setting the blend mode (if required)"""
+        return Callback(lambda instr: glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA))
+
+    @staticmethod
+    def create_colour_instruction(entity):
+        """Create and return a new Color instruction set to the given entity's tint and alpha"""
+        return Color(entity.colour[0], entity.colour[1], entity.colour[2], entity.alpha)
+
+    @staticmethod
+    def update_colour_instruction(entity, instruction):
+        """Change the properties of the given Color instruction to represent the given entity's tint and alpha"""
+        instruction.rgb = entity.colour
+        instruction.a = entity.alpha
 
 
 class ApplePlatform(object):
-    @staticmethod
-    def glBlendFunc():
-        glBlendFuncSeparate(GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
     @staticmethod
-    def apply_rgb(entity, color):
-        color.rgb = entity.alpha, entity.alpha, entity.alpha
+    def create_blend_instruction(entity):
+        """Create and return an instruction for setting the blend mode (if required)"""
+        if isinstance(entity, Myrmidon_Backend._Text):
+            # text images are generated with regular alpha - use standard blend mode
+            return Callback(lambda instr: glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA))
+        else:
+            # all other images are loaded with pre-multiplied alpha. Use appropriate blend mode
+            return Callback(lambda instr: glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA))
+
+    @staticmethod
+    def create_colour_instruction(entity):
+        """Create and return a new Color instruction set to the given entity's tint and alpha"""
+        if isinstance(entity, Myrmidon_Backend._Text):
+            # text images are generated with regular alpha - use standard colour spec
+            return Color(entity.colour[0], entity.colour[1], entity.colour[2], entity.alpha)
+        else:
+            # all other images are loaded with pre-multipled alpha. Pre-multiply the colour values to be compatible
+            return Color(entity.colour[0]*entity.alpha, entity.colour[1]*entity.alpha, entity.colour[2]*entity.alpha,
+                         entity.alpha)
+
+    @staticmethod
+    def update_colour_instruction(entity, instruction):
+        """Change the properties of the given Color instruction to represent the given entity's tint and alpha"""
+        if isinstance(entity, Myrmidon_Backend._Text):
+            # text images are generated with regular alpha - use standard colour spec
+            instruction.rgb = entity.colour
+            instruction.a = entity.alpha
+        else:
+            # all other images are loaded with pre-multipled alpha. Pre-multiply the colour values to be compatible
+            instruction.rgb = entity.colour[0]*entity.alpha, entity.colour[1]*entity.alpha, entity.colour[2]*entity.alpha
+            instruction.a = entity.alpha
 
 
-platform = DefaultPlatform
-#platform = {
-#    'ios': ApplePlatform,
-#    'macosx': ApplePlatform,
-#}.get(kivy.platform, DefaultPlatform)
+platform = {
+    'ios': ApplePlatform,
+    'macosx': ApplePlatform,
+}.get(kivy.platform, DefaultPlatform)
