@@ -358,7 +358,6 @@ class Myrmidon_Backend(Entity):
 
             engine = Game.engine['gfx']
 
-            platform.glBlendFunc()
             # Work out the real width/height and screen position of the entity
             size = (self._width * (self.scale * Game.device_scale),
                     self._height * (self.scale * Game.device_scale))
@@ -376,7 +375,8 @@ class Myrmidon_Backend(Entity):
             if self not in engine.entity_draws:
                 engine.entity_draws[self] = dict()
                 with engine.widget.canvas:
-                    engine.entity_draws[self]['color'] = color = Color()
+                    engine.entity_draws[self]['blend'] = platform.create_blend_instruction(self)
+                    engine.entity_draws[self]['colour'] = platform.create_colour_instruction(self)
                     PushMatrix()
                     engine.entity_draws[self]['translate'] = Translate()
                     engine.entity_draws[self]['rotate'] = Rotate()
@@ -386,9 +386,7 @@ class Myrmidon_Backend(Entity):
                     PopMatrix()
 
             # update values
-            color = engine.entity_draws[self]['color']
-            platform.apply_rgb(self, color)
-            color.a = self.alpha
+            platform.update_colour_instruction(self, engine.entity_draws[self]['colour'])
             engine.entity_draws[self]['translate'].xy = pos
             engine.entity_draws[self]['rotate'].angle = self.rotation
             engine.entity_draws[self]['rotate'].origin = (cen[0] * self.scale * Game.device_scale,
@@ -698,7 +696,7 @@ class ApplePlatform(object):
     @staticmethod
     def create_blend_instruction(entity):
         """Create and return an instruction for setting the blend mode (if required)"""
-        if isinstance(entity, Myrmidon_Backend._Text):
+        if isinstance(entity, Myrmidon_Backend._Text) or isinstance(entity, Myrmidon_Backend._Polygon):
             # text images are generated with regular alpha - use standard blend mode
             return Callback(lambda instr: glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA))
         else:
@@ -708,7 +706,7 @@ class ApplePlatform(object):
     @staticmethod
     def create_colour_instruction(entity):
         """Create and return a new Color instruction set to the given entity's tint and alpha"""
-        if isinstance(entity, Myrmidon_Backend._Text):
+        if isinstance(entity, Myrmidon_Backend._Text) or isinstance(entity, Myrmidon_Backend._Polygon):
             # text images are generated with regular alpha - use standard colour spec
             return Color(entity.colour[0], entity.colour[1], entity.colour[2], entity.alpha)
         else:
@@ -719,7 +717,7 @@ class ApplePlatform(object):
     @staticmethod
     def update_colour_instruction(entity, instruction):
         """Change the properties of the given Color instruction to represent the given entity's tint and alpha"""
-        if isinstance(entity, Myrmidon_Backend._Text):
+        if isinstance(entity, Myrmidon_Backend._Text) or isinstance(entity, Myrmidon_Backend._Polygon):
             # text images are generated with regular alpha - use standard colour spec
             instruction.rgb = entity.colour
             instruction.a = entity.alpha
