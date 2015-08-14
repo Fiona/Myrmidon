@@ -4,7 +4,7 @@ from distutils.core import setup
 
 setup(
     name = 'Myrmidon',
-    version = '0.5',
+    version = '0.5.4',
     description = '2D game framework for rapid development',
     author = 'Fiona Burrows',
     author_email = 'fiona@justfiona.com',
