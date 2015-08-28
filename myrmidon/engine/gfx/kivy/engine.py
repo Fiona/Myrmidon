@@ -294,14 +294,14 @@ class Myrmidon_Backend(Entity):
                 self.filename = image
                 try:
                     self.image = Kivy_Image(image, mipmap=mipmap, nocache=True)
-                    print("loaded image from string {}: {}".format(image, self.image.texture))
-                    print("unique pixels", len(set(self.image.texture.pixels)))
+                    print("loaded image from string {}".format(image))
                 except:
                     raise MyrmidonError("Couldn't load image from " + image)
             else:
                 self.image = Kivy_Image(image, nocache=True)
-                print("loaded image from image {}: {}".format(image, self.image.texture))
-                print("unique pixels", len(set(self.image.texture.pixels)))
+                print("loaded image from image {}".format(image))
+            print("unique texture pixels", len(set(self.image.texture.pixels)))
+            self.image.texture.bind()
             self.width = self.image.width
             self.height = self.image.height
 
