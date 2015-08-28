@@ -46,6 +46,7 @@ from kivy.graphics import Callback
 from kivy.graphics.texture import Texture
 from kivy.core.window import Window
 from kivy.graphics.opengl import glBlendFunc, glBlendFuncSeparate, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE
+from kivy.logger import Logger
 
 
 class Myrmidon_Backend(Entity):
@@ -293,10 +294,14 @@ class Myrmidon_Backend(Entity):
                 self.filename = image
                 try:
                     self.image = Kivy_Image(image, mipmap=mipmap, nocache=True)
+                    print("loaded image from string {}: {}".format(image, self.image.texture))
+                    print(self.image.texture.pixels)
                 except:
                     raise MyrmidonError("Couldn't load image from " + image)
             else:
                 self.image = Kivy_Image(image, nocache=True)
+                print("loaded image from image {}: {}".format(image, self.image.texture))
+                print(self.image.texture.pixels)
             self.width = self.image.width
             self.height = self.image.height
 
@@ -310,7 +315,6 @@ class Myrmidon_Backend(Entity):
                 return
 
             from kivy.graphics.opengl import glBindTexture, glDeleteTextures
-            from kivy.logger import Logger
 
             Logger.debug("MyrmidonGFX: Destroying {0}".format(self.filename if self.filename else self.image))
 
