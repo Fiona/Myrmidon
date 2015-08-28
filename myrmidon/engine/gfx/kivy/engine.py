@@ -301,7 +301,7 @@ class Myrmidon_Backend(Entity):
                 self.image = Kivy_Image(image, nocache=True)
                 print("loaded image from image {}".format(image))
             print("unique texture pixels", len(set(self.image.texture.pixels)))
-            self.image.texture.bind()
+            self.image.texture.ask_update()
             self.width = self.image.width
             self.height = self.image.height
 
