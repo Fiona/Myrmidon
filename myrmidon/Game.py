@@ -280,6 +280,13 @@ class Game(object):
         # If we have marked any entities for removal we do that here
         for x in cls.entities_to_remove:
             if x in cls.entity_list:
+                if x.next_sibling:
+                    x.next_sibling.prev_sibling = None
+                if x.prev_sibling:
+                    x.prev_sibling.next_sibling = None
+                if x.parent and x.parent.child is x:
+                    x.parent.child = None
+                x.parent = None
                 cls.engine['gfx'].remove_entity(x)
                 cls.entity_list.remove(x)
                 cls.entity_draw_list.remove(x)
