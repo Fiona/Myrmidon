@@ -299,6 +299,10 @@ class Myrmidon_Backend(Entity):
                 self.image = Kivy_Image(image, nocache=True)
             self.width = self.image.width
             self.height = self.image.height
+            # on iOS, loading of images is deferred until the texture is first bound. Bind the texture to force it
+            # to load
+            if kivy.platform == 'ios':
+                self.image.texture.bind()
 
         def destroy(self):
             """
