@@ -40,88 +40,50 @@ from myrmidon.consts import *
 @ModuleLoader
 class Game(object):
 
+    ######################################################################################
+    # USER API 
+    ######################################################################################
+    
     # Enabling debugging will allow invoking of PUDB with the F11 key
     debug = False
-
-    # Engine related
-    started = False
-
+    
     # Set to true at run-time and Myrmidon will not create a screen,
     # nor will it accept input or execute any entities in a loop.
     # No backend engines are initialised.
     # Any entity objects you create will not integrate their generator
     # unless you run Entity._iterate_generator manually.
-    test_mode = False
+    test_mode = False  # API
 
-    engine_def = {
-        "window" : "pygame",
-        "gfx" : "opengl",
-        "input" : "pygame",
-        "audio" : "pygame"
-        }
-    engine_plugin_def = {
-        "window" : [],
-        "gfx" : [],
-        "input" : [],
-        "audio" : []
-        }
-    engine = {
-        "window" : None,
-        "gfx" : None,
-        "input" : None,
-        "audio" : None
-        }
-
-    # Module related members
-    _module_list = []
-    modules_enabled = ()
-    modules_loaded_for = []
-
-    current_fps = 0
+    # The framerate the game should be capped at.
     target_fps = 30
 
-    # Display related
+    # The framerate the game is currently running at. Read-only.
+    current_fps = 0
+    
+    # The screen resolution the game should start at
     screen_resolution = 1024,768
+    
     lowest_resolution = 800,600
+    
+    # Set to True to have the game begin full-screen
     full_screen = False
+    
     device_scale = 1.0
 
-    # Entity related
-    first_registered_entity = None
-    entity_list = []
-    entity_draw_list = []
-    entities_to_remove = []
-    remember_current_entity_executing = []
-    current_entity_executing = None
-    entity_priority_dirty = True
-    did_collision_check = False
+    # Backwards compatibility flags
     screen_size_adjustment_compatability_mode = False
     
-    # Global flag disables all entity execution, does not apply to any screen overlay entities.
-    disable_entity_execution = False
-
-    # Set to an overlay Entity if one has been created
-    screen_overlay = None
-
-    # Designed to be set by the window engine, if it's set to True, we imply that the device
-    # we're running on is a mobile device of some kind. (Will also be True for tablets.)
-    is_phone = False
-
-    # The number of frames that have been executed, for counting reasons
+    # The number of frames that have been executed, for counting reasons. Read-only.
     current_frame = 0
-
-    # A dictionary of frame numbers to functions that need to be called when the game hits
-    # those frames. They're called after every entity has finished executing on the relevant frame.
-    scheduled_on_frame = {}
-
+    
     # Floats that represent how long it took for the previous frame to execute the
-    # process logic and to render respectivly in seconds
+    # process logic and to render respectivly, in seconds. Read-only.
     frame_execution_time = 0.0
     frame_render_time = 0.0
-    
+        
     @classmethod
-    def define_engine(cls, window = None, gfx = None, input = None, audio = None):
-        """
+    def define_engine(cls, window=None, gfx=None, input=None, audio=None):
+        """ 
         Use this before creating any entities to redefine which engine backends to use.
         """
         if window:
@@ -133,10 +95,9 @@ class Game(object):
         if audio:
             cls.engine_def['audio'] = audio
 
-
     @classmethod
-    def define_engine_plugins(cls, window = [], gfx = [], input = [], audio = []):
-        """
+    def define_engine_plugins(cls, window=[], gfx=[], input=[], audio=[]):
+        """ 
         Use this before creating any entities to specify which engine plugins you require,
         if any.
         Pass in lists of strings of plugin names.
@@ -145,207 +106,18 @@ class Game(object):
         cls.engine_plugin_def['gfx'] = gfx
         cls.engine_plugin_def['input'] = input
         cls.engine_plugin_def['audio'] = audio
-
-
-    @classmethod
-    def init_engines(cls):
-        # Attempt to dynamically import the required engines
-        try:
-            for backend_name in ['window', 'gfx', 'input', 'audio']:
-                backend_module = __import__(
-                    "myrmidon.engine.%s.%s.engine" % (backend_name, cls.engine_def[backend_name]),
-                    globals(),
-                    locals(),
-                    ['Myrmidon_Backend'],
-                    0
-                    )
-                cls.engine[backend_name] = backend_module.Myrmidon_Backend()
-
-        except ImportError as detail:
-            print("Error importing a backend engine.", detail)
-            sys.exit()
-
-        # Test mode uses dummy engines
-        if cls.test_mode:
-            from .backend_dummy import MyrmidonWindowDummy, MyrmidonGfxDummy, MyrmidonInputDummy, MyrmidonAudioDummy
-            cls.engine['window'] = MyrmidonWindowDummy()
-            cls.engine['gfx'] = MyrmidonGfxDummy()
-            cls.engine['input'] = MyrmidonInputDummy()
-            cls.engine['audio'] = MyrmidonAudioDummy()
-            return
-
-
-    @classmethod
-    def load_engine_plugins(cls, engine_object, backend_name):
-        # Import plugin modules and create them
-        try:
-            engine_object.plugins = {}
-            if len(cls.engine_plugin_def[backend_name]):
-                for plugin_name in  cls.engine_plugin_def[backend_name]:
-                    plugin_module = __import__(
-                        "engine.%s.%s.plugins.%s" % (backend_name, cls.engine_def[backend_name], plugin_name),
-                        globals(),
-                        locals(),
-                        ['Myrmidon_Backend'],
-                        -1
-                        )
-                    engine_object.plugins[plugin_name] = plugin_module.Myrmidon_Engine_Plugin(engine_object)
-
-        except ImportError as detail:
-            print("Error importing a backend engine plugin.", detail)
-            sys.exit()
-
-
-    @classmethod
-    def start_game(cls):
-        """
-        Called by entities if a game is not yet started.
-        It initialises engines.
-        """
-        # Start up the backends
-        cls.init_engines()
-        cls.clock = cls.engine['window'].Clock()
-
-
-    @classmethod
-    def run_game(cls):
-        """
-        Called by entities if a game is not yet started.
-        Is responsible for the main loop.
-        """
-        # No execution of anything if in tests mode.
-        if cls.test_mode:
-            return
-
-        # Deal with creating modules
-        for x in cls._module_list:
-            x._module_setup(cls)
-
-        cls.engine['window'].set_window_loop(cls.app_loop_callback, cls.target_fps)
-        cls.engine['window'].open_window()
-
-
-    @classmethod
-    def app_loop_callback(cls, dt):
-        # Start frame timer
-        frame_timer = time.time()
-        
-        cls.engine['window'].app_loop_tick()
-
-        # If we need to register something
-        if cls.first_registered_entity:
-            cls.entity_register(cls.first_registered_entity)
-            cls.first_registered_entity = None
-
-        # Reorder Entities by execution priority if necessary
-        if cls.entity_priority_dirty == True:
-            cls.entity_list.sort(
-                reverse=True,
-                key=lambda object:
-                object.priority if hasattr(object, "priority") else 0
-                )
-            cls.entity_priority_dirty = False
-
-        # If we have an input engine enabled we pass off to it
-        # to manage and process input events.
-        if cls.engine['input']:
-            cls.engine['input'].process_input()
-
-        if cls.debug and cls.keyboard_key_released(K_F11):
-            from pudb import set_trace; set_trace()
-
-        # For each entity in priority order we iterate their
-        # generators executing their code
-        if not cls.disable_entity_execution:
-            for entity in cls.entity_list:
-                cls.current_entity_executing = entity
-                entity._iterate_generator()
-                if cls.disable_entity_execution:
-                    if not cls.screen_overlay is None:
-                        cls.current_entity_executing = cls.screen_overlay
-                        cls.screen_overlay._iterate_generator()
-                    break
-        else:
-            if not cls.screen_overlay is None:
-                cls.current_entity_executing = cls.screen_overlay
-                cls.screen_overlay._iterate_generator()
-
-        # Handled scheduled timer functions
-        cls.current_frame += 1
-        if cls.current_frame in cls.scheduled_on_frame:
-            for function in cls.scheduled_on_frame[cls.current_frame]:
-                function()
-            del(cls.scheduled_on_frame[cls.current_frame])
-
-        # If we have marked any entities for removal we do that here
-        for x in cls.entities_to_remove:
-            if x in cls.entity_list:
-                if x.next_sibling:
-                    x.next_sibling.prev_sibling = None
-                if x.prev_sibling:
-                    x.prev_sibling.next_sibling = None
-                if x.parent and x.parent.child is x:
-                    x.parent.child = None
-                x.parent = None
-                cls.engine['gfx'].remove_entity(x)
-                cls.entity_list.remove(x)
-                cls.entity_draw_list.remove(x)
-        cls.entities_to_remove = [] 
-
-        # Save how long it took to execute
-        cls.frame_execution_time = time.time() - frame_timer
-
-        # Pass off to the gfx engine to display entities
-        cls.engine['gfx'].update_screen_pre()
-        cls.engine['gfx'].draw_entities(cls.entity_draw_list)
-        cls.engine['gfx'].update_screen_post()
-
-        # Save how long it took to render
-        cls.frame_render_time = time.time() - cls.frame_execution_time - frame_timer
-
-        # Hack - we assume a window backend will *either* return a non-zero fps value from the clock object
-        # *or* have provided a non-zero time delta value, depending on how the main loop is handled
-        clock_fps = int(cls.clock.get_fps())
-        cls.current_fps = clock_fps if dt == 0 else 1.0/dt
-
-        # Wait for next frame, hitting a particular fps
-        cls.clock.tick(cls.target_fps)
-
+    
     @classmethod
     def change_resolution(cls, resolution):
+        """ 
+        Changes the screen resolution at runtime.
+        """
         cls.screen_resolution = resolution
         cls.engine['window'].change_resolution(resolution)
         cls.engine['gfx'].change_resolution(resolution)
-
-
-    ##############################################
-    # ENTITIES
-    ##############################################
-
-
+    
     @classmethod
-    def entity_register(cls, entity):
-        """
-        Registers an entity with Myrmidon so it will be executed.
-        """
-        cls.entity_list.append(entity)
-        cls.entity_draw_list.append(entity)
-        cls.engine['gfx'].register_entity(entity)
-        cls.entity_priority_dirty = True
-
-        # Handle relationships
-        if cls.current_entity_executing != None:
-            entity.parent = cls.current_entity_executing
-
-            if not entity.parent.child == None:
-                entity.parent.child.prev_sibling = entity
-
-            entity.next_sibling = entity.parent.child
-            entity.parent.child = entity
-
-
-    @classmethod
-    def destroy_entities(cls, target, tree = False):
+    def destroy_entities(cls, target, tree=False):
         """Kills Entity objects, stopping them from executing, displaying and
         irreversibly destroying them.
 
@@ -357,16 +129,15 @@ class Game(object):
         -- tree: If True then all children of all matched Entities (and their children
           etc) will be destroyed too. (default False)
         """
-        entity_list = cls.get_entities(target, tree = tree)
+        entity_list = cls.get_entities(target, tree=tree)
         for entity in entity_list:
             if (not entity in cls.entity_list) or (entity in cls.entities_to_remove):
                 continue
             entity.on_exit()
             Game.entities_to_remove.append(entity)
 
-
     @classmethod
-    def stop_entities_executing(cls, target, tree = False):
+    def stop_entities_executing(cls, target, tree=False):
         """Stops Entities executing code. Can be woke up again with start_entities_executing
         or toggle_entities_executing.
 
@@ -378,13 +149,12 @@ class Game(object):
         -- tree: If True then all children of all matched Entities (and their children
           etc) will be stopped too. (default False)
         """
-        entity_list = cls.get_entities(target, tree = tree)
+        entity_list = cls.get_entities(target, tree=tree)
         for entity in entity_list:
             entity._executing = False
 
-
     @classmethod
-    def start_entities_executing(cls, target, tree = False):
+    def start_entities_executing(cls, target, tree=False):
         """Starts Entities executing code if previously stopped.
 
         Keyword arguments:
@@ -395,13 +165,12 @@ class Game(object):
         -- tree: If True then all children of all matched Entities (and their children
           etc) will be started too. (default False)
         """
-        entity_list = cls.get_entities(target, tree = tree)
+        entity_list = cls.get_entities(target, tree=tree)
         for entity in entity_list:
             entity._executing = True
 
-
     @classmethod
-    def toggle_entities_executing(cls, target, tree = False):
+    def toggle_entities_executing(cls, target, tree=False):
         """Toggle the execution of Entities. If started they will be stopped
         and vise-versa.
 
@@ -413,10 +182,9 @@ class Game(object):
         -- tree: If True then all children of all matched Entities (and their children
           etc) will be toggled too. (default False)
         """
-        entity_list = cls.get_entities(target, tree = tree)
+        entity_list = cls.get_entities(target, tree=tree)
         for entity in entity_list:
             entity._executing = not entity._executing
-
 
     @classmethod
     def hide_entities(cls, target, tree = False):
@@ -431,10 +199,9 @@ class Game(object):
         -- tree: If True then all children of all matched Entities (and their children
           etc) will be hidden too. (default False)
         """
-        entity_list = cls.get_entities(target, tree = tree)
+        entity_list = cls.get_entities(target, tree=tree)
         for entity in entity_list:
             entity.drawing = False
-
 
     @classmethod
     def show_entities(cls, target, tree = False):
@@ -448,13 +215,12 @@ class Game(object):
         -- tree: If True then all children of all matched Entities (and their children
           etc) will be shown too. (default False)
         """
-        entity_list = cls.get_entities(target, tree = tree)
+        entity_list = cls.get_entities(target, tree=tree)
         for entity in entity_list:
             entity.drawing = True
 
-
     @classmethod
-    def toggle_entities_display(cls, target, tree = False):
+    def toggle_entities_display(cls, target, tree=False):
         """Toggle the rendering of Entities. If hidden they will be shown
         and vise-versa.
 
@@ -466,10 +232,9 @@ class Game(object):
         -- tree: If True then all children of all matched Entities (and their children
           etc) will be toggled too. (default False)
         """
-        entity_list = cls.get_entities(target, tree = tree)
+        entity_list = cls.get_entities(target, tree=tree)
         for entity in entity_list:
             entity.drawing = not entity.drawing
-
 
     @classmethod
     def get_entities(cls, target, tree = False):
@@ -487,52 +252,23 @@ class Game(object):
         if isinstance(target, str):
             for obj in cls.entity_list:
                 if obj.__class__.__name__ == target:
-                    cls.add_entity_to_list(obj, found_entity_list, tree = tree)
+                    cls.add_entity_to_list(obj, found_entity_list, tree=tree)
 
         # We've passed in a class type directly
         elif isinstance(target, type):
             for obj in cls.entity_list:
                 if isinstance(obj, target):
-                    cls.add_entity_to_list(obj, found_entity_list, tree = tree)
+                    cls.add_entity_to_list(obj, found_entity_list, tree=tree)
 
         # We've passed in an Entity instance
         elif isinstance(target, BaseEntity):
-            cls.add_entity_to_list(target, found_entity_list, tree = tree)
+            cls.add_entity_to_list(target, found_entity_list, tree=tree)
 
         return found_entity_list
 
-
-    @classmethod
-    def add_entity_to_list(cls, entity, entity_list, tree = False):
-        """Used by the get_entities method to add a single Entity object to
-        a list, if it doesn't already exist in the list, along with a tree of
-        children if applicable.
-
-        Keyword arguments:
-        -- entity: An Entity obj to add to the given list.
-        -- entity_list: The list to add to.
-        -- tree: If we want to also add all the children of the Entity to the
-          list. (default False)
-        """
-        if not entity in entity_list:
-            entity_list.append(entity)
-
-        if tree:
-            next_child = entity.child
-            while next_child != None:
-                if not next_child in entity_list:
-                    cls.add_entity_to_list(next_child, entity_list, tree = tree)
-                next_child = next_child.next_sibling
-
-
-    ##############################################
-    # INPUT
-    ##############################################
-
-
     @classmethod
     def keyboard_key_down(cls, key_code):
-        """
+        """ 
         Ask if a key is currently being pressed.
         Pass in key codes that is relevant to your chosen input backend.
         """
@@ -540,10 +276,9 @@ class Game(object):
             raise MyrmidonError("Input backend not initialised.")
         return cls.engine['input'].keyboard_key_down(key_code)
 
-
     @classmethod
     def keyboard_key_released(cls, key_code):
-        """
+        """ 
         Ask if a key has just been released last frame.
         Pass in key codes that is relevant to your chosen input backend.
         """
@@ -551,17 +286,12 @@ class Game(object):
             raise MyrmidonError("Input backend not initialised.")
         return cls.engine['input'].keyboard_key_released(key_code)
 
-
     @classmethod
     def mouse(cls):
         """Gives access to an Entity object that represents the mouse.
         """
         return cls.engine['input'].mouse
 
-
-    ##############################################
-    # MEDIA
-    ##############################################
     @classmethod
     def load_image(cls, image = None, sequence = False, width = None, height = None, **kwargs):
         """Creates and returns an Image object that we can then attach to an Entity's image member
@@ -579,7 +309,6 @@ class Game(object):
         """
         return cls.engine['gfx'].Image(image, sequence, width, height, **kwargs)
 
-
     @classmethod
     def load_font(cls, font = None, size = 20, **kwargs):
         """Creates and returns a Font object that we give to the write_text method to specify how to render
@@ -596,7 +325,6 @@ class Game(object):
         """
         return cls.engine['window'].Font(font, size, **kwargs)
 
-
     @classmethod
     def load_audio(cls, audio):
         """Creates and returns an Audio object that we can manipulate directly to play sounds.
@@ -610,26 +338,13 @@ class Game(object):
         """
         return cls.engine['audio'].Audio(audio)
 
-
-    ##############################################
-    # TEXT HANDLING
-    ##############################################
     @classmethod
     def write_text(cls, x, y, font, alignment = 0, text = "", antialias = True):
         return cls.engine['gfx'].Text(font, x, y, alignment, text, antialias = True)
 
     @classmethod
-    def delete_text(cls, text):
-        if text in Game.entity_list:
-            cls.destroy_entities(text)
-
-
-    ##############################################
-    # PRIMITIVES
-    ##############################################
-    @classmethod
     def create_rectangle(cls, x, y, width, height, colour=(1.0, 1.0, 1.0), line_width=0):
-        """
+        """ 
         Creates and returns a rectangle entity at the given position, with the given width and height.
         :param x: Initial x coordinate
         :param y: Initial y coordinate
@@ -644,7 +359,7 @@ class Game(object):
 
     @classmethod
     def create_ellipse(cls, x, y, width, height, colour=(1.0, 1.0, 1.0), line_width=0, start_angle=0, end_angle=360):
-        """
+        """ 
         Creates and returns an ellipse entity at the given position and with the given width and height
         :param x: Initial x coordinate
         :param y: Initial y coordinate
@@ -660,7 +375,7 @@ class Game(object):
 
     @classmethod
     def create_line(cls, x, y, points, colour=(1.0, 1.0, 1.0), line_width=1.0, closed=False):
-        """
+        """ 
         Creates and returns a line entity at the given position and with the given points. A line entity consists of one
         or more lines connected together to form a single shape. This shape is centred at the specified x and y
         coordinates
@@ -676,9 +391,6 @@ class Game(object):
         """
         return cls.engine['gfx'].Line(x, y, points, colour, line_width, closed)
 
-    ##############################################
-    # HELPFUL MATHS
-    ##############################################
     @classmethod
     def get_distance(cls, pointa, pointb):
         return math.sqrt((math.pow((pointb[1] - pointa[1]), 2) + math.pow((pointb[0] - pointa[0]), 2)))
@@ -694,7 +406,7 @@ class Game(object):
 
     @classmethod
     def angle_between_points(cls, pointa, pointb):
-        """
+        """ 
         Take two tuples each containing coordinates between two points and
         returns the angle between those in degrees
         """
@@ -702,14 +414,14 @@ class Game(object):
 
     @classmethod
     def normalise_angle(cls, angle):
-        """
+        """ 
         Returns an equivalent angle value between 0 and 360
         """
         return angle % 360.0
 
     @classmethod
     def angle_difference(cls, start_angle, end_angle, skip_normalise = False):
-        """
+        """ 
         Returns the angle to turn by to get from start_angle to end_angle.
         The sign of the result indicates the direction in which to turn.
         """
@@ -727,7 +439,7 @@ class Game(object):
 
     @classmethod
     def near_angle(cls, curr_angle, targ_angle, increment, leeway = 0):
-        """
+        """ 
         Returns an angle which has been moved from 'curr_angle' closer to
         'targ_angle' by 'increment'. increment should always be positive, as
         angle will be rotated in the direction resulting in the shortest
@@ -754,7 +466,6 @@ class Game(object):
             dir = difference / math.fabs(difference)
             return curr_angle + (increment * dir)
 
-
     @classmethod
     def rotate_point(cls, x, y, rotation):
         """Rotates a point by the given number of degrees about the origin.
@@ -766,7 +477,6 @@ class Game(object):
         rotation = math.radians(rotation)
         return (math.cos(rotation) * x - math.sin(rotation) * y,
                 math.sin(rotation) * x + math.cos(rotation) * y)
-
 
     @classmethod
     def rotate_point_about_point(cls, x, y, rotation, rotate_about_x, rotate_about_y):
@@ -782,7 +492,6 @@ class Game(object):
         p = cls.rotate_point(x - rotate_about_x, y - rotate_about_y, rotation)
         return p[0] + rotate_about_x, p[1] + rotate_about_y
 
-
     @classmethod
     def point_in_rectangle(cls, point, rectangle_origin, rectangle_size):
         """Returns True/False if a point is within a rectangle shape.
@@ -797,232 +506,9 @@ class Game(object):
                 point[1] > rectangle_origin[1] and
                 point[1] < (rectangle_origin[1] + rectangle_size[1]))
 
-
-    ##############################################
-    # COLLISION ROUTINES
-    ##############################################
-
-
     @classmethod
-    def collision_rectangle_to_rectangle(cls, rectangle_a, rectangle_b):
-        """
-        Uses the separating axis theorem to check collisions between two
-        Entities. Both must have COLLISION_TYPE_RECTANGLE set as their collision type.
-        Returns True/False on collision.
-
-        Keyword arguments:
-        -- rectangle_a: The first Entity we are checking.
-        -- rectangle_b: The Entity we are checking the first one against.
-        """
-        # retrieve loctaions of box corners
-        check_object_a = rectangle_a.collision_rectangle_calculate_corners()
-        check_object_b = rectangle_b.collision_rectangle_calculate_corners()
-
-        # Step 1 is calculating the 4 axis of our two objects
-        # we will use them check the collisions
-        axis = [(0,0), (0,0), (0,0), (0,0)]
-
-        axis[0] = (check_object_a['ur'][0] - check_object_a['ul'][0],
-                   check_object_a['ur'][1] - check_object_a['ul'][1])
-
-        axis[1] = (check_object_a['ur'][0] - check_object_a['lr'][0],
-                   check_object_a['ur'][1] - check_object_a['lr'][1])
-
-        axis[2] = (check_object_b['ul'][0] - check_object_b['ll'][0],
-                   check_object_b['ul'][1] - check_object_b['ll'][1])
-
-        axis[3] = (check_object_b['ul'][0] - check_object_b['ur'][0],
-                   check_object_b['ul'][1] - check_object_b['ur'][1])
-
-        # We will need to determine a collision for each of the 4 axis
-        # If any of the axis do ~not~ collide then we determine that no
-        # collision has occured.
-        for single_axis in axis:
-            # Step 2 is projecting the vectors of each corner of each rectangle
-            # on to the axis. This is to determine the min/max projected vectors
-            # of each rectangle.
-            corner_vector_projection = {rectangle_a: dict(check_object_a), rectangle_b: dict(check_object_b)}
-            rectangle_bounds = {rectangle_a: {'min' : None, 'max' : None}, rectangle_b: {'min' : None, 'max' : None}}
-
-            for object_ in corner_vector_projection:
-                for corner_name in corner_vector_projection[object_]:
-                    projection = (
-                        (
-                            (corner_vector_projection[object_][corner_name][0] * single_axis[0]) + (corner_vector_projection[object_][corner_name][1] * single_axis[1])
-                        ) / (
-                            (single_axis[0] * single_axis[0]) + (single_axis[1] * single_axis[1])
-                        )
-                    )
-                    corner_vector_projection[object_][corner_name] = ((projection * single_axis[0]) * single_axis[0]) + ((projection * single_axis[1]) * single_axis[1])
-
-                    # Step 3 is working out what the min and max location of each corner
-                    # projected on the axis is for each rectangle.
-                    if rectangle_bounds[object_]['min'] is None or corner_vector_projection[object_][corner_name] < rectangle_bounds[object_]['min']:
-                        rectangle_bounds[object_]['min'] = corner_vector_projection[object_][corner_name]
-
-                    if rectangle_bounds[object_]['max'] is None or corner_vector_projection[object_][corner_name] > rectangle_bounds[object_]['max']:
-                        rectangle_bounds[object_]['max'] = corner_vector_projection[object_][corner_name]
-
-            # Step 4 is determining if the min and max corner projections of each rectangle on the axis overlap
-            # If they don't then we can conclude that no collision has occured.
-            if not (rectangle_bounds[rectangle_b]['min'] <= rectangle_bounds[rectangle_a]['max'] and rectangle_bounds[rectangle_b]['max'] >= rectangle_bounds[rectangle_a]['min']):
-                return False
-
-        # If we have got this far then we can assume that a collision has occured.
-        return True
-
-
-    @classmethod
-    def collision_point_to_rectangle(cls, point, rectangle):
-        """
-        Checks the collision between an Entity with it's type as COLLISION_TYPE_POINT
-        against one set as COLLISION_TYPE_RECTANGLE
-        Returns True/False on collision.
-
-        Keyword arguments:
-        -- point: The Entity that is a point.
-        -- rectangle: The Entity this is a rectangle.
-        """
-        # Get all usable values
-        check_object_a = point.collision_point_calculate_point()
-        check_object_b = rectangle.collision_rectangle_calculate_corners()
-        check_object_b_size = rectangle.collision_rectangle_size()
-
-        # rotate the point by -rectangle_angle around the centre of the rectangle
-        rotated_point = Game.rotate_point_about_point(
-            check_object_a[0],
-            check_object_a[1],
-            -rectangle.rotation,
-            rectangle.x,
-            rectangle.y
-            )
-
-        # Check that point is within the rectangle
-        return Game.point_in_rectangle(rotated_point, check_object_b['ul'], check_object_b_size)
-
-
-    @classmethod
-    def collision_circle_to_rectangle(cls, circle, rectangle):
-        """
-        Checks the collision between an Entity with it's type as COLLISION_TYPE_CIRCLE
-        against one set as COLLISION_TYPE_RECTANGLE
-        Returns True/False on collision.
-
-        Keyword arguments:
-        -- circle: The Entity that is a circle.
-        -- rectangle: The Entity this is a rectangle.
-        """
-        check_object_a = circle
-        check_object_b = rectangle
-        check_object_a_radius = check_object_a.collision_circle_calculate_radius()
-        check_object_b_corners = check_object_b.collision_rectangle_calculate_corners()
-        check_object_b_size = check_object_b.collision_rectangle_size()
-
-        # rotate the cicle by -rectangle_angle around the centre of the rectangle
-        rotated_ciricle = Game.rotate_point_about_point(
-            check_object_a.x,
-            check_object_a.y,
-            -check_object_b.rotation,
-            check_object_b.x,
-            check_object_b.y
-            )
-
-        half_width = check_object_b_size[0] / 2
-        half_height = check_object_b_size[1] / 2
-
-        circle_distance = (abs(rotated_ciricle[0] - check_object_b.x), abs(rotated_ciricle[1] - check_object_b.y))
-
-        if circle_distance[0] > (half_width + check_object_a_radius) or \
-           circle_distance[1] > (half_height + check_object_a_radius):
-            return False
-
-        if circle_distance[0] <= half_width or \
-           circle_distance[1] <= half_height:
-            return True
-
-        corner_distance_sq = ((circle_distance[0] - half_width) ** 2) + ((circle_distance[1] - half_height) ** 2)
-
-        return (corner_distance_sq <= (check_object_a_radius**2))
-
-
-    @classmethod
-    def collision_circle_to_circle(cls, circle_a, circle_b):
-        """
-        Checks the collision between two Entities of type as COLLISION_TYPE_CIRCLE.
-        Returns True/False on collision.
-
-        Keyword arguments:
-        -- circle_a: The first Entity.
-        -- circle_b: The Entity we are checking against.
-        """
-        check_object_a = circle_a
-        check_object_b = circle_b
-        check_object_a_radius = check_object_a.collision_circle_calculate_radius()
-        check_object_b_radius = check_object_b.collision_circle_calculate_radius()
-
-        # Outside of each others radius
-        if check_object_a.get_distance((check_object_b.x, check_object_b.y)) > check_object_a_radius + check_object_b_radius:
-            return False
-
-        return True
-
-
-    @classmethod
-    def collision_point_to_circle(cls, point, circle):
-        """ 
-        Checks the collision between an Entity with it's type as COLLISION_TYPE_POINT
-        against one set as COLLISION_TYPE_CIRCLE
-        Returns True/False on collision.
-
-        Keyword arguments:
-        -- point: The Entity that is a point.
-        -- circle: The Entity this is a circle.
-        """
-        check_object_a = point
-        check_object_b = circle
-        check_object_a_point = check_object_a.collision_point_calculate_point()
-        check_object_b_radius = check_object_b.collision_circle_calculate_radius()
-
-        # Outside of each others radius
-        if cls.get_distance(check_object_a_point, (check_object_b.x,check_object_b.y)) > check_object_b_radius:
-            return False
-
-        return True
-
-
-    @classmethod
-    def collision_point_to_point(cls, point_a, point_b):
-        """ 
-        Checks collision between two Entities with their type as COLLISION_TYPE_POINT.
-        Practically useless but here for completion.
-        Returns True/False on collision.
-
-        Keyword arguments:
-        -- point_a: The first Entity.
-        -- point_b: The Entity we are checking against.
-        """
-        point_a = point_a.collision_point_calculate_point()
-        point_b = point_b.collision_point_calculate_point()
-        return True if point_a[0] == point_b[0] and point_a[1] == point_b[1] else False
-
-
-    ##############################################
-    # FULL SCREEN OVERLAY METHODS
-    ##############################################
-
-
-    @classmethod
-    def screen_overlay_on(
-        cls,
-        fade_speed = None,
-        colour_from = (0.0, 0.0, 0.0, 0.0),
-        colour_to = (0.0, 0.0, 0.0, 1.0),
-        blocking = False,
-        pos = (0, 0),
-        size = None,
-        z = -1024,
-        callback = None
-        ):
+    def screen_overlay_on(cls, fade_speed=None, colour_from=(0.0, 0.0, 0.0, 0.0), colour_to=(0.0, 0.0, 0.0, 1.0), 
+                          blocking=False, pos=(0, 0), size=None, z=-1024, callback=None):
         """Turns on and fades in a coloured overlay on the screen, usually this
         is used to create full screen fading effects.
         If called when the overlay is fading it will silently return instead
@@ -1074,8 +560,6 @@ class Game(object):
         if blocking:
             cls.disable_entity_execution = True
 
-
-
     @classmethod
     def screen_overlay_off(cls, fade_speed = None, blocking = False, callback = None):
         """Any overlay that is currently on and completed will be faded out
@@ -1112,7 +596,6 @@ class Game(object):
         if cls.screen_overlay.blocking:
             cls.disable_entity_execution = True
 
-
     @classmethod
     def is_screen_overlay_fading(cls):
         """Returns a boolean denoting if any screen overlay currently
@@ -1124,7 +607,6 @@ class Game(object):
             return False
         return cls.screen_overlay.fading
 
-
     @classmethod
     def is_screen_overlay_on(cls):
         """Returns a boolean denoting if a screen overlay is
@@ -1132,12 +614,6 @@ class Game(object):
         is in the middle of a fade animation.
         """
         return not cls.screen_overlay is None
-
-
-
-    ##############################################
-    # MISCELANEOUS HELPERS
-    ##############################################
 
     @classmethod
     def rgba_to_colour(cls, r=255, g=255, b=255, a=255):
@@ -1234,7 +710,6 @@ class Game(object):
          """
         return (start + amount * (end - start))
 
-
     @classmethod
     def slerp(cls, start, end, amount):
         """Does the same as lerp except maps the value to a smooth curve
@@ -1249,7 +724,6 @@ class Game(object):
         # Perform the curve adjustment
         amount = ((amount) * (amount) * (3 - 2 * (amount)))
         return (start + amount * (end - start))
-
 
     @classmethod
     def timer_ticks(cls, ticks_to_wait):
@@ -1275,7 +749,6 @@ class Game(object):
             ticks_waited += 1
             yield float(ticks_waited),float(ticks_to_wait)
 
-
     @classmethod
     def timer_ticks_unit(cls, ticks_to_wait):
         """Returns a generator that iterates as many times as the value given, similar
@@ -1286,7 +759,6 @@ class Game(object):
         for frame, total in cls.timer_ticks(ticks_to_wait):
             yield frame / total
 
-
     @classmethod
     def call_in_future(cls, function, frames_in_future):
         """Will call the passed function the number of frames in the future
@@ -1296,6 +768,468 @@ class Game(object):
         if not time in cls.scheduled_on_frame:
             cls.scheduled_on_frame[time] = []
         cls.scheduled_on_frame[time].append(function)
+
+        
+    
+    ######################################################################################
+    # INTERNAL
+    ######################################################################################
+
+    # Engine related
+    started = False 
+
+    engine_def = {
+        "window" : "pygame",
+        "gfx" : "opengl",
+        "input" : "pygame",
+        "audio" : "pygame"
+        }
+    engine_plugin_def = {
+        "window" : [],
+        "gfx" : [],
+        "input" : [],
+        "audio" : []
+        }
+    engine = {
+        "window" : None,
+        "gfx" : None,
+        "input" : None,
+        "audio" : None
+        }
+
+    # Module related members
+    _module_list = []
+    modules_enabled = ()
+    modules_loaded_for = []
+
+    # Entity related
+    first_registered_entity = None
+    entity_list = []
+    entity_draw_list = []
+    entities_to_remove = []
+    remember_current_entity_executing = []
+    current_entity_executing = None
+    entity_priority_dirty = True
+    did_collision_check = False
+    
+    # Global flag disables all entity execution, does not apply to any screen overlay entities.
+    disable_entity_execution = False
+
+    # Set to an overlay Entity if one has been created
+    screen_overlay = None
+
+    # Designed to be set by the window engine, if it's set to True, we imply that the device
+    # we're running on is a mobile device of some kind. (Will also be True for tablets.)
+    is_phone = False
+
+    # A dictionary of frame numbers to functions that need to be called when the game hits
+    # those frames. They're called after every entity has finished executing on the relevant frame.
+    scheduled_on_frame = {}
+
+    @classmethod
+    def init_engines(cls):
+        # Attempt to dynamically import the required engines
+        try:
+            for backend_name in ['window', 'gfx', 'input', 'audio']:
+                backend_module = __import__(
+                    "myrmidon.engine.%s.%s.engine" % (backend_name, cls.engine_def[backend_name]),
+                    globals(),
+                    locals(),
+                    ['Myrmidon_Backend'],
+                    0
+                    )
+                cls.engine[backend_name] = backend_module.Myrmidon_Backend()
+
+        except ImportError as detail:
+            print("Error importing a backend engine.", detail)
+            sys.exit()
+
+        # Test mode uses dummy engines
+        if cls.test_mode:
+            from .backend_dummy import MyrmidonWindowDummy, MyrmidonGfxDummy, MyrmidonInputDummy, MyrmidonAudioDummy
+            cls.engine['window'] = MyrmidonWindowDummy()
+            cls.engine['gfx'] = MyrmidonGfxDummy()
+            cls.engine['input'] = MyrmidonInputDummy()
+            cls.engine['audio'] = MyrmidonAudioDummy()
+            return
+
+    @classmethod
+    def load_engine_plugins(cls, engine_object, backend_name):
+        # Import plugin modules and create them
+        try:
+            engine_object.plugins = {}
+            if len(cls.engine_plugin_def[backend_name]):
+                for plugin_name in  cls.engine_plugin_def[backend_name]:
+                    plugin_module = __import__(
+                        "engine.%s.%s.plugins.%s" % (backend_name, cls.engine_def[backend_name], plugin_name),
+                        globals(),
+                        locals(),
+                        ['Myrmidon_Backend'],
+                        -1
+                        )
+                    engine_object.plugins[plugin_name] = plugin_module.Myrmidon_Engine_Plugin(engine_object)
+
+        except ImportError as detail:
+            print("Error importing a backend engine plugin.", detail)
+            sys.exit()
+
+    @classmethod
+    def start_game(cls):
+        """ 
+        Called by entities if a game is not yet started.
+        It initialises engines.
+        """
+        # Start up the backends
+        cls.init_engines()
+        cls.clock = cls.engine['window'].Clock()
+
+    @classmethod
+    def run_game(cls):
+        """ 
+        Called by entities if a game is not yet started.
+        Is responsible for the main loop.
+        """
+        # No execution of anything if in tests mode.
+        if cls.test_mode:
+            return
+
+        # Deal with creating modules
+        for x in cls._module_list:
+            x._module_setup(cls)
+
+        cls.engine['window'].set_window_loop(cls.app_loop_callback, cls.target_fps)
+        cls.engine['window'].open_window()
+
+    @classmethod
+    def app_loop_callback(cls, dt):
+        # Start frame timer
+        frame_timer = time.time()
+        
+        cls.engine['window'].app_loop_tick()
+
+        # If we need to register something
+        if cls.first_registered_entity:
+            cls.entity_register(cls.first_registered_entity)
+            cls.first_registered_entity = None
+
+        # Reorder Entities by execution priority if necessary
+        if cls.entity_priority_dirty == True:
+            cls.entity_list.sort(
+                reverse=True,
+                key=lambda object:
+                object.priority if hasattr(object, "priority") else 0
+                )
+            cls.entity_priority_dirty = False
+
+        # If we have an input engine enabled we pass off to it
+        # to manage and process input events.
+        if cls.engine['input']:
+            cls.engine['input'].process_input()
+
+        if cls.debug and cls.keyboard_key_released(K_F11):
+            from pudb import set_trace; set_trace()
+
+        # For each entity in priority order we iterate their
+        # generators executing their code
+        if not cls.disable_entity_execution:
+            for entity in cls.entity_list:
+                cls.current_entity_executing = entity
+                entity._iterate_generator()
+                if cls.disable_entity_execution:
+                    if not cls.screen_overlay is None:
+                        cls.current_entity_executing = cls.screen_overlay
+                        cls.screen_overlay._iterate_generator()
+                    break
+        else:
+            if not cls.screen_overlay is None:
+                cls.current_entity_executing = cls.screen_overlay
+                cls.screen_overlay._iterate_generator()
+
+        # Handled scheduled timer functions
+        cls.current_frame += 1
+        if cls.current_frame in cls.scheduled_on_frame:
+            for function in cls.scheduled_on_frame[cls.current_frame]:
+                function()
+            del(cls.scheduled_on_frame[cls.current_frame])
+
+        # If we have marked any entities for removal we do that here
+        for x in cls.entities_to_remove:
+            if x in cls.entity_list:
+                if x.next_sibling:
+                    x.next_sibling.prev_sibling = None
+                if x.prev_sibling:
+                    x.prev_sibling.next_sibling = None
+                if x.parent and x.parent.child is x:
+                    x.parent.child = None
+                x.parent = None
+                cls.engine['gfx'].remove_entity(x)
+                cls.entity_list.remove(x)
+                cls.entity_draw_list.remove(x)
+        cls.entities_to_remove = [] 
+
+        # Save how long it took to execute
+        cls.frame_execution_time = time.time() - frame_timer
+
+        # Pass off to the gfx engine to display entities
+        cls.engine['gfx'].update_screen_pre()
+        cls.engine['gfx'].draw_entities(cls.entity_draw_list)
+        cls.engine['gfx'].update_screen_post()
+
+        # Save how long it took to render
+        cls.frame_render_time = time.time() - cls.frame_execution_time - frame_timer
+
+        # Hack - we assume a window backend will *either* return a non-zero fps value from the clock object
+        # *or* have provided a non-zero time delta value, depending on how the main loop is handled
+        clock_fps = int(cls.clock.get_fps())
+        cls.current_fps = clock_fps if dt == 0 else 1.0/dt
+
+        # Wait for next frame, hitting a particular fps
+        cls.clock.tick(cls.target_fps)
+    
+    @classmethod
+    def entity_register(cls, entity):
+        """ 
+        Registers an entity with Myrmidon so it will be executed.
+        """
+        cls.entity_list.append(entity)
+        cls.entity_draw_list.append(entity)
+        cls.engine['gfx'].register_entity(entity)
+        cls.entity_priority_dirty = True
+
+        # Handle relationships
+        if cls.current_entity_executing != None:
+            entity.parent = cls.current_entity_executing
+
+            if not entity.parent.child == None:
+                entity.parent.child.prev_sibling = entity
+
+            entity.next_sibling = entity.parent.child
+            entity.parent.child = entity
+    
+    @classmethod
+    def add_entity_to_list(cls, entity, entity_list, tree = False):
+        """Used by the get_entities method to add a single Entity object to
+        a list, if it doesn't already exist in the list, along with a tree of
+        children if applicable.
+
+        Keyword arguments:
+        -- entity: An Entity obj to add to the given list.
+        -- entity_list: The list to add to.
+        -- tree: If we want to also add all the children of the Entity to the
+          list. (default False)
+        """
+        if not entity in entity_list:
+            entity_list.append(entity)
+
+        if tree:
+            next_child = entity.child
+            while next_child != None:
+                if not next_child in entity_list:
+                    cls.add_entity_to_list(next_child, entity_list, tree = tree)
+                next_child = next_child.next_sibling
+
+    @classmethod
+    def collision_rectangle_to_rectangle(cls, rectangle_a, rectangle_b):
+        """ 
+        Uses the separating axis theorem to check collisions between two
+        Entities. Both must have COLLISION_TYPE_RECTANGLE set as their collision type.
+        Returns True/False on collision.
+
+        Keyword arguments:
+        -- rectangle_a: The first Entity we are checking.
+        -- rectangle_b: The Entity we are checking the first one against.
+        """
+        # retrieve loctaions of box corners
+        check_object_a = rectangle_a.collision_rectangle_calculate_corners()
+        check_object_b = rectangle_b.collision_rectangle_calculate_corners()
+
+        # Step 1 is calculating the 4 axis of our two objects
+        # we will use them check the collisions
+        axis = [(0,0), (0,0), (0,0), (0,0)]
+
+        axis[0] = (check_object_a['ur'][0] - check_object_a['ul'][0],
+                   check_object_a['ur'][1] - check_object_a['ul'][1])
+
+        axis[1] = (check_object_a['ur'][0] - check_object_a['lr'][0],
+                   check_object_a['ur'][1] - check_object_a['lr'][1])
+
+        axis[2] = (check_object_b['ul'][0] - check_object_b['ll'][0],
+                   check_object_b['ul'][1] - check_object_b['ll'][1])
+
+        axis[3] = (check_object_b['ul'][0] - check_object_b['ur'][0],
+                   check_object_b['ul'][1] - check_object_b['ur'][1])
+
+        # We will need to determine a collision for each of the 4 axis
+        # If any of the axis do ~not~ collide then we determine that no
+        # collision has occured.
+        for single_axis in axis:
+            # Step 2 is projecting the vectors of each corner of each rectangle
+            # on to the axis. This is to determine the min/max projected vectors
+            # of each rectangle.
+            corner_vector_projection = {rectangle_a: dict(check_object_a), rectangle_b: dict(check_object_b)}
+            rectangle_bounds = {rectangle_a: {'min' : None, 'max' : None}, rectangle_b: {'min' : None, 'max' : None}}
+
+            for object_ in corner_vector_projection:
+                for corner_name in corner_vector_projection[object_]:
+                    projection = (
+                        (
+                            (corner_vector_projection[object_][corner_name][0] * single_axis[0]) 
+                                + (corner_vector_projection[object_][corner_name][1] * single_axis[1])
+                        ) / (
+                            (single_axis[0] * single_axis[0]) + (single_axis[1] * single_axis[1])
+                        )
+                    )
+                    corner_vector_projection[object_][corner_name] = ((projection * single_axis[0]) * single_axis[0]) \
+                        + ((projection * single_axis[1]) * single_axis[1])
+
+                    # Step 3 is working out what the min and max location of each corner
+                    # projected on the axis is for each rectangle.
+                    if rectangle_bounds[object_]['min'] is None \
+                            or corner_vector_projection[object_][corner_name] < rectangle_bounds[object_]['min']:
+                        rectangle_bounds[object_]['min'] = corner_vector_projection[object_][corner_name]
+
+                    if rectangle_bounds[object_]['max'] is None \
+                            or corner_vector_projection[object_][corner_name] > rectangle_bounds[object_]['max']:
+                        rectangle_bounds[object_]['max'] = corner_vector_projection[object_][corner_name]
+
+            # Step 4 is determining if the min and max corner projections of each rectangle on the axis overlap
+            # If they don't then we can conclude that no collision has occured.
+            if not (rectangle_bounds[rectangle_b]['min'] <= rectangle_bounds[rectangle_a]['max'] \
+                    and rectangle_bounds[rectangle_b]['max'] >= rectangle_bounds[rectangle_a]['min']):
+                return False
+
+        # If we have got this far then we can assume that a collision has occured.
+        return True
+
+    @classmethod
+    def collision_point_to_rectangle(cls, point, rectangle):
+        """ 
+        Checks the collision between an Entity with it's type as COLLISION_TYPE_POINT
+        against one set as COLLISION_TYPE_RECTANGLE
+        Returns True/False on collision.
+
+        Keyword arguments:
+        -- point: The Entity that is a point.
+        -- rectangle: The Entity this is a rectangle.
+        """
+        # Get all usable values
+        check_object_a = point.collision_point_calculate_point()
+        check_object_b = rectangle.collision_rectangle_calculate_corners()
+        check_object_b_size = rectangle.collision_rectangle_size()
+
+        # rotate the point by -rectangle_angle around the centre of the rectangle
+        rotated_point = Game.rotate_point_about_point(
+            check_object_a[0],
+            check_object_a[1],
+            -rectangle.rotation,
+            rectangle.x,
+            rectangle.y
+            )
+
+        # Check that point is within the rectangle
+        return Game.point_in_rectangle(rotated_point, check_object_b['ul'], check_object_b_size)
+
+    @classmethod
+    def collision_circle_to_rectangle(cls, circle, rectangle):
+        """ 
+        Checks the collision between an Entity with it's type as COLLISION_TYPE_CIRCLE
+        against one set as COLLISION_TYPE_RECTANGLE
+        Returns True/False on collision.
+
+        Keyword arguments:
+        -- circle: The Entity that is a circle.
+        -- rectangle: The Entity this is a rectangle.
+        """
+        check_object_a = circle
+        check_object_b = rectangle
+        check_object_a_radius = check_object_a.collision_circle_calculate_radius()
+        check_object_b_corners = check_object_b.collision_rectangle_calculate_corners()
+        check_object_b_size = check_object_b.collision_rectangle_size()
+
+        # rotate the cicle by -rectangle_angle around the centre of the rectangle
+        rotated_ciricle = Game.rotate_point_about_point(
+            check_object_a.x,
+            check_object_a.y,
+            -check_object_b.rotation,
+            check_object_b.x,
+            check_object_b.y
+            )
+
+        half_width = check_object_b_size[0] / 2
+        half_height = check_object_b_size[1] / 2
+
+        circle_distance = (abs(rotated_ciricle[0] - check_object_b.x), abs(rotated_ciricle[1] - check_object_b.y))
+
+        if circle_distance[0] > (half_width + check_object_a_radius) or \
+           circle_distance[1] > (half_height + check_object_a_radius):
+            return False
+
+        if circle_distance[0] <= half_width or \
+           circle_distance[1] <= half_height:
+            return True
+
+        corner_distance_sq = ((circle_distance[0] - half_width) ** 2) + ((circle_distance[1] - half_height) ** 2)
+
+        return (corner_distance_sq <= (check_object_a_radius**2))
+
+    @classmethod
+    def collision_circle_to_circle(cls, circle_a, circle_b):
+        """ 
+        Checks the collision between two Entities of type as COLLISION_TYPE_CIRCLE.
+        Returns True/False on collision.
+
+        Keyword arguments:
+        -- circle_a: The first Entity.
+        -- circle_b: The Entity we are checking against.
+        """
+        check_object_a = circle_a
+        check_object_b = circle_b
+        check_object_a_radius = check_object_a.collision_circle_calculate_radius()
+        check_object_b_radius = check_object_b.collision_circle_calculate_radius()
+
+        # Outside of each others radius
+        if check_object_a.get_distance((check_object_b.x, check_object_b.y)) \
+                > check_object_a_radius + check_object_b_radius:
+            return False
+
+        return True
+
+    @classmethod
+    def collision_point_to_circle(cls, point, circle):
+        """ 
+        Checks the collision between an Entity with it's type as COLLISION_TYPE_POINT
+        against one set as COLLISION_TYPE_CIRCLE
+        Returns True/False on collision.
+
+        Keyword arguments:
+        -- point: The Entity that is a point.
+        -- circle: The Entity this is a circle.
+        """
+        check_object_a = point
+        check_object_b = circle
+        check_object_a_point = check_object_a.collision_point_calculate_point()
+        check_object_b_radius = check_object_b.collision_circle_calculate_radius()
+
+        # Outside of each others radius
+        if cls.get_distance(check_object_a_point, (check_object_b.x,check_object_b.y)) > check_object_b_radius:
+            return False
+
+        return True
+
+    @classmethod
+    def collision_point_to_point(cls, point_a, point_b):
+        """ 
+        Checks collision between two Entities with their type as COLLISION_TYPE_POINT.
+        Practically useless but here for completion.
+        Returns True/False on collision.
+
+        Keyword arguments:
+        -- point_a: The first Entity.
+        -- point_b: The Entity we are checking against.
+        """
+        point_a = point_a.collision_point_calculate_point()
+        point_b = point_b.collision_point_calculate_point()
+        return True if point_a[0] == point_b[0] and point_a[1] == point_b[1] else False
 
 
 # Define the collision function lookups so we entities know which one to call
@@ -1313,7 +1247,6 @@ Game.collision_methods = {
         (COLLISION_TYPE_CIRCLE, COLLISION_TYPE_POINT) : Game.collision_point_to_circle,
         (COLLISION_TYPE_POINT, COLLISION_TYPE_POINT) : Game.collision_point_to_point
         }
-
 
 
 class MyrmidonError(Exception):
