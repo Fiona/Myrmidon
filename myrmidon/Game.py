@@ -684,7 +684,7 @@ class Game(object):
         return math.sqrt((math.pow((pointb[1] - pointa[1]), 2) + math.pow((pointb[0] - pointa[0]), 2)))
 
     @classmethod
-    def get_distance2(cls, pointa, pointb):
+    def get_distance_squared(cls, pointa, pointb):
         return (math.pow((pointb[1] - pointa[1]), 2) + math.pow((pointb[0] - pointa[0]), 2))
 
     @classmethod
@@ -965,7 +965,7 @@ class Game(object):
         check_object_b_radius = check_object_b.collision_circle_calculate_radius()
 
         # Outside of each others radius
-        if check_object_a.get_distance2((check_object_b.x, check_object_b.y)) > (check_object_a_radius + check_object_b_radius)**2:
+        if check_object_a.get_distance_squared((check_object_b.x, check_object_b.y)) > (check_object_a_radius + check_object_b_radius)**2:
             return False
 
         return True

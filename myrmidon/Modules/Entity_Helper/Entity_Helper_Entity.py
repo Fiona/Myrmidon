@@ -42,5 +42,5 @@ class Entity_Helper_Entity(BaseModule):
     def get_distance(self, pos):
         return Game.get_distance((self.x, self.y), pos)
 
-    def get_distance2(self, pos):
-        return Game.get_distance2((self.x, self.y), pos)
+    def get_distance_squared(self, pos):
+        return Game.get_distance_squared((self.x, self.y), pos)
