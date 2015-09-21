@@ -8,9 +8,16 @@ Myrmidon: Python 2D Game Framework
 
 Contents:
 
-.. toctree::
+.. toctree::   
    :maxdepth: 2
 
+   introduction
+   basic_window
+   entities_as_generators
+   textured_entity
+   entity_properties
+   collisions
+   entity_state_system
 
 
 Indices and tables
