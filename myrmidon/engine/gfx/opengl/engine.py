@@ -33,7 +33,12 @@ Pygame is required for text rendering. This may change in the future.
 """
 
 
-import os, pygame, math, numpy
+import os, pygame, math
+try:
+    import numpy
+    numpy_available = True
+except ImportError:
+    numpy_available = False
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -50,8 +55,11 @@ class Myrmidon_Backend(object):
     z_order_dirty = True
     entities_z_order_list = []
     last_image = None
-    text_coords = numpy.array([1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0])
-        
+    if numpy_available:
+        text_coords = numpy.array([1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+    else:
+        text_coords = [1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0]
+       
     def __init__(self):
         glClearColor(*self.clear_colour)
         glClear(GL_COLOR_BUFFER_BIT)
@@ -280,11 +288,17 @@ class Myrmidon_Backend(object):
             self.generate_vertex_data()
 
         def generate_vertex_data(self):
-            self.vertex_data = numpy.array([float(self.width), float(self.height), 0.0,
-                                            0.0, float(self.height), 0.0,
-                                            float(self.width), 0.0, 0.0,
-                                            0.0, 0.0, 0.0])
-                        
+            if numpy_available:
+                self.vertex_data = numpy.array([float(self.width), float(self.height), 0.0,
+                                                0.0, float(self.height), 0.0,
+                                                float(self.width), 0.0, 0.0,
+                                                0.0, 0.0, 0.0])
+            else:
+                self.vertex_data = [float(self.width), float(self.height), 0.0,
+                                    0.0, float(self.height), 0.0,
+                                    float(self.width), 0.0, 0.0,
+                                    0.0, 0.0, 0.0]
+                
         def gl_image_from_surface(self, raw_surface, width, height, for_repeat):
             data = pygame.image.tostring(raw_surface, "RGBA", 0)
 
