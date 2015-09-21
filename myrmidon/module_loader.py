@@ -36,7 +36,7 @@ def ModuleLoader(decorated_class):
     """
     class Mixedin(decorated_class):
         def __new__(cls, *args, **kwargs):
-            from myrmidon.Game import Game
+            from myrmidon.game import Game
             class_name = decorated_class.__name__
             if not class_name in Game.modules_loaded_for:
                 Game.modules_loaded_for.append(class_name)

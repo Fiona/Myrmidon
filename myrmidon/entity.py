@@ -34,9 +34,9 @@ game objects.
 import sys, os, math
 from collections import namedtuple
 from myrmidon.consts import *
-from myrmidon.Game import Game
-from myrmidon.BaseEntity import BaseEntity
-from myrmidon.ModuleLoader import ModuleLoader
+from myrmidon.game import Game
+from myrmidon.base_entity import BaseEntity
+from myrmidon.module_loader import ModuleLoader
 
 EntityCollisionResult = namedtuple('EntityCollisionResult', ['result', 'entity'])
 
