@@ -682,7 +682,7 @@ class Game(object):
     @classmethod
     def get_distance(cls, pointa, pointb):
         return math.sqrt((math.pow((pointb[1] - pointa[1]), 2) + math.pow((pointb[0] - pointa[0]), 2)))
-	
+
     @classmethod
     def get_distance2(cls, pointa, pointb):
         return (math.pow((pointb[1] - pointa[1]), 2) + math.pow((pointb[0] - pointa[0]), 2))
