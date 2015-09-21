@@ -304,10 +304,10 @@ class SlerpTest(unittest.TestCase):
         self.assertEqual(7.5, Game.slerp(5.0, 10.0, 0.5))
 
     def test_doesnt_return_linear_value_for_one_third(self):
-        self.assertNotAlmostEquals(6.667, Game.slerp(5.0, 10.0, 1.0/3), 3)
+        self.assertNotAlmostEqual(6.667, Game.slerp(5.0, 10.0, 1.0/3), 3)
 
     def test_doesnt_return_linear_value_for_two_thirds(self):
-        self.assertNotAlmostEquals(8.333, Game.slerp(5.0, 10.0, 1.0/3*2), 3)
+        self.assertNotAlmostEqual(8.333, Game.slerp(5.0, 10.0, 1.0/3*2), 3)
 
 
 class TimerTicksTest(unittest.TestCase):
