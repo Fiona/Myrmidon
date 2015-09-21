@@ -4,3 +4,4 @@ __pycache__
 *~
 *.save
 *.orig
+docs/_build
