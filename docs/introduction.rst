@@ -1,6 +1,7 @@
 ============
 Introduction
 ============
+
 Myrmidon is a framework for Python that aims to provide rapid development of 2D games via the use of Python generators for entities.
 
 Using a simple and easy to use API, Myrmidon allows developers to create interactive games and was designed to be perfectly suited for prototypes, proof-of-concepts and game jams.

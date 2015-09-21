@@ -24,11 +24,11 @@ The following piece of code creates a single Entity, running it will cause a win
 
 If the end of an entity's active generator is reached (when StopIteration is thrown) then the Entity will be deleted. This is why most persistent Entities will have a loop like above.
 
-To check for the state of keyboard keys you should use the Game.keyboard_key_down or Game.keyboard_key_release during the execution of an entity. You passing in a keycode to specify which key to check for.
+To check for the state of keyboard keys you should use the Game.keyboard_key_down or Game.keyboard_key_released methods during the execution of an entity. You passing in a keycode to specify which key to check for.
 
 .. note:: The keycodes are currently provided by the **pygame.locals** and this is due to change in the future. See: `Issue 63 <https://github.com/Fiona/Myrmidon/issues/63>`_
 
-It can be used, as so to close the application on exit.
+The following is amendment to the previous example to close the application upon hitting the escape key.
           
 .. code-block:: python
 
