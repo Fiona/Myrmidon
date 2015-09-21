@@ -13,11 +13,11 @@ Contents:
 
    introduction
    basic_window
-   entities_as_generators
-   textured_entity
-   entity_properties
-   collisions
-   entity_state_system
+   Entities as Generators (todo) <entities_as_generators>
+   Textured Entity (todo) <textured_entity>
+   Entity Properties (todo) <entity_properties>
+   Collisions (todo) <collisions>
+   Entity State System (todo) <entity_state_system>
 
 
 Indices and tables
