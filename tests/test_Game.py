@@ -1,12 +1,156 @@
 import unittest
 try:
-    from unittest import mock
+    import unittest.mock as mock
 except ImportError:
     import mock
+import importlib
+import myrmidon.game
+import myrmidon.entity
 
-from myrmidon import Game
+
+Game = myrmidon.game.Game
+Entity = myrmidon.entity.Entity
 
 
+def reimport():
+    global Game, Entity
+    reload(myrmidon.game)
+    Game = myrmidon.game.Game
+    reload(myrmidon.entity)
+    Entity = myrmidon.entity.Entity
+
+
+class EntityListTest(unittest.TestCase):
+
+    # methods to declare new entity classes using the current version of Entity
+    def declare_EntMain(self):
+        class EntMain(Entity):
+            def __repr__(self):
+                return 'Main'
+        return EntMain
+
+    def declare_EntA(self):
+        class EntA(Entity):
+            def __repr__(self):
+                return 'A'
+        return EntA
+        
+    def declare_EntB(self):
+        class EntB(Entity):
+            def __repr__(self):
+                return 'B'
+        return EntB
+
+    def setUp(self):
+        
+        # clear class-level state
+        reimport()    
+        
+        # create stub window engine that doesn't create a window and only 
+        # does a single game tick before relinquishing control
+        window_engine = mock.Mock()
+        def set_window_loop(loop, framerate):
+            window_engine.loop = loop
+        window_engine.set_window_loop = set_window_loop
+        def open_window():
+            window_engine.loop(0.0)
+        window_engine.open_window = open_window
+        clock = mock.Mock()
+        clock.get_fps.return_value = 30
+        window_engine.Clock.return_value = clock       
+        
+        # create main entity, patching the engine setup to use mocks
+        @classmethod
+        def init_engines(cls):
+            Game.engine = {
+                'window': window_engine,
+                'gfx': mock.Mock(),
+                'input': mock.Mock(),
+                'audio': mock.Mock(),
+            }
+        EntMain = self.declare_EntMain()
+        with mock.patch('myrmidon.game.Game.init_engines', init_engines):
+            EntMain()
+
+    @classmethod
+    def tearDownClass(cls):
+        # clear class-level state again, undoing all the changes we made
+        reimport()
+        
+    def test_get_entities_returns_entities_of_type(self):
+        EntA = self.declare_EntA()
+        EntB = self.declare_EntB()
+        a = EntA()
+        b = EntB()
+        c = EntA()
+        result = Game.get_entities(EntA)
+        self.assertEqual(2, len(result))
+        self.assertTrue(a in result)
+        self.assertFalse(b in result)
+        self.assertTrue(c in result)
+
+    def test_get_entities_returns_entities_of_super_type(self):
+        EntA = self.declare_EntA()
+        EntB = self.declare_EntB()
+        a = EntA()
+        b = EntB()
+        c = EntA()
+        result = Game.get_entities(Entity)
+        self.assertEqual(4, len(result))  # including main
+        self.assertTrue(a in result)
+        self.assertTrue(b in result)
+        self.assertTrue(c in result)        
+        
+    def test_get_entities_returns_specific_entity(self):
+        EntA = self.declare_EntA()
+        EntB = self.declare_EntB()
+        a = EntA()
+        b = EntA()
+        result = Game.get_entities(b)
+        self.assertEqual(1, len(result))
+        self.assertIs(b, result[0])
+        
+    def test_get_entities_returns_entities_of_named_type(self):
+        EntA = self.declare_EntA()
+        EntB = self.declare_EntB()
+        a = EntA()
+        b = EntB()
+        c = EntA()
+        result = Game.get_entities('EntA')
+        self.assertEqual(2, len(result))
+        self.assertTrue(a in result)
+        self.assertFalse(b in result)
+        self.assertTrue(c in result)
+        
+    def test_get_entities_returns_entities_with_descendants(self):
+    
+        class EntRoot(Entity):
+            def execute(self):
+                self.my_children = [
+                    EntNode(2),
+                    EntNode(2),
+                ]
+                while True:
+                    yield
+                    
+        class EntNode(Entity):
+            def execute(self, n):
+                if n > 0:
+                    self.my_children = [
+                        EntNode(n-1),
+                        EntNode(n-1),
+                    ]
+                while True:
+                    yield
+                    
+        EntA = self.declare_EntA()
+        a = EntA()
+        EntRoot()
+        result = Game.get_entities('EntRoot', tree=True)
+        self.assertEqual(1+2+4+8, len(result))
+        self.assertFalse(a in result)
+   
+    
 class GetDistanceTest(unittest.TestCase):
 
     def test_returns_correct_value_for_quadrant_1(self):
@@ -529,47 +673,47 @@ class HSVAToColourTest(unittest.TestCase):
         r, g, b, a = rgba
         return r/255.0, g/255.0, b/255.0, a/255.0
 
-    @mock.patch("myrmidon.Game.engine")
+    @mock.patch("myrmidon.game.Game.engine")
     def test_returns_white_for_no_sat_and_full_val(self, engines):
         engines['gfx'].rgb_to_colour = self._stub_colour
         self.assertEqual((1.0, 1.0, 1.0, 1.0), Game.hsva_to_colour(0, 0.0, 1.0, 255))
 
-    @mock.patch("myrmidon.Game.engine")
+    @mock.patch("myrmidon.game.Game.engine")
     def test_returns_black_for_no_val(self, engines):
         engines['gfx'].rgb_to_colour = self._stub_colour
         self.assertEqual((0.0, 0.0, 0.0, 1.0), Game.hsva_to_colour(0, 1.0, 0.0, 255))
 
-    @mock.patch("myrmidon.Game.engine")
+    @mock.patch("myrmidon.game.Game.engine")
     def test_returns_red_for_hue_0(self, engines):
         engines['gfx'].rgb_to_colour = self._stub_colour
         self.assertEqual((1.0, 0.0, 0.0, 1.0), Game.hsva_to_colour(0, 1.0, 1.0, 255))
 
-    @mock.patch("myrmidon.Game.engine")
+    @mock.patch("myrmidon.game.Game.engine")
     def test_returns_green_for_hue_120(self, engines):
         engines['gfx'].rgb_to_colour = self._stub_colour
         self.assertEqual((0.0, 1.0, 0.0, 1.0), Game.hsva_to_colour(120, 1.0, 1.0, 255))
 
-    @mock.patch("myrmidon.Game.engine")
+    @mock.patch("myrmidon.game.Game.engine")
     def test_returns_blue_for_hue_240(self, engines):
         engines['gfx'].rgb_to_colour = self._stub_colour
         self.assertEqual((0.0, 0.0, 1.0, 1.0), Game.hsva_to_colour(240, 1.0, 1.0, 255))
 
-    @mock.patch("myrmidon.Game.engine")
+    @mock.patch("myrmidon.game.Game.engine")
     def test_returns_yellow_for_hue_60(self, engines):
         engines['gfx'].rgb_to_colour = self._stub_colour
         self.assertEqual((1.0, 1.0, 0.0, 1.0), Game.hsva_to_colour(60, 1.0, 1.0, 255))
 
-    @mock.patch("myrmidon.Game.engine")
+    @mock.patch("myrmidon.game.Game.engine")
     def test_returns_cyan_for_hue_180(self, engines):
         engines['gfx'].rgb_to_colour = self._stub_colour
         self.assertEqual((0.0, 1.0, 1.0, 1.0), Game.hsva_to_colour(180, 1.0, 1.0, 255))
 
-    @mock.patch("myrmidon.Game.engine")
+    @mock.patch("myrmidon.game.Game.engine")
     def test_returns_magenta_for_hue_300(self, engines):
         engines['gfx'].rgb_to_colour = self._stub_colour
         self.assertEqual((1.0, 0.0, 1.0, 1.0), Game.hsva_to_colour(300, 1.0, 1.0, 255))
 
-    @mock.patch("myrmidon.Game.engine")
+    @mock.patch("myrmidon.game.Game.engine")
     def test_lowering_val_lowers_appropriate_rgb_channels_uniformally(self, engines):
         engines['gfx'].rgb_to_colour = self._stub_colour
         result = Game.hsva_to_colour(60, 1.0, 0.25, 255)
@@ -578,7 +722,7 @@ class HSVAToColourTest(unittest.TestCase):
         self.assertAlmostEqual(0.0,  result[2], 2)
         self.assertEqual(1.0, result[3])
 
-    @mock.patch("myrmidon.Game.engine")
+    @mock.patch("myrmidon.game.Game.engine")
     def test_lowering_saturation_increases_appropriate_rgb_channels_uniformally(self, engines):
         engines['gfx'].rgb_to_colour = self._stub_colour
         result = Game.hsva_to_colour(60, 0.25, 1.0, 255)
@@ -587,7 +731,7 @@ class HSVAToColourTest(unittest.TestCase):
         self.assertAlmostEqual(0.75, result[2], 2)
         self.assertEqual(1.0, result[3])
 
-    @mock.patch("myrmidon.Game.engine")
+    @mock.patch("myrmidon.game.Game.engine")
     def test_returns_correct_alpha_value(self, engines):
         engines['gfx'].rgb_to_colour = self._stub_colour
         self.assertAlmostEqual(0.25, Game.hsva_to_colour(0, 1.0, 1.0, 64)[3], 2)

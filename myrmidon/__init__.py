@@ -1,9 +1,9 @@
-from myrmidon.Entity import Entity
-from myrmidon.Game import Game, MyrmidonError
-from myrmidon.BaseEntity import BaseEntity
-from myrmidon.BaseImage import BaseImage
-from myrmidon.BaseFont import BaseFont
-from myrmidon.BaseAudio import BaseAudio
-from myrmidon.BaseModule import BaseModule
-from myrmidon.ScreenOverlay import ScreenOverlay
-from myrmidon.ModuleLoader import ModuleLoader
+from myrmidon.entity import Entity
+from myrmidon.game import Game, MyrmidonError
+from myrmidon.base_entity import BaseEntity
+from myrmidon.base_image import BaseImage
+from myrmidon.base_font import BaseFont
+from myrmidon.base_audio import BaseAudio
+from myrmidon.base_module import BaseModule
+from myrmidon.screen_overlay import ScreenOverlay
+from myrmidon.module_loader import ModuleLoader

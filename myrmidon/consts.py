@@ -58,7 +58,7 @@ COLLISION_TYPE_POINT = 'point'
 # that you will import consts before even setting it. Which is bloody
 # marvelous.
 try:
-    from myrmidon.Game import Game
+    from myrmidon.game import Game
     if Game.engine_def['input'] == "pygame":
         from pygame.locals import *
 except ImportError:

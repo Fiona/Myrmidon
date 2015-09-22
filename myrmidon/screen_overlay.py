@@ -31,8 +31,8 @@ gradually changes from one colour to another.
 """
 
 
-from myrmidon.Entity import Entity
-from myrmidon.Game import Game
+from myrmidon.entity import Entity
+from myrmidon.game import Game
 
 
 class ScreenOverlay(Entity):

@@ -28,8 +28,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 Mixin for Entity to add handy miscellaneous helper methods.
 """
 
-from myrmidon.Game import Game
-from myrmidon.BaseModule import BaseModule
+from myrmidon.game import Game
+from myrmidon.base_module import BaseModule
 
 
 class Entity_Helper_Entity(BaseModule):

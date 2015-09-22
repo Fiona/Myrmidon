@@ -32,8 +32,8 @@ and interact with the application.
 """
 
 import sys, os, math, copy, inspect, time
-from myrmidon.BaseEntity import BaseEntity
-from myrmidon.ModuleLoader import ModuleLoader
+from myrmidon.base_entity import BaseEntity
+from myrmidon.module_loader import ModuleLoader
 from myrmidon.consts import *
 
 
@@ -52,7 +52,7 @@ class Game(object):
     # No backend engines are initialised.
     # Any entity objects you create will not integrate their generator
     # unless you run Entity._iterate_generator manually.
-    test_mode = False  # API
+    test_mode = False 
 
     # The framerate the game should be capped at.
     target_fps = 30
