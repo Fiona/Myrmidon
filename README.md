@@ -18,17 +18,25 @@ your game.
 Installation
 ============
 
-Requirements: **PyGame 1.9.x, PyOpenGL 3.x, Numpy** 
+Requirements: **PyGame 1.9.x, PyOpenGL 3.x** 
 
 Both Python 2.6> and 3.x are supported
 
-Currently the best way to install Myrmidon is to clone from this git repository
-and run the setup command. (As root if on Linux)
+pip assisted install:
+
+    pip install git+https://github.com/Fiona/Myrmidon.git
+    
+Manual install:
 
     git clone https://github.com/Fiona/Myrmidon.git myrmidon
     cd myrmidon
     python setup.py install
 
+
+Documentation
+=============
+
+Documentation is currently in the process of being written and is available at http://myrmidon.readthedocs.org/en/latest/
 
 Examples
 ========
