@@ -66,9 +66,7 @@ class Window(Entity):
         while True:            
             if Game.keyboard_key_down(K_ESCAPE):
                 sys.exit()
-            space.step(.1)
-            print space
-            #if random.random()>.9:
+            space.step(.1)#TODO - use actual time delta
             self.pattern_vortex(300.0, 300.0, 1)
             self.fps_text.text = "FPS " + str(Game.current_fps)
             self.entity_text.text = str(len(Game.entity_list)) + " entities"            
@@ -91,7 +89,7 @@ class Shot(Entity):
         self.x = x
         self.y = y
         self.z = 512
-        self.body = Body(100, 1e9)
+        self.body = Body(100, 1e9)#TODO calc moment using cymunk function
         self.body.position = (x+random.random()*10.,y)
         self.circle = Circle(self.body, self.image.width/2)
         self.circle.elasticity = .10
@@ -103,13 +101,6 @@ class Shot(Entity):
             self.age+=1
             self.x=self.body.position.x
             self.y=self.body.position.y
-            #print self.body.position
-            '''if self.y > Game.screen_resolution[1]*.7:
-                self.y=Game.screen_resolution[1]*.7
-            if self.x > Game.screen_resolution[0]*.4:
-                self.x=Game.screen_resolution[0]*.4
-            if self.x < 20:
-                self.x=20'''
             #if self.age>60:
             #    self.destroy()#TODO remove/destroy body/shape
             yield
