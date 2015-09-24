@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+from setuptools import setup, find_packages
 
 setup(
     name = 'Myrmidon',
@@ -9,13 +9,12 @@ setup(
     author = 'Fiona Burrows',
     author_email = 'fiona@justfiona.com',
     url = 'http://www.github.com/Fiona/Myrmidon',
-    packages = [
-        'myrmidon', 'myrmidon.engine',
-        'myrmidon.Modules', 'myrmidon.Modules.Entity_Helper',
-        'myrmidon.engine.audio', 'myrmidon.engine.audio.pygame', 'myrmidon.engine.audio.kivy',
-        'myrmidon.engine.window', 'myrmidon.engine.window.pygame', 'myrmidon.engine.window.kivy',
-        'myrmidon.engine.input', 'myrmidon.engine.input.pygame', 'myrmidon.engine.input.kivy',
-        'myrmidon.engine.gfx', 'myrmidon.engine.gfx.opengl', 'myrmidon.engine.gfx.modern_opengl', 'myrmidon.engine.gfx.kivy',
+    license = 'MIT',
+    packages = find_packages(exclude=['tests']),        
+    test_suite = 'tests',
+    install_requires = [
+        'pygame>=1.9.0release',
+        'numpy',
+        'pyOpenGL',
     ],
-    requires = ['pygame', 'OpenGL']
-    )
+)
