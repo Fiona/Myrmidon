@@ -13,7 +13,7 @@ setup(
     packages = find_packages(exclude=['tests']),        
     test_suite = 'tests',
     install_requires = [
-        'pygame>=1.9.0release',
+        'pygame>1.9.1release',
         'numpy',
         'pyOpenGL',
     ],
