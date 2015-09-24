@@ -558,7 +558,7 @@ class Game(object):
         if size is None:
             size = cls.screen_resolution[0] * cls.device_scale, cls.screen_resolution[1] * cls.device_scale
 
-        from myrmidon.ScreenOverlay import ScreenOverlay
+        from myrmidon.screen_overlay import ScreenOverlay
         cls.screen_overlay = ScreenOverlay(colour_from, colour_to, blocking, pos, size, z, callback)
         cls.screen_overlay.fade_from_to(fade_speed)
         if blocking:
