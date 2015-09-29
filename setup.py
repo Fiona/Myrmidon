@@ -12,9 +12,9 @@ setup(
     license = 'MIT',
     packages = find_packages(exclude=['tests']),        
     test_suite = 'tests',
-    install_requires = [
-        'pygame>1.9.1release',
-        'numpy',
-        'pyOpenGL',
-    ],
+    install_requires = [],
+    extras_require = {
+        'opengl': [ 'pygame>1.9.1release', 'numpy', 'pyOpenGL' ],
+        'kivy': []
+    }
 )
